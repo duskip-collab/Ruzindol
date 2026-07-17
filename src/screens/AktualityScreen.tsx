@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, ExternalLink, Loader2, Pin, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { CalendarFeed } from "../components/CalendarFeed";
-import { RssFeed } from "../components/RssFeed";
+import { SharedCalendar } from "@/components/SharedCalendar";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
 type Source = "rss" | "internal";
@@ -75,6 +75,9 @@ export function AktualityScreen() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setSyncing(true);
+      await syncRssIfNeeded();
+      setSyncing(false);
       await load();
       setLoading(false);
     })();
@@ -82,6 +85,7 @@ export function AktualityScreen() {
 
   async function forceSync() {
     setSyncing(true);
+    await syncRssIfNeeded(true);
     await load();
     setSyncing(false);
   }
@@ -132,40 +136,39 @@ export function AktualityScreen() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        <div className="flex flex-col gap-4">
-          <CalendarFeed />
-          <RssFeed />
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-neutral-400">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : items.length === 0 ? (
-            <p className="py-12 text-center text-xs text-neutral-500">
-              Zatiaľ žiadne oznamy.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {pinned.map((it) => (
-                <AnnouncementCard
-                  key={it.id}
-                  item={it}
-                  pinned
-                  canDelete={isAdmin}
-                  onDelete={() => handleDelete(it.id)}
-                />
-              ))}
-              {rest.map((it) => (
-                <AnnouncementCard
-                  key={it.id}
-                  item={it}
-                  canDelete={isAdmin}
-                  onDelete={() => handleDelete(it.id)}
-                />
-              ))}
-            </div>
-          )}
+        <div className="mb-4">
+          <SharedCalendar />
         </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-neutral-400">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="py-12 text-center text-xs text-neutral-500">
+            Zatiaľ žiadne oznamy.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pinned.map((it) => (
+              <AnnouncementCard
+                key={it.id}
+                item={it}
+                pinned
+                canDelete={isAdmin}
+                onDelete={() => handleDelete(it.id)}
+              />
+            ))}
+            {rest.map((it) => (
+              <AnnouncementCard
+                key={it.id}
+                item={it}
+                canDelete={isAdmin}
+                onDelete={() => handleDelete(it.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {showForm && isAdmin && userId && (
@@ -174,6 +177,7 @@ export function AktualityScreen() {
           onClose={() => setShowForm(false)}
           onCreated={async () => {
             setShowForm(false);
+            await cleanupExpiredAnnouncements();
             await load();
           }}
         />

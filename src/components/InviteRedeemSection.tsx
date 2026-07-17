@@ -60,7 +60,7 @@ export function InviteRedeemSection({
             placeholder="XXXX-XXXXX"
             maxLength={20}
             autoComplete="off"
-            className="w-full rounded-2xl border border-neutral-200 bg-white pl-9 pr-3 py-3 font-mono text-sm tracking-[0.25em] text-neutral-900 placeholder:text-neutral-400 focus:border-indigo-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-indigo-400"
+            className="w-full rounded-2xl border border-neutral-200 bg-white pl-9 pr-3 py-3 font-mono text-sm tracking-[0.25em] text-neutral-900 placeholder:text-neutral-400 focus:border-indigo-400 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white"
           />
         </div>
         <button
@@ -78,12 +78,12 @@ export function InviteRedeemSection({
       </div>
 
       {err && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:border-rose-600/60 dark:bg-rose-900/30 dark:text-rose-200">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
           {err}
         </div>
       )}
       {ok && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-900/30 dark:text-emerald-200">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
           Skvelé! Si aktívny sused. Všetky funkcie sú odomknuté.
         </div>
       )}

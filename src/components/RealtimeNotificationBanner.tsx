@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
 import { Megaphone, X } from "lucide-react";
 import { useNotifications } from "@/context/NotificationContext";
 
 export function RealtimeNotificationBanner() {
-  const [mounted, setMounted] = useState(false);
   const { current, dismiss } = useNotifications();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || !current) return null;
+  if (!current) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">

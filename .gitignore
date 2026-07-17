@@ -7,7 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# dependencies
 node_modules
 dist
 dist-ssr
@@ -15,28 +14,19 @@ dist-ssr
 .vinxi
 .tanstack/**
 .nitro
+*.local
 
-# Environment variables (DÔLEŽITÉ!)
-.env
-.env.*
-!.env.example
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
 
-# Supabase local development
-supabase/.temp/
-supabase/.tmp/
-supabase/.supabase/
-
-# OS / Editor files
-.DS_Store
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Wrangler / Cloudflare
-.wrangler/
-.dev.vars

@@ -1,44 +1,42 @@
 import { useMemo, useState } from "react";
-import { Plus, X, Send, Heart, Flag, Search, AlertTriangle } from "lucide-react";
+import { Plus, X, Send, Heart, Flag, Search, AlertTriangle, Loader2 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { SharedCalendar } from "@/components/SharedCalendar";
+
 import { PostLightbox } from "@/components/PostLightbox";
+import { ImageInput } from "@/components/ImageInput";
+import { BanBanner } from "@/components/BanBanner";
+import { uploadCompressedImage } from "@/lib/upload-image";
+import type { CompressedImage } from "@/lib/compress-image";
+import { supabase } from "@/integrations/supabase/client";
 import type { Post, PostType } from "@/types";
 
 
 const CATEGORIES = [
-  "Pomoc",
-  "Predaj",
-  "Darovanie",
-  "Susedsky_trh",
-  "Udalost",
   "Otazka",
-  "Vseobecne",
+  "Straty_a_nalezy",
+  "Info_pre_susedov",
   "Hlasnik",
 ] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const CATEGORY_LABEL: Record<Category, string> = {
-  Pomoc: "🙋 Pomoc",
-  Predaj: "🏷️ Predaj",
-  Darovanie: "🎁 Darovanie",
-  Susedsky_trh: "🛒 Susedský trh",
-  Udalost: "📅 Udalosť",
   Otazka: "❓ Otázka",
-  Vseobecne: "💬 Všeobecné",
+  Straty_a_nalezy: "🔎 Straty a nálezy",
+  Info_pre_susedov: "📣 Info pre susedov",
   Hlasnik: "📢 Hlásnik",
 };
 
+// Nástenka (Susedský život) povoľuje IBA tieto 3 kategórie.
+// Všetko ostatné (predaj, darovanie, služby…) patrí do Susedského skladu.
 const NEIGHBOR_CATEGORIES: Category[] = [
-  "Pomoc",
-  "Predaj",
-  "Darovanie",
-  "Susedsky_trh",
-  "Udalost",
   "Otazka",
-  "Vseobecne",
+  "Straty_a_nalezy",
+  "Info_pre_susedov",
 ];
+
+// Príspevky na nástenke expirujú po 4 dňoch.
+const NEIGHBOR_MAX_AGE_MS = 4 * 24 * 60 * 60 * 1000;
 
 const TRH_DISCLAIMER =
   "Prevádzkovateľ aplikácie nezodpovedá za legálnosť, kvalitu ani pôvod produktov. Používatelia sú povinní dodržiavať legislatívu SR (dane, hygiena).";
@@ -77,9 +75,14 @@ export function NastenkaScreen() {
   const oznamy = filtered.filter(
     (p) => p.type === "hlasnik" || p.type === "official_alert",
   );
-  const prispevky = filtered.filter(
-    (p) => p.type === "susedsky_zivot" || p.type === "farsky_oznam",
-  );
+  const prispevky = filtered.filter((p) => {
+    if (p.type !== "susedsky_zivot" && p.type !== "farsky_oznam") return false;
+    // Iba povolené kategórie na Nástenke.
+    if (!NEIGHBOR_CATEGORIES.includes(p.category as Category)) return false;
+    // Expirácia po 4 dňoch.
+    if (Date.now() - new Date(p.createdAt).getTime() > NEIGHBOR_MAX_AGE_MS) return false;
+    return true;
+  });
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -95,6 +98,13 @@ export function NastenkaScreen() {
           />
         </div>
       </div>
+
+      {profile && (
+        <div className="px-5 pt-3">
+          <BanBanner profile={profile} />
+        </div>
+      )}
+
 
       {/* Hlásnik */}
       <section className="border-b border-neutral-200/70 pb-3 dark:border-white/10">
@@ -168,10 +178,6 @@ export function NastenkaScreen() {
         </div>
       </section>
 
-      {/* Kalendár obce */}
-      <section className="px-5 pb-6">
-        <SharedCalendar />
-      </section>
 
       {modal && (
         <NewPostModal mode={modal.kind} onClose={() => setModal(null)} />
@@ -343,48 +349,85 @@ function NewPostModal({
   onClose: () => void;
 }) {
   const { addPost, currentUser } = useApp();
+  const { userId } = useCurrentUser();
   const isOfficial = mode === "official";
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState<Category>(
-    isOfficial ? "Hlasnik" : "Vseobecne",
+    isOfficial ? "Hlasnik" : "Otazka",
   );
+  const [image, setImage] = useState<CompressedImage | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  const canAttachImage = !isOfficial && category === "Straty_a_nalezy";
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim()) return;
-    const type: PostType = isOfficial ? "hlasnik" : "susedsky_zivot";
-    addPost({
-      userId: currentUser.id,
-      userName: currentUser.name,
-      type,
-      category,
-      title: title.trim() || (isOfficial ? "Oznam" : "Príspevok"),
-      content: content.trim(),
-    });
-    onClose();
+    if (!content.trim() || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const type: PostType = isOfficial ? "hlasnik" : "susedsky_zivot";
+      const finalTitle = title.trim() || (isOfficial ? "Oznam" : "Príspevok");
+      const finalContent = content.trim();
+
+      let imageUrl: string | null = null;
+      if (canAttachImage && image && userId) {
+        imageUrl = await uploadCompressedImage(image, userId);
+      }
+
+      // Perzistencia do Supabase (posts) — obrázok prepojíme cez image_url.
+      if (userId) {
+        const { error } = await supabase.from("posts").insert({
+          user_id: userId,
+          type,
+          category,
+          title: finalTitle,
+          content: finalContent,
+          image_url: imageUrl,
+        });
+        if (error) throw error;
+      }
+
+      // Lokálny cache pre okamžité zobrazenie v UI.
+      addPost({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        type,
+        category,
+        title: finalTitle,
+        content: finalContent,
+        imageUrl: imageUrl ?? undefined,
+      });
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Nepodarilo sa uložiť príspevok.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const options = isOfficial ? (["Hlasnik"] as Category[]) : NEIGHBOR_CATEGORIES;
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white dark:bg-neutral-950">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
+    <div className="absolute inset-0 z-50 flex flex-col bg-white">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
           aria-label="Zavrieť"
         >
-          <X className="h-5 w-5 text-neutral-900 dark:text-neutral-100" />
+          <X className="h-5 w-5" />
         </button>
-        <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="font-semibold">
           {isOfficial ? "📢 Nový úradný oznam" : "🏘️ Nový príspevok"}
         </h2>
       </div>
 
       <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Kategória</label>
+          <label className="text-sm font-medium text-neutral-700">Kategória</label>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {options.map((c) => (
               <button
@@ -393,8 +436,8 @@ function NewPostModal({
                 onClick={() => setCategory(c)}
                 className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                   category === c
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
+                    ? "bg-neutral-900 text-white"
+                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                 }`}
               >
                 {CATEGORY_LABEL[c]}
@@ -404,45 +447,51 @@ function NewPostModal({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Nadpis</label>
+          <label className="text-sm font-medium text-neutral-700">Nadpis</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={isOfficial ? "Napr. Odstávka vody" : "Krátky nadpis (voliteľné)"}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-500"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
           />
         </div>
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Obsah</label>
+          <label className="text-sm font-medium text-neutral-700">Obsah</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
             rows={5}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-500"
+            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
           />
         </div>
 
-        {category === "Susedsky_trh" && (
-          <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-[11px] leading-snug text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{TRH_DISCLAIMER}</span>
-          </div>
+        {canAttachImage && (
+          <ImageInput
+            value={image}
+            onChange={setImage}
+            label="Fotka (1 obrázok, voliteľné)"
+          />
         )}
+
+        {err && <p className="text-xs text-rose-600">{err}</p>}
 
         <div className="mt-auto flex flex-col gap-2 pt-4">
           <button
             type="submit"
-            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] ${
+            disabled={busy}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60 ${
               isOfficial ? "bg-orange-500" : "bg-neutral-900"
             }`}
           >
-            <Send className="h-4 w-4" /> Zverejniť
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Zverejniť
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
+            disabled={busy}
+            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
           >
             Zrušiť
           </button>

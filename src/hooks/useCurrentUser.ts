@@ -10,9 +10,12 @@ export type Profile = {
   role: ProfileRole;
   is_active_neighbor: boolean;
   invite_code: string | null;
+  banned_until: string | null;
+  ban_reason: string | null;
 };
 
-const SELECT = "id, name, street, role, is_active_neighbor, invite_code";
+const SELECT =
+  "id, name, street, role, is_active_neighbor, invite_code, banned_until, ban_reason";
 
 export function useCurrentUser() {
   const [userId, setUserId] = useState<string | null>(null);

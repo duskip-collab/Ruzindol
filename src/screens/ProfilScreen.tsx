@@ -17,6 +17,7 @@ import {
   Save,
   Bell,
   UserCog,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
@@ -24,7 +25,8 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { RolePanels } from "@/components/RolePanels";
 import { NeighborhoodPulse } from "@/components/NeighborhoodPulse";
 import { AdminPanel } from "@/components/AdminPanel";
-import { ModerationDashboard } from "@/components/ModerationDashboard";
+import { ModerationPanel } from "@/components/ModerationPanel";
+import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { InviteRedeemSection } from "@/components/InviteRedeemSection";
 import { useAppMode } from "@/context/AppModeContext";
@@ -81,20 +83,54 @@ export function ProfilScreen() {
 
   const [items, setItems] = useState<Item[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
+  const [busyItemId, setBusyItemId] = useState<string | null>(null);
+
+  async function loadItems(uid: string) {
+    setItemsLoading(true);
+    const { data } = await supabase
+      .from("warehouse_items")
+      .select("id, type, title, price, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false });
+    setItems((data as Item[] | null) ?? []);
+    setItemsLoading(false);
+  }
 
   useEffect(() => {
     if (!userId) return;
-    (async () => {
-      setItemsLoading(true);
-      const { data } = await supabase
-        .from("warehouse_items")
-        .select("id, type, title, price, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      setItems((data as Item[] | null) ?? []);
-      setItemsLoading(false);
-    })();
+    void loadItems(userId);
   }, [userId]);
+
+  async function deleteItem(id: string) {
+    if (!confirm("Naozaj vymazať tento inzerát?")) return;
+    setBusyItemId(id);
+    const { error } = await supabase.from("warehouse_items").delete().eq("id", id);
+    setBusyItemId(null);
+    if (error) {
+      alert("Nepodarilo sa vymazať: " + error.message);
+      return;
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  async function reactivateItem(id: string) {
+    setBusyItemId(id);
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase
+      .from("warehouse_items")
+      .update({ created_at: nowIso })
+      .eq("id", id);
+    setBusyItemId(null);
+    if (error) {
+      alert("Nepodarilo sa predĺžiť platnosť: " + error.message);
+      return;
+    }
+    setItems((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, created_at: nowIso } : i))
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
+    );
+  }
 
   if (loading || !profile) {
     return (
@@ -105,8 +141,6 @@ export function ProfilScreen() {
   }
 
   const isStarosta = profile.role === "Starosta";
-  const canModerate = isAdmin || isStarosta;
-  const hasRoleDashboard = profile.role !== "Sused";
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto px-5 py-5">
@@ -151,24 +185,27 @@ export function ProfilScreen() {
         </div>
       </div>
 
-      {/* Admin panel — only for admins */}
-      {/* Collapsible sections */}
+      {/* Ban status */}
+      <BanBanner profile={profile} />
+
+      {/* Collapsible sections — iba jedna otvorená naraz */}
       <Accordion
-        type="multiple"
-        defaultValue={["settings"]}
+        type="single"
+        collapsible
         className="flex flex-col gap-2"
       >
         {isAdmin && (
-          <AccordionSection value="admin" title="Administrátorský panel">
+          <AccordionSection value="admin" title="Admin panel">
             <AdminPanel adminId={profile.id} />
           </AccordionSection>
         )}
 
-        {canModerate && (
-          <AccordionSection value="moderation" title="Moderácia susedov">
-            <ModerationDashboard currentUserId={profile.id} />
+        {(isAdmin || profile.role === "Starosta") && (
+          <AccordionSection value="moderation" title="Moderácia">
+            <ModerationPanel currentUserId={profile.id} />
           </AccordionSection>
         )}
+
         <AccordionSection value="edit" title="Úprava profilu">
           <ProfileEditForm
             initialName={profile.name}
@@ -191,14 +228,12 @@ export function ProfilScreen() {
           </AccordionSection>
         )}
 
-        {hasRoleDashboard && (
-          <AccordionSection value="panels" title="Panely rolí">
-            <div className="flex flex-col gap-3">
-              <RolePanels role={profile.role} />
-              <NeighborhoodPulse />
-            </div>
-          </AccordionSection>
-        )}
+        <AccordionSection value="panels" title="Panely rolí">
+          <div className="flex flex-col gap-3">
+            <RolePanels role={profile.role} />
+            <NeighborhoodPulse />
+          </div>
+        </AccordionSection>
 
         {!profile.is_active_neighbor && (
           <AccordionSection
@@ -216,6 +251,8 @@ export function ProfilScreen() {
         )}
 
 
+
+
         <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
           {itemsLoading ? (
             <div className="flex justify-center py-6">
@@ -227,30 +264,71 @@ export function ProfilScreen() {
             </div>
           ) : (
             <ul className="flex flex-col gap-2">
-              {items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-2xl border border-neutral-200/60 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-white/10">
-                    <Package className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {item.title}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-neutral-500">
-                      <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
-                        {CATEGORY_LABEL[item.type] ?? item.type}
+              {items.map((item) => {
+                // Inzerát v Sklade považujeme za expirovaný po 14 dňoch.
+                const ageMs = Date.now() - new Date(item.created_at).getTime();
+                const isExpired = ageMs > 14 * 24 * 60 * 60 * 1000;
+                const busy = busyItemId === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className="flex flex-col gap-2 rounded-2xl border border-neutral-200/60 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-white/10">
+                        <Package className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {item.title}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+                          <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
+                            {CATEGORY_LABEL[item.type] ?? item.type}
+                          </span>
+                          <span>{timeAgo(item.created_at)}</span>
+                          {isExpired && (
+                            <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                              Expirovaný
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                        {item.price > 0 ? `${item.price} €` : "Zadarmo"}
                       </span>
-                      <span>{timeAgo(item.created_at)}</span>
                     </div>
-                  </div>
-                  <span className="shrink-0 text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                    {item.price > 0 ? `${item.price} €` : "Zadarmo"}
-                  </span>
-                </li>
-              ))}
+                    <div className="flex flex-wrap gap-2">
+                      {isExpired && (
+                        <button
+                          onClick={() => void reactivateItem(item.id)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {busy ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                          Zaktivovať
+                        </button>
+                      )}
+                      <button
+                        onClick={() => void deleteItem(item.id)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-transparent"
+                      >
+                        {busy ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                        Vymazať
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </AccordionSection>
@@ -332,7 +410,7 @@ function ProfileEditForm({
   return (
     <form
       onSubmit={save}
-      className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-neutral-700/60 dark:bg-neutral-950/80"
+      className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
     >
       <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
         Úprava profilu
@@ -357,7 +435,7 @@ function ProfileEditForm({
             value={street}
             onChange={(e) => setStreet(e.target.value)}
             placeholder="Napr. Hlavná 12"
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-neutral-500"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </label>
       </div>

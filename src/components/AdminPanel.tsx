@@ -15,7 +15,14 @@ type InviteRow = {
   used_at: string | null;
 };
 
-type Muni = { id: string; slug: string; name: string; region: string | null };
+type Muni = {
+  id: string;
+  slug: string;
+  name: string;
+  region: string | null;
+  mayor_name: string | null;
+  logo_url: string | null;
+};
 type UserRow = { id: string; name: string; role: ProfileRole };
 
 const ROLE_CHOICES: ProfileRole[] = ["Sused", "Starosta", "Uradnik", "Farar", "VIP_Firma"];
@@ -76,7 +83,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   const load = async () => {
     setLoading(true);
     const [{ data: mData }, { data: cData }] = await Promise.all([
-      supabase.from("municipalities").select("id, slug, name, region").order("name"),
+      supabase.from("municipalities").select("id, slug, name, region, mayor_name, logo_url").order("name"),
       supabase
         .from("invite_codes")
         .select("id, code, role, municipality_id, created_at, used_by, used_at")
@@ -405,16 +412,19 @@ function RoleAssigner() {
 
 function MunicipalityManager() {
   const [munis, setMunis] = useState<Muni[]>([]);
+  const [editing, setEditing] = useState<Record<string, Partial<Muni>>>({});
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [region, setRegion] = useState("");
+  const [mayorName, setMayorName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await supabase
       .from("municipalities")
-      .select("id, slug, name, region")
+      .select("id, slug, name, region, mayor_name, logo_url")
       .order("name");
     setMunis((data as Muni[] | null) ?? []);
   };
@@ -427,60 +437,216 @@ function MunicipalityManager() {
     e.preventDefault();
     setBusy(true);
     setErr(null);
-    const { error } = await supabase
-      .from("municipalities")
-      .insert({ name: name.trim(), slug: slug.trim().toLowerCase(), region: region.trim() || null });
+    const { error } = await supabase.from("municipalities").insert({
+      name: name.trim(),
+      slug: slug.trim().toLowerCase(),
+      region: region.trim() || null,
+      mayor_name: mayorName.trim() || null,
+      logo_url: logoUrl.trim() || null,
+    });
     setBusy(false);
     if (error) return setErr(error.message);
     setName("");
     setSlug("");
     setRegion("");
+    setMayorName("");
+    setLogoUrl("");
     await load();
   }
+
+  async function saveEdit(id: string) {
+    const patch = editing[id];
+    if (!patch) return;
+    setErr(null);
+    const { error } = await supabase
+      .from("municipalities")
+      .update({
+        name: patch.name?.trim(),
+        region: patch.region?.trim() || null,
+        mayor_name: (patch.mayor_name ?? "").trim() || null,
+        logo_url: (patch.logo_url ?? "").trim() || null,
+      })
+      .eq("id", id);
+    if (error) return setErr(error.message);
+    setEditing((s) => {
+      const n = { ...s };
+      delete n[id];
+      return n;
+    });
+    await load();
+  }
+
+  async function removeMuni(id: string, muniName: string) {
+    if (!confirm(`Vymazať obec "${muniName}"? Toto zlyhá, ak v nej sú susedia.`)) return;
+    const { error } = await supabase.from("municipalities").delete().eq("id", id);
+    if (error) return setErr(error.message);
+    await load();
+  }
+
+  const startEdit = (m: Muni) =>
+    setEditing((s) => ({
+      ...s,
+      [m.id]: {
+        name: m.name,
+        region: m.region ?? "",
+        mayor_name: m.mayor_name ?? "",
+        logo_url: m.logo_url ?? "",
+      },
+    }));
 
   return (
     <div>
       <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-        <MapPin className="h-3.5 w-3.5" /> Obce v systéme
+        <MapPin className="h-3.5 w-3.5" /> Správa obcí
       </h4>
-      <ul className="mb-3 space-y-1">
-        {munis.map((m) => (
-          <li
-            key={m.id}
-            className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
-          >
-            <span className="font-medium text-neutral-900 dark:text-neutral-100">{m.name}</span>
-            <span className="text-neutral-400">/{m.slug}</span>
-            {m.region && <span className="ml-auto text-neutral-500">{m.region}</span>}
-          </li>
-        ))}
+      <ul className="mb-3 space-y-1.5">
+        {munis.map((m) => {
+          const e = editing[m.id];
+          if (e) {
+            return (
+              <li
+                key={m.id}
+                className="space-y-1.5 rounded-xl border border-indigo-200 bg-indigo-50/60 p-2 text-xs dark:border-indigo-400/30 dark:bg-indigo-500/10"
+              >
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    value={e.name ?? ""}
+                    onChange={(ev) =>
+                      setEditing((s) => ({ ...s, [m.id]: { ...s[m.id], name: ev.target.value } }))
+                    }
+                    placeholder="Názov"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                  />
+                  <input
+                    value={e.region ?? ""}
+                    onChange={(ev) =>
+                      setEditing((s) => ({ ...s, [m.id]: { ...s[m.id], region: ev.target.value } }))
+                    }
+                    placeholder="Kraj"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                  />
+                  <input
+                    value={e.mayor_name ?? ""}
+                    onChange={(ev) =>
+                      setEditing((s) => ({
+                        ...s,
+                        [m.id]: { ...s[m.id], mayor_name: ev.target.value },
+                      }))
+                    }
+                    placeholder="Meno starostu"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                  />
+                  <input
+                    value={e.logo_url ?? ""}
+                    onChange={(ev) =>
+                      setEditing((s) => ({
+                        ...s,
+                        [m.id]: { ...s[m.id], logo_url: ev.target.value },
+                      }))
+                    }
+                    placeholder="URL loga / erbu"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                  />
+                </div>
+                <div className="flex justify-end gap-1.5">
+                  <button
+                    onClick={() =>
+                      setEditing((s) => {
+                        const n = { ...s };
+                        delete n[m.id];
+                        return n;
+                      })
+                    }
+                    className="rounded-md px-2 py-1 text-[11px] text-neutral-600 hover:bg-neutral-100 dark:hover:bg-white/10"
+                  >
+                    Zrušiť
+                  </button>
+                  <button
+                    onClick={() => void saveEdit(m.id)}
+                    className="rounded-md bg-indigo-600 px-2 py-1 text-[11px] font-semibold text-white"
+                  >
+                    Uložiť
+                  </button>
+                </div>
+              </li>
+            );
+          }
+          return (
+            <li
+              key={m.id}
+              className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+            >
+              {m.logo_url ? (
+                <img src={m.logo_url} alt="" className="h-6 w-6 rounded object-cover" />
+              ) : (
+                <div className="flex h-6 w-6 items-center justify-center rounded bg-neutral-100 text-[10px] text-neutral-400 dark:bg-white/10">
+                  {m.name[0]}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                  {m.name}{" "}
+                  <span className="font-normal text-neutral-400">/{m.slug}</span>
+                </div>
+                <div className="truncate text-[10px] text-neutral-500">
+                  {m.region ?? "—"} · Starosta: {m.mayor_name ?? "—"}
+                </div>
+              </div>
+              <button
+                onClick={() => startEdit(m)}
+                className="rounded-md px-2 py-1 text-[10px] font-medium text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+              >
+                Upraviť
+              </button>
+              <button
+                onClick={() => void removeMuni(m.id, m.name)}
+                className="rounded-md p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                aria-label="Vymazať"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </li>
+          );
+        })}
       </ul>
 
-      <form onSubmit={add} className="grid grid-cols-3 gap-1.5">
+      <form onSubmit={add} className="grid grid-cols-2 gap-1.5 rounded-xl border border-dashed border-neutral-300 p-2 dark:border-white/10">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Názov"
+          placeholder="Názov obce"
           required
-          className="col-span-1 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
         />
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          placeholder="slug"
+          placeholder="slug (napr. ruzindol)"
           required
-          className="col-span-1 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
         />
         <input
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          placeholder="Kraj"
-          className="col-span-1 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          placeholder="Kraj / okres"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+        />
+        <input
+          value={mayorName}
+          onChange={(e) => setMayorName(e.target.value)}
+          placeholder="Meno starostu"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+        />
+        <input
+          value={logoUrl}
+          onChange={(e) => setLogoUrl(e.target.value)}
+          placeholder="URL loga / erbu (voliteľné)"
+          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
         />
         <button
           type="submit"
           disabled={busy}
-          className="col-span-3 rounded-lg bg-indigo-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          className="col-span-2 rounded-lg bg-indigo-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
         >
           Pridať obec
         </button>

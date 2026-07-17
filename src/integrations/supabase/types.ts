@@ -99,6 +99,56 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          author_id: string
+          created_at: string
+          description: string
+          ends_at: string | null
+          id: string
+          location: string
+          municipality_id: string | null
+          starts_at: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          description?: string
+          ends_at?: string | null
+          id?: string
+          location?: string
+          municipality_id?: string | null
+          starts_at: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          description?: string
+          ends_at?: string | null
+          id?: string
+          location?: string
+          municipality_id?: string | null
+          starts_at?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_codes: {
         Row: {
           code: string
@@ -184,6 +234,8 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          logo_url: string | null
+          mayor_name: string | null
           name: string
           region: string | null
           slug: string
@@ -192,6 +244,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          logo_url?: string | null
+          mayor_name?: string | null
           name: string
           region?: string | null
           slug: string
@@ -200,6 +254,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          logo_url?: string | null
+          mayor_name?: string | null
           name?: string
           region?: string | null
           slug?: string
@@ -252,6 +308,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ban_reason: string | null
+          banned_until: string | null
           created_at: string
           id: string
           invite_code: string | null
@@ -263,6 +321,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ban_reason?: string | null
+          banned_until?: string | null
           created_at?: string
           id: string
           invite_code?: string | null
@@ -274,6 +334,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ban_reason?: string | null
+          banned_until?: string | null
           created_at?: string
           id?: string
           invite_code?: string | null
@@ -364,7 +426,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ban_neighbor: {
+        Args: { _days: number; _reason?: string; _target: string }
+        Returns: string
+      }
+      can_moderate: { Args: { _user_id: string }; Returns: boolean }
+      cleanup_expired_announcements: { Args: never; Returns: number }
+      cleanup_old_neighbor_posts: { Args: never; Returns: number }
       cleanup_used_invite_codes: { Args: never; Returns: number }
+      current_user_municipality: { Args: never; Returns: string }
+      delete_neighbor: { Args: { _target: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -372,7 +443,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_banned: { Args: { _user_id: string }; Returns: boolean }
       redeem_invite_code: { Args: { _code: string }; Returns: boolean }
+      unban_neighbor: { Args: { _target: string }; Returns: boolean }
     }
     Enums: {
       app_role:

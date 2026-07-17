@@ -3,11 +3,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CodeActivationScreen } from "@/screens/onboarding/CodeActivationScreen";
+import { BanBanner } from "@/components/BanBanner";
 
 export function ReadonlyBanner() {
   const { profile, loading, refresh } = useCurrentUser();
   const [open, setOpen] = useState(false);
-  if (loading || !profile || profile.is_active_neighbor) return null;
+  if (loading || !profile) return null;
+
+  const isBanned =
+    !!profile.banned_until && new Date(profile.banned_until).getTime() > Date.now();
+
+  if (isBanned) {
+    return (
+      <div className="mx-3 mt-2">
+        <BanBanner profile={profile} variant="compact" />
+      </div>
+    );
+  }
+
+  if (profile.is_active_neighbor) return null;
 
   return (
     <>

@@ -16,6 +16,7 @@ import { AppProvider } from "../context/AppContext";
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { RealtimeNotificationBanner } from "../components/RealtimeNotificationBanner";
+import { Splash } from "../components/Splash";
 
 function NotFoundComponent() {
   return (
@@ -78,7 +79,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  ssr: false,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -109,6 +109,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { rel: "apple-touch-icon", href: "/icon-192.png", sizes: "192x192" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
@@ -141,6 +143,7 @@ function RootComponent() {
         <AppModeProvider>
           <AppProvider>
             <NotificationProvider>
+              <Splash />
               <RealtimeNotificationBanner />
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />

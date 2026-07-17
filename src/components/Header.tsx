@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
 import { useTheme } from "@/context/ThemeContext";
+import ruzindolErb from "@/assets/ruzindol-erb.png";
 
 export function Header({ profile }: { profile: Profile | null }) {
   const navigate = useNavigate();
@@ -24,13 +25,18 @@ export function Header({ profile }: { profile: Profile | null }) {
   return (
     <header className="glass-panel flex items-center justify-between border-x-0 border-t-0 px-5 py-3.5 z-50 shrink-0">
       <div className="flex items-center gap-2.5">
-        <div className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-brand to-brand-glow shadow-lg shadow-brand/25">
-          <span className="text-sm font-bold text-brand-foreground">K</span>
+        <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-brand/25 ring-1 ring-border">
+          <img
+            src={ruzindolErb}
+            alt="Erb obce Ružindol"
+            className="h-full w-full object-contain"
+          />
         </div>
         <h1 className="text-base font-semibold tracking-tight text-foreground">
-          Komunita
+          Ružindol
         </h1>
       </div>
+
       <div className="flex items-center gap-1.5">
         <button
           type="button"
