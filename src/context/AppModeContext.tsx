@@ -35,9 +35,7 @@ interface AppModeCtx extends OnboardingState {
   invitesRemaining: number;
   setGeo: (region: string, municipality: string) => void;
   finishOnboarding: () => void;
-  activateCode: (
-    code: string,
-  ) => { ok: true } | { ok: false; error: string };
+  activateCode: (code: string) => { ok: true } | { ok: false; error: string };
   generateInviteCode: () => { ok: true; code: string } | { ok: false; error: string };
   resetOnboarding: () => void;
   setRole: (role: OnboardingRole) => void;
@@ -146,8 +144,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   const maxInvites = state.role === "Sused" ? 5 : Infinity;
 
   const generateInviteCode = useCallback(() => {
-    if (!state.isVerified)
-      return { ok: false as const, error: "Najprv aktivuj svoj účet kódom." };
+    if (!state.isVerified) return { ok: false as const, error: "Najprv aktivuj svoj účet kódom." };
     if (state.invitesGenerated >= maxInvites)
       return {
         ok: false as const,
@@ -170,9 +167,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       isReadonly: !state.isVerified,
       maxInvites,
       invitesRemaining:
-        maxInvites === Infinity
-          ? Infinity
-          : Math.max(0, maxInvites - state.invitesGenerated),
+        maxInvites === Infinity ? Infinity : Math.max(0, maxInvites - state.invitesGenerated),
       setGeo,
       finishOnboarding,
       activateCode,

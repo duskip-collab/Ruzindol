@@ -8,8 +8,6 @@ export function useIsAdmin(userId: string | null | undefined) {
   useEffect(() => {
     let alive = true;
     if (!userId) {
-      setIsAdmin(false);
-      setLoading(false);
       return;
     }
     (async () => {
@@ -29,5 +27,8 @@ export function useIsAdmin(userId: string | null | undefined) {
     };
   }, [userId]);
 
-  return { isAdmin, loading };
+  return {
+    isAdmin: userId ? isAdmin : false,
+    loading: userId ? loading : false,
+  };
 }

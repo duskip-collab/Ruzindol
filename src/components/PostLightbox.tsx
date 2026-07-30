@@ -103,11 +103,7 @@ export function PostLightbox({
               </p>
 
               {post.imageUrl && (
-                <img
-                  src={post.imageUrl}
-                  alt=""
-                  className="mt-4 w-full rounded-2xl object-cover"
-                />
+                <img src={post.imageUrl} alt="" className="mt-4 w-full rounded-2xl object-cover" />
               )}
 
               {(list.length > 0 || canReply) && (
@@ -123,12 +119,21 @@ export function PostLightbox({
                   {list.length > 0 && (
                     <div className="mt-2 space-y-2">
                       {list.map((reply) => (
-                        <div key={reply.id} className="rounded-xl bg-neutral-100/80 px-3 py-2 text-xs dark:bg-white/10">
+                        <div
+                          key={reply.id}
+                          className="rounded-xl bg-neutral-100/80 px-3 py-2 text-xs dark:bg-white/10"
+                        >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">{reply.userName}</span>
-                            <span className="text-[10px] text-neutral-500">{timeAgo(reply.createdAt)}</span>
+                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+                              {reply.userName}
+                            </span>
+                            <span className="text-[10px] text-neutral-500">
+                              {timeAgo(reply.createdAt)}
+                            </span>
                           </div>
-                          <p className="mt-1 whitespace-pre-wrap text-neutral-700 dark:text-neutral-300">{reply.content}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-neutral-700 dark:text-neutral-300">
+                            {reply.content}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -151,7 +156,11 @@ export function PostLightbox({
                         className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-white transition hover:bg-neutral-800 disabled:opacity-50"
                         aria-label="Pridať odpoveď"
                       >
-                        {replyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                        {replyBusy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MessageCircle className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   )}

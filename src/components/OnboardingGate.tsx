@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { Eye, KeyRound } from "lucide-react";
@@ -11,15 +11,10 @@ type Phase = "welcome" | "geo" | "gate" | "app";
 
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const { onboarded, isVerified } = useAppMode();
-  const [phase, setPhase] = useState<Phase>(onboarded ? "app" : "welcome");
+  const [phaseState, setPhase] = useState<Phase>(onboarded ? "app" : "welcome");
   const [showActivation, setShowActivation] = useState(false);
   const canUseDom = typeof document !== "undefined";
-
-  useEffect(() => {
-    if (onboarded) {
-      setPhase("app");
-    }
-  }, [onboarded]);
+  const phase: Phase = onboarded ? "app" : phaseState;
 
   return (
     <>
@@ -62,9 +57,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      {phase === "app" && (
-        <div className="relative flex h-full flex-col">{children}</div>
-      )}
+      {phase === "app" && <div className="relative flex h-full flex-col">{children}</div>}
 
       {canUseDom &&
         createPortal(
@@ -93,13 +86,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   );
 }
 
-function PostGeoLanding({
-  onEnterCode,
-  onSkip,
-}: {
-  onEnterCode: () => void;
-  onSkip: () => void;
-}) {
+function PostGeoLanding({ onEnterCode, onSkip }: { onEnterCode: () => void; onSkip: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 bg-gradient-to-b from-neutral-50 to-neutral-100 px-6 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-md">
@@ -108,8 +95,8 @@ function PostGeoLanding({
       <div>
         <h2 className="text-xl font-semibold">Máš pozývací kód?</h2>
         <p className="mt-2 max-w-xs text-sm text-neutral-600">
-          Komunita je uzavretá — potrebuješ 10-znakový kód od suseda alebo
-          starostu, aby si mohol pridávať príspevky.
+          Komunita je uzavretá — potrebuješ 10-znakový kód od suseda alebo starostu, aby si mohol
+          pridávať príspevky.
         </p>
       </div>
       <div className="flex w-full max-w-xs flex-col gap-2">

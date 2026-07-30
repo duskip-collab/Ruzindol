@@ -50,7 +50,9 @@ export function NearbyCatalog() {
       setLoading(true);
       const { data, error } = await supabase
         .from("warehouse_items")
-        .select("id, user_id, type, title, description, price, image_url, created_at, profiles(name)")
+        .select(
+          "id, user_id, type, title, description, price, image_url, created_at, profiles(name)",
+        )
         .order("created_at", { ascending: false })
         .limit(60);
       if (!mounted) return;
@@ -124,8 +126,7 @@ export function NearbyCatalog() {
 
 function ItemTile({ item }: { item: Row }) {
   const dist = distanceMeters(item.id);
-  const price =
-    item.type === "darovanie" || item.price === 0 ? "Zadarmo" : `${item.price} €`;
+  const price = item.type === "darovanie" || item.price === 0 ? "Zadarmo" : `${item.price} €`;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 shadow-sm">

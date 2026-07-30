@@ -1,10 +1,11 @@
+import { useEffect, useState } from "react";
 import { Ban, Mail } from "lucide-react";
 import type { Profile } from "@/hooks/useCurrentUser";
 
 const CONTACT_EMAIL = "info@ruzindol.sk";
 
-function daysLeft(until: string): number {
-  const diffMs = new Date(until).getTime() - Date.now();
+function daysLeft(until: string, nowMs: number): number {
+  const diffMs = new Date(until).getTime() - nowMs;
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
@@ -15,11 +16,18 @@ export function BanBanner({
   profile: Pick<Profile, "banned_until" | "ban_reason" | "name">;
   variant?: "full" | "compact";
 }) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   if (!profile.banned_until) return null;
   const until = new Date(profile.banned_until);
-  if (until.getTime() <= Date.now()) return null;
+  if (until.getTime() <= nowMs) return null;
 
-  const left = daysLeft(profile.banned_until);
+  const left = daysLeft(profile.banned_until, nowMs);
   const subject = encodeURIComponent(`Žiadosť o odblokovanie — ${profile.name}`);
   const body = encodeURIComponent(
     `Dobrý deň,\n\nchcem požiadať o odblokovanie môjho účtu.\nBan trvá do: ${until.toLocaleDateString("sk-SK")} (${left} dní).\nDôvod (podľa systému): ${profile.ban_reason ?? "—"}\n\nĎakujem.`,
@@ -69,8 +77,8 @@ export function BanBanner({
         </p>
       )}
       <p className="mb-3 text-xs text-rose-800 dark:text-rose-200">
-        Počas blokácie môžete obsah iba čítať. Ak si myslíte, že ide o omyl, kontaktujte
-        starostu alebo administrátora.
+        Počas blokácie môžete obsah iba čítať. Ak si myslíte, že ide o omyl, kontaktujte starostu
+        alebo administrátora.
       </p>
       <a
         href={mailto}

@@ -193,7 +193,7 @@ export function NeighborhoodPulse() {
       mapRef.current = null;
       leafletRef.current = null;
     };
-  }, []);
+  }, [center]);
 
   useEffect(() => {
     mapRef.current?.setView(center, DEFAULT_ZOOM);

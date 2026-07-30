@@ -20,6 +20,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
   const [query, setQuery] = useState("");
   const [days, setDays] = useState<Record<string, number>>({});
   const [reason, setReason] = useState<Record<string, string>>({});
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const load = async () => {
     setLoading(true);
@@ -34,15 +35,21 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
   };
 
   useEffect(() => {
-    void load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
   }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
-    return rows.filter(
-      (r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q),
-    );
+    return rows.filter((r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q));
   }, [rows, query]);
 
   function flash(text: string) {
@@ -80,11 +87,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
   }
 
   async function remove(target: Row) {
-    if (
-      !confirm(
-        `Naozaj natrvalo vymazať suseda "${target.name}"? Táto akcia sa nedá vrátiť.`,
-      )
-    )
+    if (!confirm(`Naozaj natrvalo vymazať suseda "${target.name}"? Táto akcia sa nedá vrátiť.`))
       return;
     setBusy(target.id);
     setErr(null);
@@ -136,7 +139,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
             const isSelf = u.id === currentUserId;
             const isAdminRow = u.role === ("admin" as ProfileRole);
             const bannedUntil = u.banned_until ? new Date(u.banned_until) : null;
-            const isBanned = bannedUntil ? bannedUntil.getTime() > Date.now() : false;
+            const isBanned = bannedUntil ? bannedUntil.getTime() > nowMs : false;
             const disabled = isSelf || isAdminRow || busy === u.id;
 
             return (
@@ -205,9 +208,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
                     </label>
                     <input
                       value={reason[u.id] ?? ""}
-                      onChange={(e) =>
-                        setReason((s) => ({ ...s, [u.id]: e.target.value }))
-                      }
+                      onChange={(e) => setReason((s) => ({ ...s, [u.id]: e.target.value }))}
                       placeholder="Dôvod (voliteľné)"
                       maxLength={200}
                       className="min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"

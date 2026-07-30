@@ -24,16 +24,10 @@ export function RealtimeNotificationBanner() {
               <span className="text-[11px] font-semibold uppercase tracking-wide opacity-90">
                 Obecný hlásnik
               </span>
-              <span className="text-[11px] opacity-75">
-                · {current.authorName}
-              </span>
+              <span className="text-[11px] opacity-75">· {current.authorName}</span>
             </div>
-            <p className="mt-0.5 truncate text-sm font-semibold">
-              {current.title}
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-xs opacity-95">
-              {current.body}
-            </p>
+            <p className="mt-0.5 truncate text-sm font-semibold">{current.title}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs opacity-95">{current.body}</p>
           </div>
           <span
             onClick={(e) => {

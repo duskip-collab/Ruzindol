@@ -35,8 +35,8 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vitaj v Komunite</h1>
           <p className="mt-2 text-sm leading-relaxed text-white/90">
-            Miesto, kde susedia zdieľajú, pomáhajú si a spoznávajú sa. Aplikácia si
-            zapamätá posledný profil na zariadení, takže sa vždy otvorí tam, kde si skončil.
+            Miesto, kde susedia zdieľajú, pomáhajú si a spoznávajú sa. Aplikácia si zapamätá
+            posledný profil na zariadení, takže sa vždy otvorí tam, kde si skončil.
           </p>
         </div>
 

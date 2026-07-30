@@ -72,8 +72,7 @@ export function SharedCalendar() {
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const canManage =
-    profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik";
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -110,7 +109,7 @@ export function SharedCalendar() {
     setExpanded(false);
   }
 
-  const CalendarContent = () => (
+  const renderCalendarContent = () => (
     <>
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -154,7 +153,9 @@ export function SharedCalendar() {
         </div>
       </header>
 
-      <div className={`${expanded ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}>
+      <div
+        className={`${expanded ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-6 text-neutral-400">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -186,7 +187,7 @@ export function SharedCalendar() {
         onClick={handleClose}
       >
         <div className="flex flex-col h-full" onClick={(e) => e.stopPropagation()}>
-          <CalendarContent />
+          {renderCalendarContent()}
 
           {showForm && canManage && userId && (
             <EventForm
@@ -209,9 +210,7 @@ export function SharedCalendar() {
       onClick={toggleExpand}
       title="Kliknite pre zobrazenie na celú obrazovku"
     >
-      <div onClick={(e) => e.stopPropagation()}>
-        <CalendarContent />
-      </div>
+      <div onClick={(e) => e.stopPropagation()}>{renderCalendarContent()}</div>
       <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-400">
         <Maximize2 className="h-3 w-3" />
         <span>Kliknite pre rozšírenie</span>
@@ -244,13 +243,9 @@ function EventRow({
   const d = formatDate(event.starts_at);
 
   return (
-    <li
-      className={`flex gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5`}
-    >
+    <li className={`flex gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5`}>
       <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/80 py-1 text-center shadow-sm">
-        <span className={`text-lg font-bold leading-none ${theme.accent}`}>
-          {d.day}
-        </span>
+        <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
         <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">
           {d.month}
         </span>
@@ -267,12 +262,8 @@ function EventRow({
             {d.weekday} · {d.time}
           </span>
         </div>
-        <p className="mt-1 truncate text-sm font-semibold text-neutral-900">
-          {event.title}
-        </p>
-        <p className="line-clamp-1 text-[11px] text-neutral-600">
-          {event.description}
-        </p>
+        <p className="mt-1 truncate text-sm font-semibold text-neutral-900">{event.title}</p>
+        <p className="line-clamp-1 text-[11px] text-neutral-600">{event.description}</p>
         {event.location && (
           <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500">
             <MapPin className="h-3 w-3" />
@@ -310,9 +301,7 @@ function EventForm({
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -351,14 +340,9 @@ function EventForm({
         <h2 className="font-semibold">📅 Nová udalosť</h2>
       </div>
 
-      <form
-        onSubmit={submit}
-        className="flex flex-1 flex-col gap-4 overflow-y-auto p-5"
-      >
+      <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
-          <label className="text-sm font-medium text-neutral-700">
-            Kategória
-          </label>
+          <label className="text-sm font-medium text-neutral-700">Kategória</label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {(Object.keys(THEME) as EventCategory[]).map((t) => {
               const m = THEME[t];
@@ -416,9 +400,7 @@ function EventForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">
-            Začiatok
-          </label>
+          <label className="text-sm font-medium text-neutral-700">Začiatok</label>
           <input
             type="datetime-local"
             value={startsAt}
@@ -428,11 +410,7 @@ function EventForm({
           />
         </div>
 
-        {err && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-            {err}
-          </div>
-        )}
+        {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>}
 
         <div className="mt-auto flex flex-col gap-2 pt-4">
           <button
@@ -440,11 +418,7 @@ function EventForm({
             disabled={saving}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-50"
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Uložiť udalosť
           </button>
         </div>

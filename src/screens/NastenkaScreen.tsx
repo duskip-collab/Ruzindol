@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, Send, Heart, Flag, Search, AlertTriangle, Loader2, ChevronRight, Pencil } from "lucide-react";
+import {
+  Plus,
+  X,
+  Send,
+  Heart,
+  Flag,
+  Search,
+  AlertTriangle,
+  Loader2,
+  ChevronRight,
+  Pencil,
+} from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { PostLightbox } from "@/components/PostLightbox";
@@ -10,12 +21,7 @@ import type { CompressedImage } from "@/lib/compress-image";
 import { supabase } from "@/integrations/supabase/client";
 import type { Post, PostType } from "@/types";
 
-const CATEGORIES = [
-  "Otazka",
-  "Straty_a_nalezy",
-  "Info_pre_susedov",
-  "Hlasnik",
-] as const;
+const CATEGORIES = ["Otazka", "Straty_a_nalezy", "Info_pre_susedov", "Hlasnik"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -25,11 +31,7 @@ const CATEGORY_LABEL: Record<Category, string> = {
   Hlasnik: "📢 Hlásnik",
 };
 
-const NEIGHBOR_CATEGORIES: Category[] = [
-  "Otazka",
-  "Straty_a_nalezy",
-  "Info_pre_susedov",
-];
+const NEIGHBOR_CATEGORIES: Category[] = ["Otazka", "Straty_a_nalezy", "Info_pre_susedov"];
 
 const TRH_DISCLAIMER =
   "Prevádzkovateľ aplikácie nezodpovedá za legálnosť, kvalitu ani pôvod produktov. Používatelia sú povinní dodržiavať legislatívu SR (dane, hygiena).";
@@ -69,6 +71,30 @@ type PostReply = {
   createdAt: string;
 };
 
+type PostProfileRow = { name: string | null; role: string | null };
+type PostRow = {
+  id: string;
+  user_id: string;
+  type: PostType;
+  category: string | null;
+  title: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  expires_at: string | null;
+  profiles: PostProfileRow | null;
+};
+
+type ReplyProfileRow = { name: string | null };
+type PostReplyRow = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: ReplyProfileRow | null;
+};
+
 function canReplyToPost(post: Post) {
   return post.type === "susedsky_zivot" && NEIGHBOR_CATEGORIES.includes(post.category as Category);
 }
@@ -103,26 +129,27 @@ export function NastenkaScreen() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
 
-  const canCreateOfficialNotice =
-    profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const canCreateOfficialNotice = profile?.role === "Starosta" || profile?.role === "Uradnik";
 
   const loadPosts = useCallback(async () => {
     // Načítame príspevky bez toho, aby sme riskovali vyradenie kvôli chýbajúcemu profilu
     const { data, error } = await supabase
-  .from("posts")
-  .select("id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)")
-  .order("created_at", { ascending: false });
+      .from("posts")
+      .select(
+        "id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)",
+      )
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Chyba pri načítaní príspevkov zo Supabase:", error);
       return;
     }
 
-    const mapped: Post[] = ((data as any[] | null) ?? [])
+    const mapped: Post[] = ((data as PostRow[] | null) ?? [])
       .map((row) => ({
         id: row.id,
         userId: row.user_id,
-       userName: row.profiles?.name || "Sused", // Ochrana: ak chýba profil, nevypadneme, ale dáme default
+        userName: row.profiles?.name || "Sused", // Ochrana: ak chýba profil, nevypadneme, ale dáme default
         type: row.type,
         category: row.category ?? "Oznam",
         title: row.title,
@@ -153,12 +180,12 @@ export function NastenkaScreen() {
       .order("created_at", { ascending: true });
 
     const repliesMap: Record<string, PostReply[]> = {};
-    for (const row of replyRows ?? []) {
+    for (const row of (replyRows as PostReplyRow[] | null) ?? []) {
       const item: PostReply = {
         id: row.id,
         postId: row.post_id,
         userId: row.user_id,
-        userName: (row as any).profiles?.name ?? "Sused",
+        userName: row.profiles?.name ?? "Sused",
         content: row.content,
         createdAt: row.created_at,
       };
@@ -185,11 +212,7 @@ export function NastenkaScreen() {
     }
 
     const [{ data: likedRows }, { data: reportRows }] = await Promise.all([
-      supabase
-        .from("post_likes")
-        .select("post_id")
-        .eq("user_id", userId)
-        .in("post_id", postIds),
+      supabase.from("post_likes").select("post_id").eq("user_id", userId).in("post_id", postIds),
       supabase
         .from("post_reports")
         .select("post_id")
@@ -212,26 +235,21 @@ export function NastenkaScreen() {
   }, [userId]);
 
   useEffect(() => {
-    void loadPosts();
+    const id = window.setTimeout(() => {
+      void loadPosts();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [loadPosts]);
 
   useEffect(() => {
     const channel = supabase
       .channel("nastenka-posts-sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "posts" },
-        () => {
-          void loadPosts();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "post_replies" },
-        () => {
-          void loadPosts();
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+        void loadPosts();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, () => {
+        void loadPosts();
+      })
       .subscribe();
 
     return () => {
@@ -322,11 +340,7 @@ export function NastenkaScreen() {
     if (!userId) return;
     if (!confirm("Naozaj vymazať tento príspevok?")) return;
 
-    const { error } = await supabase
-      .from("posts")
-      .delete()
-      .eq("id", postId)
-      .eq("user_id", userId);
+    const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
 
     if (error) return;
 
@@ -378,16 +392,11 @@ export function NastenkaScreen() {
   const filtered = useMemo(() => {
     if (!q) return posts;
     return posts.filter((p) =>
-      [p.title, p.content, p.category, p.userName]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
+      [p.title, p.content, p.category, p.userName].join(" ").toLowerCase().includes(q),
     );
   }, [posts, q]);
 
-  const oznamy = filtered.filter(
-    (p) => p.type === "hlasnik" || p.type === "official_alert",
-  );
+  const oznamy = filtered.filter((p) => p.type === "hlasnik" || p.type === "official_alert");
 
   const prispevky = filtered.filter((p) => {
     if (p.type !== "susedsky_zivot" && p.type !== "farsky_oznam") return false;
@@ -556,9 +565,9 @@ export function NastenkaScreen() {
               }
             : undefined
         }
-        replies={lightboxPost ? repliesByPost[lightboxPost.id] ?? [] : []}
+        replies={lightboxPost ? (repliesByPost[lightboxPost.id] ?? []) : []}
         canReply={!!lightboxPost && canReplyToPost(lightboxPost)}
-        replyDraft={lightboxPost ? replyDraftByPost[lightboxPost.id] ?? "" : ""}
+        replyDraft={lightboxPost ? (replyDraftByPost[lightboxPost.id] ?? "") : ""}
         onReplyDraftChange={
           lightboxPost
             ? (value) => {
@@ -698,11 +707,7 @@ function NeighborCard({
         {post.content}
       </p>
       {post.imageUrl && (
-        <img
-          src={post.imageUrl}
-          alt=""
-          className="mt-2 max-h-64 w-full rounded-xl object-cover"
-        />
+        <img src={post.imageUrl} alt="" className="mt-2 max-h-64 w-full rounded-xl object-cover" />
       )}
 
       {showTrhDisclaimer && (
@@ -750,7 +755,12 @@ function EditPostModal({
 }: {
   post: Post;
   onClose: () => void;
-  onSave: (payload: { postId: string; title: string; content: string; category: Category }) => Promise<void>;
+  onSave: (payload: {
+    postId: string;
+    title: string;
+    content: string;
+    category: Category;
+  }) => Promise<void>;
 }) {
   const isOfficial = post.type === "hlasnik" || post.type === "official_alert";
   const [title, setTitle] = useState(post.title);
@@ -879,9 +889,7 @@ function NewPostModal({
   const isOfficial = mode === "official";
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState<Category>(
-    isOfficial ? "Hlasnik" : "Otazka",
-  );
+  const [category, setCategory] = useState<Category>(isOfficial ? "Hlasnik" : "Otazka");
   const [image, setImage] = useState<CompressedImage | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -892,7 +900,7 @@ function NewPostModal({
     e.preventDefault();
 
     if (!content.trim() || busy || !userId) return;
-    
+
     setBusy(true);
     setErr(null);
 
@@ -945,9 +953,9 @@ function NewPostModal({
       });
 
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Užívateľská chyba:", err);
-      setErr(err.message);
+      setErr(err instanceof Error ? err.message : "Nepodarilo sa uložiť príspevok.");
     } finally {
       setBusy(false);
     }
@@ -959,89 +967,85 @@ function NewPostModal({
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
-        <button
-          onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
-          aria-label="Zavrieť"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <h2 className="font-semibold">
-          {isOfficial ? "📢 Nový úradný oznam" : "🏘️ Nový príspevok"}
-        </h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            aria-label="Zavrieť"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <h2 className="font-semibold">
+            {isOfficial ? "📢 Nový úradný oznam" : "🏘️ Nový príspevok"}
+          </h2>
         </div>
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Kategória</label>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {options.map((c) => (
-              <button
-                type="button"
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  category === c
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                }`}
-              >
-                {CATEGORY_LABEL[c]}
-              </button>
-            ))}
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Kategória</label>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {options.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setCategory(c)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    category === c
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  }`}
+                >
+                  {CATEGORY_LABEL[c]}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Nadpis</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={isOfficial ? "Napr. Odstávka vody" : "Krátky nadpis (voliteľné)"}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Obsah</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={5}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-          />
-        </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Nadpis</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={isOfficial ? "Napr. Odstávka vody" : "Krátky nadpis (voliteľné)"}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Obsah</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              rows={5}
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
 
-        {canAttachImage && (
-          <ImageInput
-            value={image}
-            onChange={setImage}
-            label="Fotka (1 obrázok, voliteľné)"
-          />
-        )}
+          {canAttachImage && (
+            <ImageInput value={image} onChange={setImage} label="Fotka (1 obrázok, voliteľné)" />
+          )}
 
-        {err && <p className="text-xs text-rose-600">{err}</p>}
+          {err && <p className="text-xs text-rose-600">{err}</p>}
 
-        <div className="mt-auto flex flex-col gap-2 pt-4">
-          <button
-            type="submit"
-            disabled={busy}
-            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60 ${
-              isOfficial ? "bg-orange-500" : "bg-neutral-900"
-            }`}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Zverejniť
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
-          >
-            Zrušiť
-          </button>
-        </div>
+          <div className="mt-auto flex flex-col gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={busy}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60 ${
+                isOfficial ? "bg-orange-500" : "bg-neutral-900"
+              }`}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Zverejniť
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+            >
+              Zrušiť
+            </button>
+          </div>
         </form>
       </div>
     </div>

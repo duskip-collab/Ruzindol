@@ -114,8 +114,7 @@ function isManualAdminGroup(groupKey: GroupKey) {
 
 function hasAutomaticSectionAccess(role: string | null | undefined, groupKey: GroupKey) {
   return (
-    (groupKey === "farnost" && role === "Farar") ||
-    (groupKey === "sluzby" && role === "VIP_Firma")
+    (groupKey === "farnost" && role === "Farar") || (groupKey === "sluzby" && role === "VIP_Firma")
   );
 }
 
@@ -192,10 +191,7 @@ export function AktualityGroupsPanel() {
   const automaticAccessLabel = getAutomaticAccessLabel(active);
   const canUseDom = typeof document !== "undefined";
 
-  const canCreateInGroup =
-    canManageGroups ||
-    isGroupAdmin ||
-    hasAutomaticAccess;
+  const canCreateInGroup = canManageGroups || isGroupAdmin || hasAutomaticAccess;
 
   const loadData = useCallback(async () => {
     if (userLoading) return;
@@ -214,51 +210,50 @@ export function AktualityGroupsPanel() {
     setLoadError(null);
 
     try {
-      const [postsRes, adminsRes, profilesRes] =
-        await Promise.all([
-          withTimeout(
-            () =>
-              retryAsync(
-                () =>
-                  supabase
-                    .from("group_announcements")
-                    .select(
-                      "id, group_key, author_id, title, content, image_url, linked_event_id, post_kind, deceased_name, created_at, expires_at",
-                    )
-                    .order("created_at", { ascending: false })
-                    .limit(200),
-                { retries: 1, delayMs: 250 },
-              ),
-            7000,
-            "Načítanie skupinových oznamov trvalo príliš dlho.",
-          ),
-          withTimeout(
-            () =>
-              retryAsync(
-                () =>
-                  supabase
-                    .from("group_admins")
-                    .select("id, group_key, user_id, granted_by, created_at")
-                    .order("created_at", { ascending: false }),
-                { retries: 1, delayMs: 250 },
-              ),
-            7000,
-            "Načítanie správcov skupín trvalo príliš dlho.",
-          ),
-          withTimeout(
-            () =>
-              retryAsync(
-                () =>
-                  supabase
-                    .from("profiles")
-                    .select("id, name, role, is_active_neighbor, municipality_id, street")
-                    .order("name", { ascending: true }),
-                { retries: 1, delayMs: 250 },
-              ),
-            7000,
-            "Načítanie profilov trvalo príliš dlho.",
-          ),
-        ]);
+      const [postsRes, adminsRes, profilesRes] = await Promise.all([
+        withTimeout(
+          () =>
+            retryAsync(
+              () =>
+                supabase
+                  .from("group_announcements")
+                  .select(
+                    "id, group_key, author_id, title, content, image_url, linked_event_id, post_kind, deceased_name, created_at, expires_at",
+                  )
+                  .order("created_at", { ascending: false })
+                  .limit(200),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie skupinových oznamov trvalo príliš dlho.",
+        ),
+        withTimeout(
+          () =>
+            retryAsync(
+              () =>
+                supabase
+                  .from("group_admins")
+                  .select("id, group_key, user_id, granted_by, created_at")
+                  .order("created_at", { ascending: false }),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie správcov skupín trvalo príliš dlho.",
+        ),
+        withTimeout(
+          () =>
+            retryAsync(
+              () =>
+                supabase
+                  .from("profiles")
+                  .select("id, name, role, is_active_neighbor, municipality_id, street")
+                  .order("name", { ascending: true }),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie profilov trvalo príliš dlho.",
+        ),
+      ]);
 
       if (postsRes.error) throw postsRes.error;
       if (adminsRes.error) throw adminsRes.error;
@@ -283,7 +278,9 @@ export function AktualityGroupsPanel() {
         ? profileList.filter((p) => p.municipality_id === profile.municipality_id)
         : profileList;
 
-      setAssignableProfiles(sortProfilesForAssignment(visibleProfiles.filter((p) => p.id !== userId)));
+      setAssignableProfiles(
+        sortProfilesForAssignment(visibleProfiles.filter((p) => p.id !== userId)),
+      );
       setVipProfiles(profileList.filter((p) => p.role === "VIP_Firma"));
     } catch (e) {
       console.error("Failed to load group sections", e);
@@ -295,10 +292,13 @@ export function AktualityGroupsPanel() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.municipality_id, userId, userLoading]);
+  }, [profile, userId, userLoading]);
 
   useEffect(() => {
-    void loadData();
+    const id = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [loadData]);
 
   useEffect(() => {
@@ -311,20 +311,12 @@ export function AktualityGroupsPanel() {
           void loadData();
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_admins" },
-        () => {
-          void loadData();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        () => {
-          void loadData();
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_admins" }, () => {
+        void loadData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void loadData();
+      })
       .subscribe();
 
     return () => {
@@ -337,10 +329,10 @@ export function AktualityGroupsPanel() {
     try {
       await withTimeout(
         () =>
-          retryAsync(
-            () => supabase.from("group_announcements").delete().eq("id", id),
-            { retries: 1, delayMs: 250 },
-          ).then(() => undefined),
+          retryAsync(() => supabase.from("group_announcements").delete().eq("id", id), {
+            retries: 1,
+            delayMs: 250,
+          }).then(() => undefined),
         7000,
         "Mazanie príspevku trvalo príliš dlho.",
       );
@@ -365,9 +357,7 @@ export function AktualityGroupsPanel() {
   const activeMeta = GROUPS.find((g) => g.key === active)!;
   const visiblePosts = posts.filter((p) => p.group_key === active);
   const activeManagerName =
-    activeAdmins.length > 0
-      ? (people[activeAdmins[0].user_id]?.name ?? "Sused")
-      : null;
+    activeAdmins.length > 0 ? (people[activeAdmins[0].user_id]?.name ?? "Sused") : null;
 
   return (
     <>
@@ -395,211 +385,223 @@ export function AktualityGroupsPanel() {
         </div>
       </section>
 
-      {openedGroup && canUseDom && createPortal(
-        <div className="fixed inset-0 z-[120] flex h-screen min-h-screen w-screen flex-col bg-white/95 p-4 backdrop-blur-xl md:inset-y-6 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-6xl md:rounded-3xl md:border md:border-neutral-200 md:bg-white md:shadow-2xl">
-          <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-200 pb-3">
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">{activeMeta.title}</p>
-              <p className="text-[11px] text-neutral-600">{activeMeta.subtitle}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                {canManageGroups && (
-                  <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    Admin / Starosta
-                  </span>
+      {openedGroup &&
+        canUseDom &&
+        createPortal(
+          <div className="fixed inset-0 z-[120] flex h-screen min-h-screen w-screen flex-col bg-white/95 p-4 backdrop-blur-xl md:inset-y-6 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-6xl md:rounded-3xl md:border md:border-neutral-200 md:bg-white md:shadow-2xl">
+            <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-200 pb-3">
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{activeMeta.title}</p>
+                <p className="text-[11px] text-neutral-600">{activeMeta.subtitle}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {canManageGroups && (
+                    <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      Admin / Starosta
+                    </span>
+                  )}
+                  {isGroupAdmin && isManualAdminGroup(active) && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                      Spravca sekcie
+                    </span>
+                  )}
+                  {hasAutomaticAccess && automaticAccessLabel && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-800">
+                      {automaticAccessLabel}
+                    </span>
+                  )}
+                  {!canCreateInGroup && isManualAdminGroup(active) && (
+                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
+                      Pridava iba povereny sused
+                    </span>
+                  )}
+                </div>
+                {!isManualAdminGroup(active) && (
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    {active === "farnost"
+                      ? "Pravo pridavat oznamy ma automaticky Farar."
+                      : "Pravo pridavat oznamy maju automaticky profily s rolou VIP_Firma."}
+                  </p>
                 )}
-                {isGroupAdmin && isManualAdminGroup(active) && (
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                    Spravca sekcie
-                  </span>
+                {isManualAdminGroup(active) && (
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    Admin alebo Starosta mozu poverit aktivneho suseda ako spravcu tejto sekcie.
+                  </p>
                 )}
-                {hasAutomaticAccess && automaticAccessLabel && (
-                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-800">
-                    {automaticAccessLabel}
-                  </span>
-                )}
-                {!canCreateInGroup && isManualAdminGroup(active) && (
-                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">
-                    Pridava iba povereny sused
-                  </span>
+                {isManualAdminGroup(active) && (
+                  <p className="mt-1 text-[11px] font-medium text-neutral-700">
+                    Aktuálny správca: {activeManagerName ?? "nepriradený"}
+                  </p>
                 )}
               </div>
-              {!isManualAdminGroup(active) && (
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  {active === "farnost"
-                    ? "Pravo pridavat oznamy ma automaticky Farar."
-                    : "Pravo pridavat oznamy maju automaticky profily s rolou VIP_Firma."}
-                </p>
-              )}
-              {isManualAdminGroup(active) && (
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  Admin alebo Starosta mozu poverit aktivneho suseda ako spravcu tejto sekcie.
-                </p>
-              )}
-              {isManualAdminGroup(active) && (
-                <p className="mt-1 text-[11px] font-medium text-neutral-700">
-                  Aktuálny správca: {activeManagerName ?? "nepriradený"}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {canAssignAdmins && (
+              <div className="flex items-center gap-1.5">
+                {canAssignAdmins && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAdmins((v) => !v)}
+                    className="flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-200"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    {showAdmins
+                      ? "Zavrieť"
+                      : activeManagerName
+                        ? "Zmeniť správcu"
+                        : "+ Pridať správcu"}
+                  </button>
+                )}
+                {canCreateInGroup && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPostForm(true)}
+                    className="flex items-center gap-1 rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-neutral-800"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Pridať oznam
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setShowAdmins((v) => !v)}
-                  className="flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-200"
+                  onClick={closeGroup}
+                  className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  aria-label="Zavrieť sekciu"
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  {showAdmins ? "Zavrieť" : activeManagerName ? "Zmeniť správcu" : "+ Pridať správcu"}
+                  <X className="h-4 w-4" />
                 </button>
-              )}
-              {canCreateInGroup && (
-                <button
-                  type="button"
-                  onClick={() => setShowPostForm(true)}
-                  className="flex items-center gap-1 rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-neutral-800"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Pridať oznam
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={closeGroup}
-                className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                aria-label="Zavrieť sekciu"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              </div>
             </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto pr-1">
-            {loadError && (
-              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-                {loadError}
-              </div>
-            )}
-            {loading ? (
-              <div className="flex items-center justify-center py-6 text-neutral-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            ) : visiblePosts.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50/60 py-5 text-center text-xs text-neutral-500">
-                V tejto sekcii zatiaľ nie sú žiadne oznamy.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {visiblePosts.map((p) => {
-                  const canDelete = canManageGroups || p.author_id === userId;
-                  return (
-                    <article
-                      key={p.id}
-                      className="rounded-2xl border border-neutral-200/80 bg-white/90 p-3 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between text-[10px] text-neutral-500">
-                        <span>{timeAgo(p.created_at)}</span>
-                        <span>platné do {formatExpiry(p.expires_at)}</span>
-                      </div>
-                      <h4 className="mt-1 text-sm font-semibold text-neutral-900">{p.title}</h4>
-                      {p.post_kind === "parte" && (
-                        <p className="mt-1 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                          Parte {p.deceased_name ? `· ${p.deceased_name}` : ""}
-                        </p>
-                      )}
-                      <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-neutral-700">
-                        {p.content}
-                      </p>
-                      {p.image_url && (
-                        <img
-                          src={p.image_url}
-                          alt={p.title}
-                          className="mt-2 w-full rounded-xl border border-neutral-200 object-cover"
-                        />
-                      )}
-                      {p.linked_event_id && (
-                        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                          <CalendarPlus className="h-3 w-3" /> Zápis v kalendári
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[11px] text-neutral-500">
-                          Autor: {people[p.author_id]?.name ?? "Používateľ"}
-                        </span>
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void deletePost(p.id);
-                            }}
-                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-100"
-                          >
-                            <Trash2 className="h-3 w-3" /> Zmazať
-                          </button>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-
-            {active === "sluzby" && (
-              <div className="mt-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-3">
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
-                  <BriefcaseBusiness className="h-3.5 w-3.5" /> VIP profily firiem
+            <div className="flex-1 overflow-y-auto pr-1">
+              {loadError && (
+                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                  {loadError}
+                </div>
+              )}
+              {loading ? (
+                <div className="flex items-center justify-center py-6 text-neutral-400">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              ) : visiblePosts.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50/60 py-5 text-center text-xs text-neutral-500">
+                  V tejto sekcii zatiaľ nie sú žiadne oznamy.
                 </p>
-                {vipProfiles.length === 0 ? (
-                  <p className="text-xs text-amber-700/80">Zatiaľ nie sú dostupné VIP firmy.</p>
-                ) : (
-                  <ul className="space-y-1.5">
-                    {vipProfiles.map((vip) => (
-                      <li
-                        key={vip.id}
-                        className="flex items-center justify-between rounded-xl border border-amber-200/70 bg-white/80 px-3 py-2"
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {visiblePosts.map((p) => {
+                    const canDelete = canManageGroups || p.author_id === userId;
+                    return (
+                      <article
+                        key={p.id}
+                        className="rounded-2xl border border-neutral-200/80 bg-white/90 p-3 shadow-sm"
                       >
-                        <span className="text-sm font-medium text-neutral-800">{vip.name}</span>
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                          VIP Firma
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body,
-      )}
+                        <div className="flex items-center justify-between text-[10px] text-neutral-500">
+                          <span>{timeAgo(p.created_at)}</span>
+                          <span>platné do {formatExpiry(p.expires_at)}</span>
+                        </div>
+                        <h4 className="mt-1 text-sm font-semibold text-neutral-900">{p.title}</h4>
+                        {p.post_kind === "parte" && (
+                          <p className="mt-1 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                            Parte {p.deceased_name ? `· ${p.deceased_name}` : ""}
+                          </p>
+                        )}
+                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-neutral-700">
+                          {p.content}
+                        </p>
+                        {p.image_url && (
+                          <img
+                            src={p.image_url}
+                            alt={p.title}
+                            className="mt-2 w-full rounded-xl border border-neutral-200 object-cover"
+                          />
+                        )}
+                        {p.linked_event_id && (
+                          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                            <CalendarPlus className="h-3 w-3" /> Zápis v kalendári
+                          </p>
+                        )}
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-[11px] text-neutral-500">
+                            Autor: {people[p.author_id]?.name ?? "Používateľ"}
+                          </span>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void deletePost(p.id);
+                              }}
+                              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-100"
+                            >
+                              <Trash2 className="h-3 w-3" /> Zmazať
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
 
-      {showPostForm && userId && canUseDom && createPortal(
-        <GroupPostForm
-          groupKey={active}
-          userId={userId}
-          municipalityId={profile?.municipality_id ?? null}
-          currentRole={profile?.role ?? null}
-          groupTitle={activeMeta.title}
-          onClose={() => setShowPostForm(false)}
-          onCreated={async () => {
-            setShowPostForm(false);
-            await loadData();
-          }}
-        />,
-        document.body,
-      )}
+              {active === "sluzby" && (
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
+                    <BriefcaseBusiness className="h-3.5 w-3.5" /> VIP profily firiem
+                  </p>
+                  {vipProfiles.length === 0 ? (
+                    <p className="text-xs text-amber-700/80">Zatiaľ nie sú dostupné VIP firmy.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {vipProfiles.map((vip) => (
+                        <li
+                          key={vip.id}
+                          className="flex items-center justify-between rounded-xl border border-amber-200/70 bg-white/80 px-3 py-2"
+                        >
+                          <span className="text-sm font-medium text-neutral-800">{vip.name}</span>
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            VIP Firma
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
-      {showAdmins && canAssignAdmins && canUseDom && createPortal(
-        <GroupAdminModal
-          groupKey={active}
-          admins={activeAdmins}
-          people={people}
-          profiles={assignableProfiles}
-          onClose={() => setShowAdmins(false)}
-          onChanged={async () => {
-            await loadData();
-          }}
-        />,
-        document.body,
-      )}
+      {showPostForm &&
+        userId &&
+        canUseDom &&
+        createPortal(
+          <GroupPostForm
+            groupKey={active}
+            userId={userId}
+            municipalityId={profile?.municipality_id ?? null}
+            currentRole={profile?.role ?? null}
+            groupTitle={activeMeta.title}
+            onClose={() => setShowPostForm(false)}
+            onCreated={async () => {
+              setShowPostForm(false);
+              await loadData();
+            }}
+          />,
+          document.body,
+        )}
+
+      {showAdmins &&
+        canAssignAdmins &&
+        canUseDom &&
+        createPortal(
+          <GroupAdminModal
+            groupKey={active}
+            admins={activeAdmins}
+            people={people}
+            profiles={assignableProfiles}
+            onClose={() => setShowAdmins(false)}
+            onChanged={async () => {
+              await loadData();
+            }}
+          />,
+          document.body,
+        )}
     </>
   );
 }
@@ -628,9 +630,7 @@ function GroupPostForm({
   const [eventLocation, setEventLocation] = useState("");
   const [eventAt, setEventAt] = useState(() => {
     const d = new Date(Date.now() + 24 * 3600_000);
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   });
   const [isParte, setIsParte] = useState(false);
   const [deceasedName, setDeceasedName] = useState("");
@@ -906,11 +906,14 @@ function GroupAdminModal({
         () =>
           retryAsync(
             () =>
-              supabase.from("group_admins").upsert({
-                group_key: groupKey,
-                user_id: userIdToAssign,
-                granted_by: authData.data.user?.id ?? null,
-              }, { onConflict: "group_key" }),
+              supabase.from("group_admins").upsert(
+                {
+                  group_key: groupKey,
+                  user_id: userIdToAssign,
+                  granted_by: authData.data.user?.id ?? null,
+                },
+                { onConflict: "group_key" },
+              ),
             { retries: 1, delayMs: 250 },
           ),
         7000,
@@ -938,10 +941,10 @@ function GroupAdminModal({
     try {
       const { error } = await withTimeout(
         () =>
-          retryAsync(
-            () => supabase.from("group_admins").delete().eq("id", id),
-            { retries: 1, delayMs: 250 },
-          ),
+          retryAsync(() => supabase.from("group_admins").delete().eq("id", id), {
+            retries: 1,
+            delayMs: 250,
+          }),
         7000,
         "Odobratie správcu trvalo príliš dlho.",
       );
@@ -974,7 +977,9 @@ function GroupAdminModal({
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3">
-          <p className="text-xs font-semibold text-neutral-700">Vyber registrovaného suseda pre túto sekciu</p>
+          <p className="text-xs font-semibold text-neutral-700">
+            Vyber registrovaného suseda pre túto sekciu
+          </p>
           <p className="mt-1 text-[11px] text-neutral-500">
             Nový výber automaticky nahradí aktuálneho povereného suseda.
           </p>
@@ -1063,8 +1068,12 @@ function GroupAdminModal({
               {currentAdmin ? "Zmeniť" : "Pridať"}
             </button>
           </div>
-          <p className="mt-1 text-[11px] text-neutral-500">Nájdení registrovaní susedia: {options.length}</p>
-          <p className="mt-1 text-[11px] text-neutral-500">Poradie zoznamu: najprv rola Sused, potom ostatné roly.</p>
+          <p className="mt-1 text-[11px] text-neutral-500">
+            Nájdení registrovaní susedia: {options.length}
+          </p>
+          <p className="mt-1 text-[11px] text-neutral-500">
+            Poradie zoznamu: najprv rola Sused, potom ostatné roly.
+          </p>
         </div>
 
         <div>

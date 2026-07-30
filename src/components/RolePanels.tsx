@@ -28,7 +28,13 @@ type ReviewPost = {
 // VIP Firma — Dashboard, business profile, mini-web builder
 // =============================================================
 
-export function VipDashboard({ postsCount, itemsCount }: { postsCount: number; itemsCount: number }) {
+export function VipDashboard({
+  postsCount,
+  itemsCount,
+}: {
+  postsCount: number;
+  itemsCount: number;
+}) {
   const [ico, setIco] = useState("");
   const [dic, setDic] = useState("");
   const [companyName, setCompanyName] = useState("Pekáreň u Anny");
@@ -74,14 +80,10 @@ export function VipDashboard({ postsCount, itemsCount }: { postsCount: number; i
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Mini-Web
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Mini-Web</p>
         <TextField label="Názov" value={companyName} onChange={setCompanyName} />
         <label className="mt-3 block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            Popis
-          </span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Popis</span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -102,11 +104,7 @@ export function VipDashboard({ postsCount, itemsCount }: { postsCount: number; i
                 className="relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-white/60 text-neutral-400 dark:border-white/15 dark:bg-white/5"
               >
                 {photos[i] ? (
-                  <img
-                    src={photos[i]}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={photos[i]} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <Camera className="h-5 w-5" />
                 )}
@@ -330,9 +328,7 @@ export function DigitalnyRozhlas({
       <form onSubmit={send} className="mt-4 space-y-3">
         <TextField label="Titulok" value={title} onChange={setTitle} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            Obsah
-          </span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Obsah</span>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -476,9 +472,7 @@ export function FarskyUrad({
       <form onSubmit={submit} className="mt-4 space-y-3">
         <TextField label="Titulok" value={title} onChange={setTitle} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            Obsah
-          </span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Obsah</span>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -489,9 +483,7 @@ export function FarskyUrad({
         </label>
         <TextField label="Miesto" value={location} onChange={setLocation} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-            Termín
-          </span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Termín</span>
           <input
             type="datetime-local"
             value={dt}
@@ -528,6 +520,14 @@ export function RolePanels({ role }: { role: ProfileRole }) {
   const [usersCount, setUsersCount] = useState(0);
   const [itemsCount, setItemsCount] = useState(0);
 
+  type PostAuthorRow = { name: string | null };
+  type ReviewPostRow = {
+    id: string;
+    title: string | null;
+    user_id: string;
+    profiles: PostAuthorRow | null;
+  };
+
   const loadStats = useCallback(async () => {
     const [postsRes, usersRes, itemsRes] = await Promise.all([
       supabase
@@ -539,11 +539,13 @@ export function RolePanels({ role }: { role: ProfileRole }) {
       supabase.from("warehouse_items").select("id", { count: "exact", head: true }),
     ]);
 
-    const mappedPosts: ReviewPost[] = ((postsRes.data as any[] | null) ?? []).map((p) => ({
-      id: p.id,
-      title: p.title,
-      userName: p.profiles?.name ?? "Sused",
-    }));
+    const mappedPosts: ReviewPost[] = ((postsRes.data as ReviewPostRow[] | null) ?? []).map(
+      (p) => ({
+        id: p.id,
+        title: p.title ?? "Bez názvu",
+        userName: p.profiles?.name ?? "Sused",
+      }),
+    );
 
     setPosts(mappedPosts);
     setUsersCount(usersRes.count ?? 0);
@@ -551,7 +553,10 @@ export function RolePanels({ role }: { role: ProfileRole }) {
   }, []);
 
   useEffect(() => {
-    void loadStats();
+    const id = window.setTimeout(() => {
+      void loadStats();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [loadStats]);
 
   return (
@@ -618,9 +623,7 @@ function PanelHeader({
         <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           <BarChart3 className="h-3.5 w-3.5 opacity-50" /> {title}
         </p>
-        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-          {subtitle}
-        </p>
+        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">{subtitle}</p>
       </div>
     </div>
   );
@@ -629,12 +632,8 @@ function PanelHeader({
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border border-white/50 bg-white/70 p-3 text-center dark:border-white/10 dark:bg-white/5">
-      <p className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-        {value}
-      </p>
-      <p className="text-[10px] uppercase tracking-wider text-neutral-500">
-        {label}
-      </p>
+      <p className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
+      <p className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</p>
     </div>
   );
 }
@@ -652,9 +651,7 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-        {label}
-      </span>
+      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -11,12 +11,10 @@ export async function uploadCompressedImage(
 ): Promise<string> {
   const path = `${userId}/${crypto.randomUUID()}.jpg`;
 
-  const { error } = await supabase.storage
-    .from("warehouse")
-    .upload(path, image.file, {
-      contentType: "image/jpeg",
-      upsert: false,
-    });
+  const { error } = await supabase.storage.from("warehouse").upload(path, image.file, {
+    contentType: "image/jpeg",
+    upsert: false,
+  });
   if (error) throw error;
 
   const { data, error: signErr } = await supabase.storage

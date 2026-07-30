@@ -25,6 +25,7 @@ type Muni = {
   logo_url: string | null;
 };
 type UserRow = { id: string; name: string; role: ProfileRole };
+type ProfileNameRow = { id: string; name: string | null };
 
 const ROLE_CHOICES: ProfileRole[] = ["Sused", "Starosta", "Uradnik", "Farar", "VIP_Firma"];
 const CODE_ROLES: CodeRole[] = ["Sused", "Uradnik", "Starosta", "Farar"];
@@ -39,13 +40,7 @@ function randomCode(): string {
   return out;
 }
 
-export function AdminPanel({
-  adminId,
-  isSuperAdmin,
-}: {
-  adminId: string;
-  isSuperAdmin: boolean;
-}) {
+export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuperAdmin: boolean }) {
   return (
     <div className="w-full rounded-3xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-400/30 dark:from-indigo-500/10 dark:to-transparent xl:p-6">
       <div className="mb-4 flex items-center gap-2">
@@ -94,7 +89,10 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   const load = async () => {
     setLoading(true);
     const [{ data: mData }, { data: cData }] = await Promise.all([
-      supabase.from("municipalities").select("id, slug, name, region, mayor_name, logo_url").order("name"),
+      supabase
+        .from("municipalities")
+        .select("id, slug, name, region, mayor_name, logo_url")
+        .order("name"),
       supabase
         .from("invite_codes")
         .select("id, code, role, municipality_id, created_at, used_by, used_at")
@@ -113,12 +111,11 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
     // Resolve used_by → profile name
     const ids = Array.from(new Set(rows.map((r) => r.used_by).filter(Boolean))) as string[];
     if (ids.length) {
-      const { data: pData } = await supabase
-        .from("profiles")
-        .select("id, name")
-        .in("id", ids);
+      const { data: pData } = await supabase.from("profiles").select("id, name").in("id", ids);
       const map: Record<string, { name: string }> = {};
-      (pData ?? []).forEach((p: any) => (map[p.id] = { name: p.name }));
+      (pData as ProfileNameRow[] | null)?.forEach((p) => {
+        map[p.id] = { name: p.name ?? "Sused" };
+      });
       setUsers(map);
     } else {
       setUsers({});
@@ -127,7 +124,10 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   };
 
   useEffect(() => {
-    void load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -161,7 +161,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   }
 
   const muniName = (id: string | null) =>
-    id ? munis.find((m) => m.id === id)?.name ?? "—" : "—";
+    id ? (munis.find((m) => m.id === id)?.name ?? "—") : "—";
 
   const filtered = useMemo(
     () =>
@@ -233,7 +233,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         <Filter className="h-3 w-3 text-neutral-400" />
         <select
           value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value as any)}
+          onChange={(e) => setFilterRole(e.target.value as "all" | CodeRole)}
           className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
         >
           <option value="all">Všetky roly</option>
@@ -245,7 +245,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         </select>
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as any)}
+          onChange={(e) => setFilterStatus(e.target.value as "all" | "used" | "free")}
           className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
         >
           <option value="all">Všetky stavy</option>
@@ -279,14 +279,9 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
               {filtered.map((c) => {
                 const used = !!c.used_by;
                 return (
-                  <tr
-                    key={c.id}
-                    className="border-t border-neutral-100 dark:border-white/5"
-                  >
+                  <tr key={c.id} className="border-t border-neutral-100 dark:border-white/5">
                     <td className="px-2 py-1.5 font-mono tracking-wider">
-                      <span className={used ? "text-neutral-400 line-through" : ""}>
-                        {c.code}
-                      </span>
+                      <span className={used ? "text-neutral-400 line-through" : ""}>{c.code}</span>
                       {!used && (
                         <button
                           onClick={() => copy(c.code)}
@@ -315,7 +310,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
                       </span>
                     </td>
                     <td className="px-2 py-1.5 text-neutral-500">
-                      {c.used_by ? users[c.used_by]?.name ?? c.used_by.slice(0, 6) : "—"}
+                      {c.used_by ? (users[c.used_by]?.name ?? c.used_by.slice(0, 6)) : "—"}
                     </td>
                     <td className="px-2 py-1.5 text-neutral-400">
                       {new Date(c.created_at).toLocaleDateString("sk-SK")}
@@ -354,29 +349,25 @@ function RoleAssigner() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, name, role")
-      .order("name");
+    const { data } = await supabase.from("profiles").select("id, name, role").order("name");
     setUsers((data as UserRow[] | null) ?? []);
     setLoading(false);
   };
 
   useEffect(() => {
-    void load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
 
     const channel = supabase
       .channel("admin-users-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        () => {
-          void load();
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void load();
+      })
       .subscribe();
 
     return () => {
+      window.clearTimeout(id);
       void supabase.removeChannel(channel);
     };
   }, []);
@@ -390,10 +381,7 @@ function RoleAssigner() {
   async function assign(userId: string, role: ProfileRole) {
     setBusy(userId);
     setErr(null);
-    const { error: perr } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", userId);
+    const { error: perr } = await supabase.from("profiles").update({ role }).eq("id", userId);
 
     if (perr) {
       console.error("Failed to update profile role", { userId, role, error: perr });
@@ -484,7 +472,10 @@ function MunicipalityManager() {
   };
 
   useEffect(() => {
-    void load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   async function add(e: React.FormEvent) {
@@ -639,8 +630,7 @@ function MunicipalityManager() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium text-neutral-900 dark:text-neutral-100">
-                  {m.name}{" "}
-                  <span className="font-normal text-neutral-400">/{m.slug}</span>
+                  {m.name} <span className="font-normal text-neutral-400">/{m.slug}</span>
                 </div>
                 <div className="truncate text-[10px] text-neutral-500">
                   {m.region ?? "—"} · Starosta: {m.mayor_name ?? "—"}
@@ -664,7 +654,10 @@ function MunicipalityManager() {
         })}
       </ul>
 
-      <form onSubmit={add} className="grid grid-cols-2 gap-1.5 rounded-xl border border-dashed border-neutral-300 p-2 dark:border-white/10">
+      <form
+        onSubmit={add}
+        className="grid grid-cols-2 gap-1.5 rounded-xl border border-dashed border-neutral-300 p-2 dark:border-white/10"
+      >
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}

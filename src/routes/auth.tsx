@@ -16,7 +16,6 @@ type MuniOpt = { id: string; name: string; region: string | null; slug: string }
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [isClient, setIsClient] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +28,6 @@ function AuthPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
     // Načítanie obcí
     supabase
       .from("municipalities")
@@ -48,11 +46,10 @@ function AuthPage() {
 
   // Presmerovanie ak je už prihlásený
   useEffect(() => {
-    if (!isClient) return;
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
     });
-  }, [navigate, isClient]);
+  }, [navigate]);
 
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -84,7 +81,7 @@ function AuthPage() {
           );
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
@@ -105,8 +102,6 @@ function AuthPage() {
     }
   }
 
-  if (!isClient) return null;
-
   return (
     <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.18),_transparent_34%),linear-gradient(180deg,_#08111d_0%,_#0f172a_52%,_#111827_100%)] px-4 py-8 text-slate-50">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
@@ -123,8 +118,8 @@ function AuthPage() {
                   Jedna obrazovka, tri cesty dovnútra.
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-                  Prihlás sa emailom, pokračuj cez Google alebo odomkni účet
-                  voliteľným invite kódom. Všetko prehľadne na jednom mieste.
+                  Prihlás sa emailom, pokračuj cez Google alebo odomkni účet voliteľným invite
+                  kódom. Všetko prehľadne na jednom mieste.
                 </p>
               </div>
             </div>
@@ -185,7 +180,9 @@ function AuthPage() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-200">Meno a priezvisko</label>
+                      <label className="text-sm font-medium text-slate-200">
+                        Meno a priezvisko
+                      </label>
                       <Input
                         placeholder="Tvoje meno"
                         className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
@@ -208,8 +205,8 @@ function AuthPage() {
                             {municipalities[0]?.name ?? "Ružindol"}
                           </div>
                           <div className="mt-1 text-xs leading-5 text-slate-300">
-                            Aktuálne je dostupný iba jeden profil. Po vytvorení ďalšej komunity sa tu
-                            zobrazí aj výber.
+                            Aktuálne je dostupný iba jeden profil. Po vytvorení ďalšej komunity sa
+                            tu zobrazí aj výber.
                           </div>
                         </div>
                       ) : (
@@ -267,7 +264,9 @@ function AuthPage() {
                     onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                     className="text-emerald-300 underline-offset-4 hover:underline"
                   >
-                    {mode === "signin" ? "Nemáš účet? Registrovať sa" : "Mám účet, chcem sa prihlásiť"}
+                    {mode === "signin"
+                      ? "Nemáš účet? Registrovať sa"
+                      : "Mám účet, chcem sa prihlásiť"}
                   </button>
                   <span className="text-slate-400">Email login je najrýchlejšia cesta.</span>
                 </div>

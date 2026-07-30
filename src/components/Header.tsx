@@ -42,16 +42,10 @@ export function Header({
     >
       <div className="flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/80 shadow-lg shadow-brand/15 ring-1 ring-border/60">
-          <img
-            src={ruzindolErb}
-            alt="Erb obce Ružindol"
-            className="h-full w-full object-contain"
-          />
+          <img src={ruzindolErb} alt="Erb obce Ružindol" className="h-full w-full object-contain" />
         </div>
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-foreground">
-            Ružindol
-          </h1>
+          <h1 className="text-base font-semibold tracking-tight text-foreground">Ružindol</h1>
           <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
       </div>

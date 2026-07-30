@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ExternalLink, Loader2, Pin, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
+  Pin,
+  Plus,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -20,32 +29,33 @@ type Announcement = {
   author_id: string | null;
 };
 
-const PRIORITY_META: Record<Priority, { label: string; dot: string; ring: string; badge: string }> = {
-  oznam: {
-    label: "⚪ Oznam",
-    dot: "bg-neutral-300",
-    ring: "border-neutral-200",
-    badge: "bg-neutral-100 text-neutral-700",
-  },
-  prioritne: {
-    label: "🟡 Prioritné",
-    dot: "bg-yellow-400",
-    ring: "border-yellow-300",
-    badge: "bg-yellow-100 text-yellow-800",
-  },
-  urgentne: {
-    label: "🟠 Urgentné",
-    dot: "bg-orange-500",
-    ring: "border-orange-400",
-    badge: "bg-orange-100 text-orange-800",
-  },
-  vystraha: {
-    label: "🔴 Výstraha",
-    dot: "bg-red-600",
-    ring: "border-red-500",
-    badge: "bg-red-100 text-red-800",
-  },
-};
+const PRIORITY_META: Record<Priority, { label: string; dot: string; ring: string; badge: string }> =
+  {
+    oznam: {
+      label: "⚪ Oznam",
+      dot: "bg-neutral-300",
+      ring: "border-neutral-200",
+      badge: "bg-neutral-100 text-neutral-700",
+    },
+    prioritne: {
+      label: "🟡 Prioritné",
+      dot: "bg-yellow-400",
+      ring: "border-yellow-300",
+      badge: "bg-yellow-100 text-yellow-800",
+    },
+    urgentne: {
+      label: "🟠 Urgentné",
+      dot: "bg-orange-500",
+      ring: "border-orange-400",
+      badge: "bg-orange-100 text-orange-800",
+    },
+    vystraha: {
+      label: "🔴 Výstraha",
+      dot: "bg-red-600",
+      ring: "border-red-500",
+      badge: "bg-red-100 text-red-800",
+    },
+  };
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -106,9 +116,10 @@ export function AktualityScreen() {
   const pinOrder: Priority[] = ["vystraha", "urgentne"];
   const pinned = items
     .filter((i) => pinOrder.includes(i.priority))
-    .sort((a, b) =>
-      pinOrder.indexOf(a.priority) - pinOrder.indexOf(b.priority) ||
-      +new Date(b.published_at) - +new Date(a.published_at),
+    .sort(
+      (a, b) =>
+        pinOrder.indexOf(a.priority) - pinOrder.indexOf(b.priority) ||
+        +new Date(b.published_at) - +new Date(a.published_at),
     );
   const rest = items.filter((i) => !pinOrder.includes(i.priority));
 
@@ -117,9 +128,7 @@ export function AktualityScreen() {
       <header className="flex items-center justify-between border-b border-neutral-200/70 bg-white/70 px-4 py-3 backdrop-blur md:px-6">
         <div>
           <h1 className="text-base font-semibold tracking-tight">📰 Aktuality a oznamy</h1>
-          <p className="text-[11px] text-muted-foreground">
-            RSS z obce + oznamy úradu
-          </p>
+          <p className="text-[11px] text-muted-foreground">RSS z obce + oznamy úradu</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -128,7 +137,11 @@ export function AktualityScreen() {
             className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-40"
             title="Aktualizovať RSS"
           >
-            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {syncing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
           </button>
           {isAdmin && (
             <button
@@ -155,9 +168,7 @@ export function AktualityScreen() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : items.length === 0 ? (
-          <p className="py-12 text-center text-xs text-neutral-500">
-            Zatiaľ žiadne oznamy.
-          </p>
+          <p className="py-12 text-center text-xs text-neutral-500">Zatiaľ žiadne oznamy.</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {pinned.map((it) => (
@@ -294,9 +305,7 @@ function AdminForm({
   const [publishedAt, setPublishedAt] = useState(() => {
     const d = new Date();
     d.setSeconds(0, 0);
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -326,96 +335,94 @@ function AdminForm({
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
-        <button
-          onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
-          aria-label="Zavrieť"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <h2 className="font-semibold">📝 Nový oznam (admin)</h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            aria-label="Zavrieť"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <h2 className="font-semibold">📝 Nový oznam (admin)</h2>
         </div>
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Typ / Priorita</label>
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
-            {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
-              const m = PRIORITY_META[p];
-              const active = priority === p;
-              return (
-                <button
-                  type="button"
-                  key={p}
-                  onClick={() => setPriority(p)}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
-                    active
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
-                  }`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
-                  {m.label}
-                </button>
-              );
-            })}
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Typ / Priorita</label>
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
+                const m = PRIORITY_META[p];
+                const active = priority === p;
+                return (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setPriority(p)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
+                      active
+                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                    }`}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            {priority === "vystraha" && (
+              <p className="mt-2 rounded-lg bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
+                ⚠️ Táto výstraha sa pri otvorení aplikácie zobrazí ako fullscreen upozornenie.
+              </p>
+            )}
           </div>
-          {priority === "vystraha" && (
-            <p className="mt-2 rounded-lg bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
-              ⚠️ Táto výstraha sa pri otvorení aplikácie zobrazí ako fullscreen upozornenie.
+
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Názov príspevku</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              maxLength={200}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Obsah / Text</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              rows={6}
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Dátum publikovania</label>
+            <input
+              type="datetime-local"
+              value={publishedAt}
+              onChange={(e) => setPublishedAt(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+            <p className="mt-1 text-[10px] text-neutral-500">
+              Interné oznamy sa automaticky mažú po 4 dňoch.
             </p>
-          )}
-        </div>
+          </div>
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Názov príspevku</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-          />
-        </div>
+          {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>}
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Obsah / Text</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={6}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Dátum publikovania</label>
-          <input
-            type="datetime-local"
-            value={publishedAt}
-            onChange={(e) => setPublishedAt(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
-          />
-          <p className="mt-1 text-[10px] text-neutral-500">
-            Interné oznamy sa automaticky mažú po 4 dňoch.
-          </p>
-        </div>
-
-        {err && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>
-        )}
-
-        <div className="mt-auto flex flex-col gap-2 pt-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Zverejniť oznam
-          </button>
-        </div>
+          <div className="mt-auto flex flex-col gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Zverejniť oznam
+            </button>
+          </div>
         </form>
       </div>
     </div>

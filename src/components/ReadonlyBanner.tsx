@@ -10,10 +10,7 @@ export function ReadonlyBanner() {
   const [open, setOpen] = useState(false);
   if (loading || !profile) return null;
 
-  const isBanned =
-    !!profile.banned_until && new Date(profile.banned_until).getTime() > Date.now();
-
-  if (isBanned) {
+  if (profile.banned_until) {
     return (
       <div className="mx-3 mt-2">
         <BanBanner profile={profile} variant="compact" />

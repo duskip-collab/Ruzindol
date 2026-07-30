@@ -64,7 +64,8 @@ export function ImageInput({ value, onChange, label = "Fotka" }: Props) {
               {value.width} × {value.height} px
             </p>
             <p>
-              {kb(value.originalSize)} → <span className="font-semibold text-emerald-700">{kb(value.compressedSize)}</span>
+              {kb(value.originalSize)} →{" "}
+              <span className="font-semibold text-emerald-700">{kb(value.compressedSize)}</span>
             </p>
           </div>
           <button

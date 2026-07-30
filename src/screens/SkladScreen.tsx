@@ -19,7 +19,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 
-
 type Section = "trh" | "darovanie" | "poziciovna";
 type PoziciovnaTab = "ponuka" | "dopyt";
 type ItemType = "trh" | "darovanie" | "sklad_ponuka" | "sklad_dopyt";
@@ -94,7 +93,6 @@ export function SkladScreen() {
     );
   }
 
-
   const meta = SECTION_META[section];
   const isPoz = section === "poziciovna";
   const type = sectionType(section, pozTab);
@@ -127,11 +125,7 @@ export function SkladScreen() {
       )}
 
       <div className="flex-1 overflow-y-auto p-4 pb-24 md:px-6 xl:px-8">
-        {isPoz && pozTab === "dopyt" ? (
-          <DopytList />
-        ) : (
-          <ListingList type={type} meta={meta} />
-        )}
+        {isPoz && pozTab === "dopyt" ? <DopytList /> : <ListingList type={type} meta={meta} />}
       </div>
 
       {meta.canAdd && isActive && (
@@ -151,22 +145,15 @@ export function SkladScreen() {
       {meta.canAdd && !isActive && (
         <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm backdrop-blur">
           <span className="font-semibold">Režim čítania</span>
-          <span className="opacity-80">
-            · zadaj pozývací kód v profile a odomkni pridávanie.
-          </span>
+          <span className="opacity-80">· zadaj pozývací kód v profile a odomkni pridávanie.</span>
         </div>
       )}
-
 
       {formOpen &&
         (isPoz && pozTab === "dopyt" ? (
           <QuickDopytModal onClose={() => setFormOpen(false)} />
         ) : (
-          <AddListingModal
-            section={section}
-            type={type}
-            onClose={() => setFormOpen(false)}
-          />
+          <AddListingModal section={section} type={type} onClose={() => setFormOpen(false)} />
         ))}
     </div>
   );
@@ -220,13 +207,7 @@ function useItems(type: ItemType) {
   return { items, loading };
 }
 
-function ListingList({
-  type,
-  meta,
-}: {
-  type: ItemType;
-  meta: (typeof SECTION_META)[Section];
-}) {
+function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_META)[Section] }) {
   const { items, loading } = useItems(type);
   const { userId, profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
@@ -309,9 +290,7 @@ function ListingList({
                       {item.profiles?.name ?? "Sused"}
                       {item.profiles?.street ? ` · ${item.profiles.street}` : ""}
                     </span>
-                    {item.profiles?.is_active_neighbor && (
-                      <ActiveNeighborBadge compact />
-                    )}
+                    {item.profiles?.is_active_neighbor && <ActiveNeighborBadge compact />}
                   </p>
                   {!isMine && isActive && (
                     <button
@@ -450,7 +429,11 @@ function ListingDetailModal({
               disabled={opening}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+              {opening ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MessageCircle className="h-4 w-4" />
+              )}
               Napísať predajcovi
             </button>
           )}
@@ -472,15 +455,14 @@ function ListingDetailModal({
 
 function DopytList() {
   const { items, loading } = useItems("sklad_dopyt");
-  const [, setTick] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  const now = Date.now();
   const TTL = 24 * H;
-  const active = items.filter((d) => now - new Date(d.created_at).getTime() < TTL);
+  const active = items.filter((d) => nowMs - new Date(d.created_at).getTime() < TTL);
 
   if (loading) {
     return (
@@ -494,7 +476,9 @@ function DopytList() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
         <Zap className="h-8 w-8 text-amber-500" />
-        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Žiadne aktívne dopyty</p>
+        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          Žiadne aktívne dopyty
+        </p>
         <p className="max-w-[240px] text-xs text-neutral-500">
           Rýchle dopyty platia len 24 hodín. Ak niečo súrne potrebuješ, klikni na +.
         </p>
@@ -505,7 +489,7 @@ function DopytList() {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {active.map((d) => {
-        const remainingMs = TTL - (now - new Date(d.created_at).getTime());
+        const remainingMs = TTL - (nowMs - new Date(d.created_at).getTime());
         const hoursLeft = Math.max(1, Math.ceil(remainingMs / H));
         // Contact was stored on a "Kontakt: X" line in description; extract it.
         const contactMatch = d.description.match(/Kontakt:\s*(.+)$/m);
@@ -630,84 +614,90 @@ function AddListingModal({
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
-        <button
-          onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
-          aria-label="Zavrieť"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <div className="flex items-center gap-2">
-          {meta.icon}
-          <h2 className="font-semibold">
-            Nový inzerát · {isPoz ? "Ponuka náradia" : meta.title}
-          </h2>
-        </div>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            aria-label="Zavrieť"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            {meta.icon}
+            <h2 className="font-semibold">
+              Nový inzerát · {isPoz ? "Ponuka náradia" : meta.title}
+            </h2>
+          </div>
         </div>
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Názov</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder={isPoz ? "Napr. Vŕtačka Makita" : "Napr. Detský bicykel"}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-          />
-        </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              Názov
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder={isPoz ? "Napr. Vŕtačka Makita" : "Napr. Detský bicykel"}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            />
+          </div>
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Popis</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            placeholder="Krátky popis…"
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm outline-none backdrop-blur focus:border-neutral-400"
-          />
-        </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              Popis
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              placeholder="Krátky popis…"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm outline-none backdrop-blur focus:border-neutral-400"
+            />
+          </div>
 
-        <ImageInput value={photo} onChange={setPhoto} label="Fotka (voliteľné)" />
+          <ImageInput value={photo} onChange={setPhoto} label="Fotka (voliteľné)" />
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{priceLabel}</label>
-          <input
-            type={isDarovanie ? "text" : "number"}
-            min={0}
-            step="0.01"
-            value={isDarovanie ? "0 € / Zadarmo" : price}
-            onChange={(e) => setPrice(e.target.value)}
-            disabled={isDarovanie}
-            placeholder={pricePlaceholder}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 dark:disabled:bg-white/5 dark:disabled:text-neutral-500"
-          />
-          {isDarovanie && (
-            <p className="mt-1 text-xs text-rose-600">
-              V sekcii Darovanie je cena pevne nastavená na 0 €.
-            </p>
-          )}
-        </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              {priceLabel}
+            </label>
+            <input
+              type={isDarovanie ? "text" : "number"}
+              min={0}
+              step="0.01"
+              value={isDarovanie ? "0 € / Zadarmo" : price}
+              onChange={(e) => setPrice(e.target.value)}
+              disabled={isDarovanie}
+              placeholder={pricePlaceholder}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 dark:disabled:bg-white/5 dark:disabled:text-neutral-500"
+            />
+            {isDarovanie && (
+              <p className="mt-1 text-xs text-rose-600">
+                V sekcii Darovanie je cena pevne nastavená na 0 €.
+              </p>
+            )}
+          </div>
 
-        {err && <p className="text-xs text-rose-600">{err}</p>}
+          {err && <p className="text-xs text-rose-600">{err}</p>}
 
-        <div className="mt-auto flex flex-col gap-2 pt-4">
-          <button
-            type="submit"
-            disabled={busy}
-            className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${meta.accent} py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60`}
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Zverejniť inzerát
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
-          >
-            Zrušiť
-          </button>
-        </div>
+          <div className="mt-auto flex flex-col gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={busy}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${meta.accent} py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60`}
+            >
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Zverejniť inzerát
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
+            >
+              Zrušiť
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -750,69 +740,71 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
-        <button
-          onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
-          aria-label="Zavrieť"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-amber-500" />
-          <h2 className="font-semibold">Rýchly dopyt · platí 24h</h2>
-        </div>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            aria-label="Zavrieť"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-amber-500" />
+            <h2 className="font-semibold">Rýchly dopyt · platí 24h</h2>
+          </div>
         </div>
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <div className="flex-1">
-          <label className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-            Čo urgentne potrebuješ požičať a kedy?
-          </label>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            required
-            autoFocus
-            rows={8}
-            placeholder="Napr. Nemá niekto na 2 hodiny požičať záhradný valec dnes večer?"
-            className="mt-2 h-56 w-full resize-none rounded-2xl border-2 border-amber-200 bg-amber-50/40 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 outline-none focus:border-amber-400 dark:border-amber-500/30 dark:bg-amber-500/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-          />
-        </div>
+          <div className="flex-1">
+            <label className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+              Čo urgentne potrebuješ požičať a kedy?
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              required
+              autoFocus
+              rows={8}
+              placeholder="Napr. Nemá niekto na 2 hodiny požičať záhradný valec dnes večer?"
+              className="mt-2 h-56 w-full resize-none rounded-2xl border-2 border-amber-200 bg-amber-50/40 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 outline-none focus:border-amber-400 dark:border-amber-500/30 dark:bg-amber-500/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            />
+          </div>
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Kontakt</label>
-          <input
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-            required
-            placeholder="Telefón alebo meno"
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-          />
-        </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              Kontakt
+            </label>
+            <input
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              required
+              placeholder="Telefón alebo meno"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            />
+          </div>
 
-        <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200">
-          ⚡ Tento dopyt sa automaticky skryje po 24 hodinách.
-        </div>
+          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200">
+            ⚡ Tento dopyt sa automaticky skryje po 24 hodinách.
+          </div>
 
-        {err && <p className="text-xs text-rose-600">{err}</p>}
+          {err && <p className="text-xs text-rose-600">{err}</p>}
 
-        <div className="flex flex-col gap-2 pt-2">
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Odoslať urgentný dopyt
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
-          >
-            Zrušiť
-          </button>
-        </div>
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60"
+            >
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Odoslať urgentný dopyt
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
+            >
+              Zrušiť
+            </button>
+          </div>
         </form>
       </div>
     </div>

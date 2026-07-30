@@ -95,10 +95,10 @@ export function MojeSpravyScreen() {
         ),
         withTimeout(
           () =>
-            retryAsync(
-              () => supabase.from("profiles").select("id, name").in("id", otherIds),
-              { retries: 1, delayMs: 250 },
-            ),
+            retryAsync(() => supabase.from("profiles").select("id, name").in("id", otherIds), {
+              retries: 1,
+              delayMs: 250,
+            }),
           7000,
           "Načítanie profilov ku konverzáciám trvalo príliš dlho.",
         ),
@@ -118,29 +118,29 @@ export function MojeSpravyScreen() {
         ),
       ]);
 
-    const itemMap = new Map<string, ItemRow>((items ?? []).map((i) => [i.id, i as ItemRow]));
-    const profMap = new Map<string, ProfileRow>(
-      (profiles ?? []).map((p) => [p.id, p as ProfileRow]),
-    );
-    const lastByChat = new Map<string, LastMessage>();
-    for (const m of (msgs ?? []) as LastMessage[]) {
-      if (!lastByChat.has(m.chat_id)) lastByChat.set(m.chat_id, m);
-    }
+      const itemMap = new Map<string, ItemRow>((items ?? []).map((i) => [i.id, i as ItemRow]));
+      const profMap = new Map<string, ProfileRow>(
+        (profiles ?? []).map((p) => [p.id, p as ProfileRow]),
+      );
+      const lastByChat = new Map<string, LastMessage>();
+      for (const m of (msgs ?? []) as LastMessage[]) {
+        if (!lastByChat.has(m.chat_id)) lastByChat.set(m.chat_id, m);
+      }
 
-    const result: Conversation[] = chatRows.map((c) => {
-      const otherId = c.buyer_id === userId ? c.seller_id : c.buyer_id;
-      const last = lastByChat.get(c.id) ?? null;
-      return {
-        id: c.id,
-        itemId: c.item_id,
-        itemTitle: itemMap.get(c.item_id)?.title ?? "Inzerát",
-        counterpartyId: otherId,
-        counterpartyName: profMap.get(otherId)?.name ?? "Sused",
-        lastText: last?.text ?? null,
-        lastAt: last?.created_at ?? c.created_at,
-        unread: false,
-      };
-    });
+      const result: Conversation[] = chatRows.map((c) => {
+        const otherId = c.buyer_id === userId ? c.seller_id : c.buyer_id;
+        const last = lastByChat.get(c.id) ?? null;
+        return {
+          id: c.id,
+          itemId: c.item_id,
+          itemTitle: itemMap.get(c.item_id)?.title ?? "Inzerát",
+          counterpartyId: otherId,
+          counterpartyName: profMap.get(otherId)?.name ?? "Sused",
+          lastText: last?.text ?? null,
+          lastAt: last?.created_at ?? c.created_at,
+          unread: false,
+        };
+      });
 
       result.sort((a, b) => +new Date(b.lastAt) - +new Date(a.lastAt));
       setConvos(result);
@@ -154,7 +154,10 @@ export function MojeSpravyScreen() {
   }, [userId]);
 
   useEffect(() => {
-    void load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [load]);
 
   // Realtime: new chats / new messages → refresh list.
@@ -162,14 +165,10 @@ export function MojeSpravyScreen() {
     if (!userId) return;
     const channel = supabase
       .channel(`inbox-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chats" },
-        (payload) => {
-          const row = payload.new as ChatRow;
-          if (row.buyer_id === userId || row.seller_id === userId) void load();
-        },
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chats" }, (payload) => {
+        const row = payload.new as ChatRow;
+        if (row.buyer_id === userId || row.seller_id === userId) void load();
+      })
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },

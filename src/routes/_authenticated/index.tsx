@@ -58,7 +58,7 @@ function ScreenFallback() {
 }
 
 function Index() {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/_authenticated/" });
   const search = Route.useSearch();
   const activeTab = useMemo<Tab>(() => {
     const value = search.tab;
@@ -81,7 +81,7 @@ function Index() {
     const to = TAB_ORDER.indexOf(next);
     setDirection(to >= from ? 1 : -1);
     navigate({
-      search: (prev) => ({ ...prev, tab: next }),
+      search: (prev: Search) => ({ ...prev, tab: next }),
       replace: false,
     });
   }
@@ -113,10 +113,7 @@ function Index() {
     if (activeTab === "nastenka") clearOfficialUnread();
   }, [activeTab, clearMessageUnread, clearOfficialUnread]);
 
-  const activeTabMeta = useMemo(
-    () => NAV_TABS.find((tab) => tab.id === activeTab),
-    [activeTab],
-  );
+  const activeTabMeta = useMemo(() => NAV_TABS.find((tab) => tab.id === activeTab), [activeTab]);
 
   return (
     <div className="bg-app-shell min-h-screen xl:h-screen xl:overflow-hidden">
@@ -217,7 +214,8 @@ function Index() {
             </button>
 
             <div className="rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-xs text-muted-foreground">
-              Pre mobilné zariadenia je k dispozícii spodná navigácia. Na desktope je nahradená bočným panelom.
+              Pre mobilné zariadenia je k dispozícii spodná navigácia. Na desktope je nahradená
+              bočným panelom.
             </div>
           </aside>
         </div>

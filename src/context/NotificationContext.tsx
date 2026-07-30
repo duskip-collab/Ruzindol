@@ -13,12 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 const MUTE_KEY = "komunita.notifications.muted.v1";
 const CATS_KEY = "komunita.notifications.categories.v1";
 
-export type NotifCategory =
-  | "obecne"
-  | "havarie"
-  | "kulturne"
-  | "farske"
-  | "ostatne";
+export type NotifCategory = "obecne" | "havarie" | "kulturne" | "farske" | "ostatne";
 
 export const NOTIF_CATEGORIES: { key: NotifCategory; label: string }[] = [
   { key: "obecne", label: "Obecné" },
@@ -60,6 +55,26 @@ const DEFAULT_CATS: Record<NotifCategory, boolean> = {
   ostatne: true,
 };
 
+function getInitialMuted() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function getInitialCategories() {
+  if (typeof window === "undefined") return DEFAULT_CATS;
+  try {
+    const raw = window.localStorage.getItem(CATS_KEY);
+    if (!raw) return DEFAULT_CATS;
+    return { ...DEFAULT_CATS, ...(JSON.parse(raw) as object) };
+  } catch {
+    return DEFAULT_CATS;
+  }
+}
+
 const Ctx = createContext<NotificationCtx | null>(null);
 
 function classify(type: string, category: string | null): NotifCategory {
@@ -74,19 +89,16 @@ function classify(type: string, category: string | null): NotifCategory {
     c === "vysoka"
   )
     return "havarie";
-  if (c.includes("kult") || c.includes("podujat") || c.includes("udalost"))
-    return "kulturne";
-  if (c.includes("farsk") || c.includes("kostol") || t === "farsky_oznam")
-    return "farske";
-  if (t === "hlasnik" || t === "official_alert" || c.includes("obec"))
-    return "obecne";
+  if (c.includes("kult") || c.includes("podujat") || c.includes("udalost")) return "kulturne";
+  if (c.includes("farsk") || c.includes("kostol") || t === "farsky_oznam") return "farske";
+  if (t === "hlasnik" || t === "official_alert" || c.includes("obec")) return "obecne";
   return "ostatne";
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [muted, setMutedState] = useState<boolean>(false);
+  const [muted, setMutedState] = useState<boolean>(getInitialMuted);
   const [categories, setCategories] =
-    useState<Record<NotifCategory, boolean>>(DEFAULT_CATS);
+    useState<Record<NotifCategory, boolean>>(getInitialCategories);
   const [current, setCurrent] = useState<LiveNotification | null>(null);
   const [hasOfficialUnread, setHasOfficialUnread] = useState(false);
   const [hasMessageUnread, setHasMessageUnread] = useState(false);
@@ -97,20 +109,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    try {
-      const m = window.localStorage.getItem(MUTE_KEY) === "1";
-      setMutedState(m);
-      mutedRef.current = m;
-      const raw = window.localStorage.getItem(CATS_KEY);
-      if (raw) {
-        const parsed = { ...DEFAULT_CATS, ...(JSON.parse(raw) as object) };
-        setCategories(parsed);
-        catsRef.current = parsed;
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+    mutedRef.current = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    catsRef.current = categories;
+  }, [categories]);
 
   const setMuted = useCallback((v: boolean) => {
     setMutedState(v);
@@ -182,8 +186,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           };
           const typeLc = (row.type ?? "").toLowerCase();
           const catLc = (row.category ?? "").toLowerCase();
-          const isHlasnik =
-            typeLc === "hlasnik" || typeLc === "official_alert";
+          const isHlasnik = typeLc === "hlasnik" || typeLc === "official_alert";
           const isHigh =
             catLc === "vysoka" ||
             catLc === "výstraha" ||
@@ -286,7 +289,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications() {
   const ctx = useContext(Ctx);
-  if (!ctx)
-    throw new Error("useNotifications must be used within <NotificationProvider>");
+  if (!ctx) throw new Error("useNotifications must be used within <NotificationProvider>");
   return ctx;
 }

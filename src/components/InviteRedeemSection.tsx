@@ -3,11 +3,7 @@ import { Loader2, Check, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppMode } from "@/context/AppModeContext";
 
-export function InviteRedeemSection({
-  onActivated,
-}: {
-  onActivated?: () => void | Promise<void>;
-}) {
+export function InviteRedeemSection({ onActivated }: { onActivated?: () => void | Promise<void> }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -43,9 +39,8 @@ export function InviteRedeemSection({
   return (
     <div className="space-y-3">
       <p className="text-sm text-neutral-600 dark:text-neutral-300">
-        Zadaj pozývací kód, ktorý si dostal od suseda, starostu alebo admina.
-        Po zadaní správneho kódu sa ti odomkne pridávanie inzerátov a chat so
-        susedmi.
+        Zadaj pozývací kód, ktorý si dostal od suseda, starostu alebo admina. Po zadaní správneho
+        kódu sa ti odomkne pridávanie inzerátov a chat so susedmi.
       </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -68,11 +63,7 @@ export function InviteRedeemSection({
           disabled={busy || code.trim().length < 4}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
         >
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4" />
-          )}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Aktivovať
         </button>
       </div>

@@ -11,11 +11,7 @@ export interface User {
   communityCode?: string;
 }
 
-export type PostType =
-  | "hlasnik"
-  | "susedsky_zivot"
-  | "official_alert"
-  | "farsky_oznam";
+export type PostType = "hlasnik" | "susedsky_zivot" | "official_alert" | "farsky_oznam";
 
 export type PostPriority = "low" | "normal" | "high" | "urgent";
 
@@ -35,11 +31,7 @@ export interface Post {
   priority?: PostPriority;
 }
 
-export type WarehouseType =
-  | "trh"
-  | "darovanie"
-  | "sklad_ponuka"
-  | "sklad_dopyt";
+export type WarehouseType = "trh" | "darovanie" | "sklad_ponuka" | "sklad_dopyt";
 
 export interface WarehouseItem {
   id: string;
@@ -88,12 +80,7 @@ export interface EventItem {
   type?: EventCategory;
 }
 
-export type NotificationType =
-  | "new_message"
-  | "new_post"
-  | "new_alert"
-  | "like"
-  | "system";
+export type NotificationType = "new_message" | "new_post" | "new_alert" | "like" | "system";
 
 export interface AppNotification {
   id: string;

@@ -54,15 +54,10 @@ export function useCurrentUser() {
 
         let { data: p } = await withTimeout(
           () =>
-            retryAsync(
-              () =>
-                supabase
-                  .from("profiles")
-                  .select(SELECT)
-                  .eq("id", uid)
-                  .maybeSingle(),
-              { retries: 1, delayMs: 250 },
-            ),
+            retryAsync(() => supabase.from("profiles").select(SELECT).eq("id", uid).maybeSingle(), {
+              retries: 1,
+              delayMs: 250,
+            }),
           7000,
           "Načítanie profilu trvalo príliš dlho.",
         );
@@ -91,12 +86,7 @@ export function useCurrentUser() {
           const refetch = await withTimeout(
             () =>
               retryAsync(
-                () =>
-                  supabase
-                    .from("profiles")
-                    .select(SELECT)
-                    .eq("id", uid)
-                    .maybeSingle(),
+                () => supabase.from("profiles").select(SELECT).eq("id", uid).maybeSingle(),
                 { retries: 1, delayMs: 250 },
               ),
             7000,
@@ -132,12 +122,7 @@ export function useCurrentUser() {
         const { data: p } = await withTimeout(
           () =>
             retryAsync(
-              () =>
-                supabase
-                  .from("profiles")
-                  .select(SELECT)
-                  .eq("id", userId)
-                  .maybeSingle(),
+              () => supabase.from("profiles").select(SELECT).eq("id", userId).maybeSingle(),
               { retries: 1, delayMs: 250 },
             ),
           7000,
