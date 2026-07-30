@@ -43,8 +43,8 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-gradient-to-b from-neutral-950 to-neutral-800 text-white">
-      <div className="flex items-center justify-between px-4 pt-4">
+    <div className="fixed inset-0 z-[100] w-full h-full bg-[#121212] text-white flex flex-col justify-between p-6 overflow-y-auto">
+      <div className="flex items-center justify-between px-6 pt-16">
         <span className="text-xs font-medium tracking-wider text-white/60">
           AKTIVÁCIA
         </span>
@@ -82,7 +82,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
         {mode === "qr" ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -134,7 +134,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
         )}
       </div>
 
-      <div className="flex flex-col gap-2 px-6 pb-8">
+      <div className="flex flex-col gap-2 px-6 pb-28">
         <button
           onClick={() => void submit()}
           disabled={busy || (mode === "manual" && code.trim().length < 4)}

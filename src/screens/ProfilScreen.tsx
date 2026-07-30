@@ -81,6 +81,11 @@ const InviteRedeemSection = lazy(async () => {
   return { default: module.InviteRedeemSection };
 });
 
+const AktualityGroupsPanel = lazy(async () => {
+  const module = await import("@/components/AktualityGroupsPanel");
+  return { default: module.AktualityGroupsPanel };
+});
+
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "pred chvíľou";
@@ -227,11 +232,11 @@ export function ProfilScreen() {
         onValueChange={setOpenSection}
         className="flex flex-col gap-2"
       >
-        {isAdmin && (
+        {(isAdmin || profile.role === "Starosta") && (
           <AccordionSection value="admin" title="Admin panel">
             {openSection === "admin" && (
               <Suspense fallback={<SectionLoader />}>
-                <AdminPanel adminId={profile.id} />
+                <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />
               </Suspense>
             )}
           </AccordionSection>
@@ -242,6 +247,16 @@ export function ProfilScreen() {
             {openSection === "moderation" && (
               <Suspense fallback={<SectionLoader />}>
                 <ModerationPanel currentUserId={profile.id} />
+              </Suspense>
+            )}
+          </AccordionSection>
+        )}
+
+        {(isAdmin || profile.role === "Starosta") && (
+          <AccordionSection value="aktuality-admin" title="Administrácia aktualít sekcií">
+            {openSection === "aktuality-admin" && (
+              <Suspense fallback={<SectionLoader />}>
+                <AktualityGroupsPanel />
               </Suspense>
             )}
           </AccordionSection>
@@ -804,11 +819,22 @@ function RoleSwitcher({
       .from("profiles")
       .update({ role: next })
       .eq("id", userId);
-    setBusy(null);
     if (error) {
+      setBusy(null);
       setErr(error.message);
       return;
     }
+
+    const { error: roleErr } = await supabase
+      .from("user_roles")
+      .upsert({ user_id: userId, role: next }, { onConflict: "user_id,role" });
+
+    setBusy(null);
+    if (roleErr) {
+      setErr(roleErr.message);
+      return;
+    }
+
     await onChange();
   }
 

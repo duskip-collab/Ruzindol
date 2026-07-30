@@ -193,27 +193,39 @@ export type Database = {
           author_id: string
           content: string
           created_at: string
+          deceased_name: string | null
           expires_at: string
           group_key: string
           id: string
+          image_url: string | null
+          linked_event_id: string | null
+          post_kind: string
           title: string
         }
         Insert: {
           author_id: string
           content: string
           created_at?: string
+          deceased_name?: string | null
           expires_at?: string
           group_key: string
           id?: string
+          image_url?: string | null
+          linked_event_id?: string | null
+          post_kind?: string
           title: string
         }
         Update: {
           author_id?: string
           content?: string
           created_at?: string
+          deceased_name?: string | null
           expires_at?: string
           group_key?: string
           id?: string
+          image_url?: string | null
+          linked_event_id?: string | null
+          post_kind?: string
           title?: string
         }
         Relationships: [
@@ -222,6 +234,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_announcements_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -589,6 +608,7 @@ export type Database = {
         Returns: string
       }
       can_moderate: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_group_sections: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_announcements: { Args: never; Returns: number }
       cleanup_expired_group_announcements: { Args: never; Returns: number }
       cleanup_old_neighbor_posts: { Args: never; Returns: number }

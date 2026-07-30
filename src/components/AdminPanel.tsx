@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Copy, Check, Shield, MapPin, UserCog, Trash2, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileRole } from "@/hooks/useCurrentUser";
+import { Input } from "@/components/ui/input";
 
 type CodeRole = "Sused" | "Uradnik" | "Starosta" | "Farar";
 
@@ -38,7 +39,13 @@ function randomCode(): string {
   return out;
 }
 
-export function AdminPanel({ adminId }: { adminId: string }) {
+export function AdminPanel({
+  adminId,
+  isSuperAdmin,
+}: {
+  adminId: string;
+  isSuperAdmin: boolean;
+}) {
   return (
     <div className="rounded-3xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:from-indigo-500/10 dark:to-transparent dark:border-indigo-400/30">
       <div className="mb-4 flex items-center gap-2">
@@ -47,18 +54,22 @@ export function AdminPanel({ adminId }: { adminId: string }) {
         </div>
         <div>
           <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Administrátor
+            Administrácia používateľov
           </h3>
           <p className="text-[11px] text-neutral-500">
-            Správa pozvánok a rolí · auto-čistenie po 3 dňoch
+            Starosta aj Admin môžu spravovať roly susedov.
           </p>
         </div>
       </div>
 
       <div className="space-y-6">
-        <InviteCodeManager adminId={adminId} />
         <RoleAssigner />
-        <MunicipalityManager />
+        {isSuperAdmin && (
+          <>
+            <InviteCodeManager adminId={adminId} />
+            <MunicipalityManager />
+          </>
+        )}
       </div>
     </div>
   );
@@ -336,6 +347,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
 
 function RoleAssigner() {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -345,15 +357,35 @@ function RoleAssigner() {
     const { data } = await supabase
       .from("profiles")
       .select("id, name, role")
-      .order("name")
-      .limit(100);
+      .order("name");
     setUsers((data as UserRow[] | null) ?? []);
     setLoading(false);
   };
 
   useEffect(() => {
     void load();
+
+    const channel = supabase
+      .channel("admin-users-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          void load();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => u.name.toLowerCase().includes(q));
+  }, [users, search]);
 
   async function assign(userId: string, role: ProfileRole) {
     setBusy(userId);
@@ -362,9 +394,25 @@ function RoleAssigner() {
       .from("profiles")
       .update({ role })
       .eq("id", userId);
-    await supabase.from("user_roles").insert({ user_id: userId, role }).select();
+
+    if (perr) {
+      console.error("Failed to update profile role", { userId, role, error: perr });
+      setBusy(null);
+      setErr(perr.message);
+      return;
+    }
+
+    const { error: roleErr } = await supabase
+      .from("user_roles")
+      .upsert({ user_id: userId, role }, { onConflict: "user_id,role" });
+
     setBusy(null);
-    if (perr) return setErr(perr.message);
+    if (roleErr) {
+      console.error("Failed to upsert user role", { userId, role, error: roleErr });
+      setErr(roleErr.message);
+      return;
+    }
+
     await load();
   }
 
@@ -373,6 +421,12 @@ function RoleAssigner() {
       <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
         <UserCog className="h-3.5 w-3.5" /> Priradiť rolu
       </h4>
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Vyhľadať suseda podľa mena"
+        className="mb-2"
+      />
       {err && <p className="mb-2 text-xs text-rose-600">{err}</p>}
       {loading ? (
         <div className="flex justify-center py-3">
@@ -380,7 +434,7 @@ function RoleAssigner() {
         </div>
       ) : (
         <ul className="max-h-56 space-y-1 overflow-y-auto">
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <li
               key={u.id}
               className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"

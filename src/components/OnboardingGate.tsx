@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { Eye, KeyRound } from "lucide-react";
 import { useAppMode } from "@/context/AppModeContext";
 import { WelcomeScreen } from "@/screens/onboarding/WelcomeScreen";
@@ -12,6 +13,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const { onboarded, isVerified } = useAppMode();
   const [phase, setPhase] = useState<Phase>(onboarded ? "app" : "welcome");
   const [showActivation, setShowActivation] = useState(false);
+  const canUseDom = typeof document !== "undefined";
 
   useEffect(() => {
     if (onboarded) {
@@ -64,25 +66,29 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
         <div className="relative flex h-full flex-col">{children}</div>
       )}
 
-      <AnimatePresence>
-        {showActivation && (
-          <motion.div
-            key="activation-modal"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 260 }}
-            className="absolute inset-0 z-40"
-          >
-            <CodeActivationScreen
-              onClose={() => {
-                setShowActivation(false);
-                if (phase === "gate") setPhase("app");
-              }}
-            />
-          </motion.div>
+      {canUseDom &&
+        createPortal(
+          <AnimatePresence>
+            {showActivation && (
+              <motion.div
+                key="activation-modal"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 260 }}
+                className="fixed inset-0 z-[110]"
+              >
+                <CodeActivationScreen
+                  onClose={() => {
+                    setShowActivation(false);
+                    if (phase === "gate") setPhase("app");
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   );
 }

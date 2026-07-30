@@ -26,6 +26,7 @@ function AuthPage() {
   const [municipalities, setMunicipalities] = useState<MuniOpt[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -56,13 +57,15 @@ function AuthPage() {
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        navigate({ to: "/" });
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -71,8 +74,16 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+
+        if (data.session) {
+          navigate({ to: "/" });
+        } else {
+          setMode("signin");
+          setNotice(
+            "Registrácia prebehla. Potvrď email v schránke a potom sa prihlás emailom a heslom.",
+          );
+        }
       }
-      navigate({ to: "/" });
     } catch (e: any) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -221,6 +232,12 @@ function AuthPage() {
                 {error && (
                   <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                     {error}
+                  </div>
+                )}
+
+                {notice && (
+                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                    {notice}
                   </div>
                 )}
 
