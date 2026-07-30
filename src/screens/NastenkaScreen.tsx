@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, Send, Heart, Flag, Search, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, X, Send, Heart, Flag, Search, AlertTriangle, Loader2, ChevronRight, Pencil } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { PostLightbox } from "@/components/PostLightbox";
@@ -33,7 +33,8 @@ const NEIGHBOR_CATEGORIES: Category[] = [
 
 const TRH_DISCLAIMER =
   "Prevádzkovateľ aplikácie nezodpovedá za legálnosť, kvalitu ani pôvod produktov. Používatelia sú povinní dodržiavať legislatívu SR (dane, hygiena).";
-const OFFICIAL_NOTICE_MAX_DAYS = 5;
+const OFFICIAL_NOTICE_MAX_DAYS = 4;
+const POST_TTL_MS = 4 * 24 * 3600_000;
 
 function timeAgo(iso: string) {
   if (!iso) return "pred chvíľou";
@@ -59,32 +60,47 @@ type CreatedPost = {
   expiresAt?: string;
 };
 
-function isOfficialNoticeExpired(post: {
-  type: PostType;
-  userRole?: string | null;
+type PostReply = {
+  id: string;
+  postId: string;
+  userId: string;
+  userName: string;
+  content: string;
   createdAt: string;
-  expiresAt?: string;
-}) {
-  if (post.type !== "hlasnik") return false;
-  const role = (post.userRole ?? "").toLowerCase();
-  if (role !== "starosta" && role !== "uradnik") return false;
+};
 
-  const fallbackExpiryTs =
-    new Date(post.createdAt).getTime() + OFFICIAL_NOTICE_MAX_DAYS * 24 * 3600_000;
-  const explicitExpiryTs = post.expiresAt ? new Date(post.expiresAt).getTime() : NaN;
-  const expiryTs = Number.isFinite(explicitExpiryTs) ? explicitExpiryTs : fallbackExpiryTs;
-  return expiryTs <= Date.now();
+function canReplyToPost(post: Post) {
+  return post.type === "susedsky_zivot" && NEIGHBOR_CATEGORIES.includes(post.category as Category);
+}
+
+function isPostExpired(post: Post) {
+  if (post.type === "hlasnik" || post.type === "official_alert") {
+    const fallbackTs = new Date(post.createdAt).getTime() + POST_TTL_MS;
+    const explicitTs = post.expiresAt ? new Date(post.expiresAt).getTime() : NaN;
+    const expiryTs = Number.isFinite(explicitTs) ? explicitTs : fallbackTs;
+    return expiryTs <= Date.now();
+  }
+
+  if (canReplyToPost(post)) {
+    return new Date(post.createdAt).getTime() + POST_TTL_MS <= Date.now();
+  }
+
+  return false;
 }
 
 export function NastenkaScreen() {
   const { profile, userId } = useCurrentUser();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [repliesByPost, setRepliesByPost] = useState<Record<string, PostReply[]>>({});
+  const [replyDraftByPost, setReplyDraftByPost] = useState<Record<string, string>>({});
+  const [replyBusyByPost, setReplyBusyByPost] = useState<Record<string, boolean>>({});
   const [likesByPost, setLikesByPost] = useState<Record<string, boolean>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
   const [reportedByPost, setReportedByPost] = useState<Record<string, boolean>>({});
   const isReadonly = !(profile?.is_active_neighbor ?? false);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalMode>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
 
   const canCreateOfficialNotice =
@@ -117,25 +133,39 @@ export function NastenkaScreen() {
         likes: [],
         isReported: false,
       }))
-      .filter((post, index) => {
-        const row = (data as any[])[index];
-        return !isOfficialNoticeExpired({
-          type: post.type,
-          userRole: row?.profiles?.role,
-          createdAt: post.createdAt,
-          expiresAt: post.expiresAt,
-        });
-      });
+      .filter((post) => !isPostExpired(post));
 
     setPosts(mapped);
 
     const postIds = mapped.map((post) => post.id);
     if (postIds.length === 0) {
+      setRepliesByPost({});
       setLikesByPost({});
       setLikesCountByPost({});
       setReportedByPost({});
       return;
     }
+
+    const { data: replyRows } = await supabase
+      .from("post_replies")
+      .select("id, post_id, user_id, content, created_at, profiles!user_id(name)")
+      .in("post_id", postIds)
+      .order("created_at", { ascending: true });
+
+    const repliesMap: Record<string, PostReply[]> = {};
+    for (const row of replyRows ?? []) {
+      const item: PostReply = {
+        id: row.id,
+        postId: row.post_id,
+        userId: row.user_id,
+        userName: (row as any).profiles?.name ?? "Sused",
+        content: row.content,
+        createdAt: row.created_at,
+      };
+      if (!repliesMap[row.post_id]) repliesMap[row.post_id] = [];
+      repliesMap[row.post_id].push(item);
+    }
+    setRepliesByPost(repliesMap);
 
     const { data: likeRows } = await supabase
       .from("post_likes")
@@ -191,6 +221,13 @@ export function NastenkaScreen() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "posts" },
+        () => {
+          void loadPosts();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_replies" },
         () => {
           void loadPosts();
         },
@@ -260,6 +297,83 @@ export function NastenkaScreen() {
     }
   }
 
+  async function addReply(postId: string) {
+    if (!userId || replyBusyByPost[postId]) return;
+    const content = (replyDraftByPost[postId] ?? "").trim();
+    if (!content) return;
+
+    setReplyBusyByPost((prev) => ({ ...prev, [postId]: true }));
+    const { error } = await supabase.from("post_replies").insert({
+      post_id: postId,
+      user_id: userId,
+      content,
+    });
+    setReplyBusyByPost((prev) => ({ ...prev, [postId]: false }));
+
+    if (error) {
+      return;
+    }
+
+    setReplyDraftByPost((prev) => ({ ...prev, [postId]: "" }));
+    await loadPosts();
+  }
+
+  async function deletePost(postId: string) {
+    if (!userId) return;
+    if (!confirm("Naozaj vymazať tento príspevok?")) return;
+
+    const { error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId)
+      .eq("user_id", userId);
+
+    if (error) return;
+
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+    setRepliesByPost((prev) => {
+      const next = { ...prev };
+      delete next[postId];
+      return next;
+    });
+    if (lightboxPost?.id === postId) setLightboxPost(null);
+  }
+
+  async function updatePost(payload: {
+    postId: string;
+    title: string;
+    content: string;
+    category: Category;
+  }) {
+    if (!userId) return;
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        title: payload.title,
+        content: payload.content,
+        category: payload.category,
+      })
+      .eq("id", payload.postId)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === payload.postId
+          ? {
+              ...post,
+              title: payload.title,
+              content: payload.content,
+              category: payload.category,
+            }
+          : post,
+      ),
+    );
+  }
+
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!q) return posts;
@@ -277,9 +391,7 @@ export function NastenkaScreen() {
 
   const prispevky = filtered.filter((p) => {
     if (p.type !== "susedsky_zivot" && p.type !== "farsky_oznam") return false;
-    // Povolíme iba kategórie priradené pre Nástenku
     if (!NEIGHBOR_CATEGORIES.includes(p.category as Category)) return false;
-    // OSTRÁNENÝ FILTER expirácie na 4 dni, aby staršie testovacie príspevky nezmizli potichu
     return true;
   });
 
@@ -294,9 +406,9 @@ export function NastenkaScreen() {
   }, [lightboxPost, likesCountByPost, reportedByPost]);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-y-auto">
       {/* Search */}
-      <div className="sticky top-0 z-10 bg-white/80 px-5 pt-3 pb-2 backdrop-blur dark:bg-neutral-950/80">
+      <div className="sticky top-0 z-10 bg-white/80 px-4 pb-2 pt-3 backdrop-blur dark:bg-neutral-950/80 md:px-6">
         <div className="flex items-center gap-2 rounded-full border border-neutral-200/70 bg-white/70 px-3 py-2 backdrop-blur dark:border-white/10 dark:bg-white/5">
           <Search className="h-4 w-4 text-neutral-400" />
           <input
@@ -309,14 +421,14 @@ export function NastenkaScreen() {
       </div>
 
       {profile && (
-        <div className="px-5 pt-3">
+        <div className="px-4 pt-3 md:px-6">
           <BanBanner profile={profile} />
         </div>
       )}
 
       {/* Hlásnik */}
       <section className="border-b border-neutral-200/70 pb-3 dark:border-white/10">
-        <div className="flex items-center justify-between px-5 pb-2 pt-1">
+        <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
           <div>
             <h2 className="text-base font-semibold tracking-tight">📢 Obecný hlásnik</h2>
             <p className="text-[11px] text-muted-foreground">Oficiálne oznamy obce</p>
@@ -330,8 +442,8 @@ export function NastenkaScreen() {
             </button>
           )}
         </div>
-        <div className="overflow-x-auto">
-          <div className="flex gap-3 px-5 pb-2">
+        <div className="overflow-x-auto md:overflow-visible">
+          <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
             {oznamy.length === 0 && (
               <div className="flex h-32 w-full items-center justify-center text-xs text-neutral-500">
                 Zatiaľ žiadne oznamy.
@@ -354,7 +466,7 @@ export function NastenkaScreen() {
 
       {/* Susedský život */}
       <section className="flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center justify-between px-4 pb-2 pt-4 md:px-6">
           <div>
             <h2 className="text-base font-semibold tracking-tight">🏘️ Susedský život</h2>
             <p className="text-[11px] text-muted-foreground">Príspevky od susedov</p>
@@ -368,8 +480,8 @@ export function NastenkaScreen() {
             </button>
           )}
         </div>
-        <div className="px-5 pb-4">
-          <div className="flex flex-col gap-3">
+        <div className="px-4 pb-4 md:px-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {prispevky.length === 0 && (
               <p className="py-8 text-center text-xs text-neutral-500">
                 {q ? "Nič nezodpovedá vyhľadávaniu." : "Zatiaľ žiadne príspevky. Buď prvý!"}
@@ -387,6 +499,7 @@ export function NastenkaScreen() {
                 onReport={() => {
                   void reportPost(p.id);
                 }}
+                replies={repliesByPost[p.id] ?? []}
                 likesCount={likesCountByPost[p.id] ?? 0}
                 reported={p.isReported || !!reportedByPost[p.id]}
               />
@@ -413,9 +526,54 @@ export function NastenkaScreen() {
         />
       )}
 
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onSave={async (payload) => {
+            await updatePost(payload);
+            setEditingPost(null);
+          }}
+        />
+      )}
+
       <PostLightbox
         post={lightboxViewPost}
         liked={lightboxPost ? !!likesByPost[lightboxPost.id] : false}
+        canManage={!!lightboxPost && lightboxPost.userId === userId}
+        onEdit={
+          lightboxPost
+            ? () => {
+                setEditingPost(lightboxPost);
+                setLightboxPost(null);
+              }
+            : undefined
+        }
+        onDelete={
+          lightboxPost
+            ? () => {
+                void deletePost(lightboxPost.id);
+              }
+            : undefined
+        }
+        replies={lightboxPost ? repliesByPost[lightboxPost.id] ?? [] : []}
+        canReply={!!lightboxPost && canReplyToPost(lightboxPost)}
+        replyDraft={lightboxPost ? replyDraftByPost[lightboxPost.id] ?? "" : ""}
+        onReplyDraftChange={
+          lightboxPost
+            ? (value) => {
+                setReplyDraftByPost((prev) => ({ ...prev, [lightboxPost.id]: value }));
+              }
+            : undefined
+        }
+        onReplySubmit={
+          lightboxPost
+            ? () => {
+                void addReply(lightboxPost.id);
+              }
+            : undefined
+        }
+        replyBusy={lightboxPost ? !!replyBusyByPost[lightboxPost.id] : false}
         onLike={
           lightboxPost
             ? () => {
@@ -460,7 +618,7 @@ function OfficialCard({
   return (
     <article
       onClick={onOpen}
-      className="flex h-full w-64 shrink-0 cursor-pointer flex-col rounded-2xl border-2 border-orange-400/80 bg-orange-50/60 p-3 shadow-sm transition hover:shadow-md"
+      className="flex h-full w-64 shrink-0 cursor-pointer flex-col rounded-2xl border-2 border-orange-400/80 bg-orange-50/60 p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
     >
       <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-orange-600">
         <span>{timeAgo(post.createdAt)}</span>
@@ -495,6 +653,7 @@ function NeighborCard({
   onOpen,
   onLike,
   onReport,
+  replies,
 }: {
   post: Post;
   liked: boolean;
@@ -503,6 +662,7 @@ function NeighborCard({
   onOpen: () => void;
   onLike: () => void;
   onReport: () => void;
+  replies: PostReply[];
 }) {
   const showTrhDisclaimer = post.category === "Susedsky_trh";
   const stop = (fn: () => void) => (e: React.MouseEvent) => {
@@ -562,6 +722,7 @@ function NeighborCard({
           <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
           <span>{likesCount}</span>
         </button>
+        <span className="text-neutral-500">💬 {replies.length}</span>
         <button
           onClick={stop(onReport)}
           disabled={reported}
@@ -571,7 +732,137 @@ function NeighborCard({
           {reported ? "Nahlásené" : "Nahlásiť"}
         </button>
       </div>
+
+      <div className="mt-2 flex items-center justify-end border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 dark:border-white/10">
+        <span className="inline-flex items-center gap-1">
+          Rozklikni detail
+          <ChevronRight className="h-3.5 w-3.5" />
+        </span>
+      </div>
     </article>
+  );
+}
+
+function EditPostModal({
+  post,
+  onClose,
+  onSave,
+}: {
+  post: Post;
+  onClose: () => void;
+  onSave: (payload: { postId: string; title: string; content: string; category: Category }) => Promise<void>;
+}) {
+  const isOfficial = post.type === "hlasnik" || post.type === "official_alert";
+  const [title, setTitle] = useState(post.title);
+  const [content, setContent] = useState(post.content);
+  const [category, setCategory] = useState<Category>(() => {
+    if (isOfficial) return "Hlasnik";
+    return NEIGHBOR_CATEGORIES.includes(post.category as Category)
+      ? (post.category as Category)
+      : "Otazka";
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!content.trim() || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await onSave({
+        postId: post.id,
+        title: title.trim() || (isOfficial ? "Oznam" : "Príspevok"),
+        content: content.trim(),
+        category,
+      });
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : "Uloženie zlyhalo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const options = isOfficial ? (["Hlasnik"] as Category[]) : NEIGHBOR_CATEGORIES;
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            aria-label="Zavrieť"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <h2 className="font-semibold">✏️ Upraviť príspevok</h2>
+        </div>
+
+        <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Kategória</label>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {options.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => setCategory(c)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    category === c
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  }`}
+                >
+                  {CATEGORY_LABEL[c]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Nadpis</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Obsah</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={6}
+              required
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            />
+          </div>
+
+          {err && <p className="text-xs text-rose-600">{err}</p>}
+
+          <div className="mt-auto flex flex-col gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+              Uložiť zmeny
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+            >
+              Zrušiť
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -665,8 +956,9 @@ function NewPostModal({
   const options = isOfficial ? (["Hlasnik"] as Category[]) : NEIGHBOR_CATEGORIES;
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+    <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
         <button
           onClick={onClose}
           className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
@@ -677,9 +969,9 @@ function NewPostModal({
         <h2 className="font-semibold">
           {isOfficial ? "📢 Nový úradný oznam" : "🏘️ Nový príspevok"}
         </h2>
-      </div>
+        </div>
 
-      <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
           <label className="text-sm font-medium text-neutral-700">Kategória</label>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -750,7 +1042,8 @@ function NewPostModal({
             Zrušiť
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

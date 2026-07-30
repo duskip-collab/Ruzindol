@@ -113,8 +113,8 @@ export function AktualityScreen() {
   const rest = items.filter((i) => !pinOrder.includes(i.priority));
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-200/70 bg-white/70 px-5 py-3 backdrop-blur">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col">
+      <header className="flex items-center justify-between border-b border-neutral-200/70 bg-white/70 px-4 py-3 backdrop-blur md:px-6">
         <div>
           <h1 className="text-base font-semibold tracking-tight">📰 Aktuality a oznamy</h1>
           <p className="text-[11px] text-muted-foreground">
@@ -141,7 +141,7 @@ export function AktualityScreen() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
         <div className="mb-4">
           <AktualityGroupsPanel />
         </div>
@@ -159,7 +159,7 @@ export function AktualityScreen() {
             Zatiaľ žiadne oznamy.
           </p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {pinned.map((it) => (
               <AnnouncementCard
                 key={it.id}
@@ -323,8 +323,9 @@ function AdminForm({
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+    <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
         <button
           onClick={onClose}
           className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
@@ -333,9 +334,9 @@ function AdminForm({
           <X className="h-5 w-5" />
         </button>
         <h2 className="font-semibold">📝 Nový oznam (admin)</h2>
-      </div>
+        </div>
 
-      <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
           <label className="text-sm font-medium text-neutral-700">Typ / Priorita</label>
           <div className="mt-2 grid grid-cols-2 gap-1.5">
@@ -415,7 +416,8 @@ function AdminForm({
             Zverejniť oznam
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

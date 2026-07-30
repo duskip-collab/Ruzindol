@@ -149,6 +149,10 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
 @utility bg-app-shell {
   background:
     radial-gradient(

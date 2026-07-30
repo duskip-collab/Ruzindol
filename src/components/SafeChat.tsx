@@ -101,8 +101,9 @@ export function SafeChat({
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur-xl">
+    <div className="absolute inset-0 z-50 flex items-end bg-black/25 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur-xl">
         <button
           onClick={onClose}
           className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
@@ -123,9 +124,9 @@ export function SafeChat({
         >
           {messages.length} / {MAX_MESSAGES}
         </span>
-      </div>
+        </div>
 
-      <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-neutral-50/60 p-4">
+        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-neutral-50/60 p-4">
         {loading ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -139,15 +140,15 @@ export function SafeChat({
             <MessageBubble key={m.id} isMe={m.sender_id === currentUserId} text={m.text} />
           ))
         )}
-      </div>
+        </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void trySend();
-        }}
-        className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl"
-      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void trySend();
+          }}
+          className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl"
+        >
         {!isLocked && !error && (
           <p className="mb-2 text-center text-xs text-neutral-500">
             Ostáva {remaining} {remaining === 1 ? "správa" : remaining < 5 ? "správy" : "správ"} do
@@ -180,18 +181,19 @@ export function SafeChat({
           </button>
         </div>
 
-        {(isLocked || error) && (
-          <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 shadow-sm ring-1 ring-amber-200/50 backdrop-blur-xl">
-            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-            <p className="text-xs leading-relaxed text-amber-900">
-              <span className="font-semibold">
-                ⚠️ {error ?? "Limit správ pre tento inzerát bol dosiahnutý."}
-              </span>{" "}
-              Detaily (miesto, čas, telefón) si, prosím, dohodnite osobne.
-            </p>
-          </div>
-        )}
-      </form>
+          {(isLocked || error) && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 shadow-sm ring-1 ring-amber-200/50 backdrop-blur-xl">
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <p className="text-xs leading-relaxed text-amber-900">
+                <span className="font-semibold">
+                  ⚠️ {error ?? "Limit správ pre tento inzerát bol dosiahnutý."}
+                </span>{" "}
+                Detaily (miesto, čas, telefón) si, prosím, dohodnite osobne.
+              </p>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

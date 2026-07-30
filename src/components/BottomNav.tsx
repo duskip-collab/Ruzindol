@@ -1,13 +1,16 @@
 import { MessageCircle, Megaphone, Newspaper, Package, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil";
 
 interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  layout?: "bottom" | "sidebar";
+  className?: string;
 }
 
-const tabs: { id: Tab; label: string; icon: typeof Newspaper }[] = [
+export const NAV_TABS: { id: Tab; label: string; icon: typeof Newspaper }[] = [
   { id: "nastenka", label: "Nástenka", icon: Newspaper },
   { id: "aktuality", label: "Aktuality", icon: Megaphone },
   { id: "sklad", label: "Sklad", icon: Package },
@@ -15,10 +18,58 @@ const tabs: { id: Tab; label: string; icon: typeof Newspaper }[] = [
   { id: "profil", label: "Profil", icon: User },
 ];
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({
+  activeTab,
+  onTabChange,
+  layout = "bottom",
+  className,
+}: BottomNavProps) {
+  if (layout === "sidebar") {
+    return (
+      <nav className={cn("flex flex-col gap-1", className)}>
+        {NAV_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className={cn(
+                "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all",
+                isActive
+                  ? "bg-white text-brand shadow-md shadow-brand/10"
+                  : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-9 w-9 place-items-center rounded-xl transition-all",
+                  isActive
+                    ? "bg-gradient-to-br from-brand/15 to-brand-glow/10"
+                    : "bg-transparent",
+                )}
+              >
+                <Icon size={18} strokeWidth={isActive ? 2.4 : 1.9} />
+              </span>
+              <span className={cn("text-sm", isActive ? "font-semibold" : "font-medium")}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
-    <nav className="glass-panel relative z-50 mx-3 mb-3 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe md:mx-4 md:mb-4">
-      {tabs.map((tab) => {
+    <nav
+      className={cn(
+        "glass-panel relative z-50 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        className,
+      )}
+    >
+      {NAV_TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
         return (

@@ -43,8 +43,9 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] w-full h-full bg-[#121212] text-white flex flex-col justify-between p-6 overflow-y-auto">
-      <div className="flex items-center justify-between px-6 pt-16">
+    <div className="fixed inset-0 z-[100] flex items-end bg-[#0e0e0e]/90 p-0 text-white md:items-center md:justify-center md:p-6">
+      <div className="flex h-full w-full flex-col justify-between overflow-y-auto bg-[#121212] p-6 md:h-auto md:max-h-[92vh] md:max-w-xl md:rounded-[2rem] md:border md:border-white/10 md:shadow-2xl">
+        <div className="flex items-center justify-between px-2 pt-4 md:px-4 md:pt-6">
         <span className="text-xs font-medium tracking-wider text-white/60">
           AKTIVÁCIA
         </span>
@@ -59,10 +60,10 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
         ) : (
           <span className="w-9" />
         )}
-      </div>
+        </div>
 
-      <div className="mt-4 flex justify-center">
-        <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur">
+        <div className="mt-4 flex justify-center">
+          <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur">
           <button
             onClick={() => setMode("qr")}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
@@ -79,10 +80,10 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
           >
             <Keyboard className="h-3.5 w-3.5" /> Ručne
           </button>
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
+        <div className="flex flex-1 flex-col items-center justify-center px-2 pb-10 pt-2 md:px-6 md:pb-12">
         {mode === "qr" ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -126,15 +127,15 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
           </motion.div>
         )}
 
-        {err && (
-          <div className="mt-4 flex items-center gap-2 rounded-full bg-rose-500/20 px-3 py-1.5 text-xs text-rose-100">
-            <X className="h-3 w-3" />
-            {err}
-          </div>
-        )}
-      </div>
+          {err && (
+            <div className="mt-4 flex items-center gap-2 rounded-full bg-rose-500/20 px-3 py-1.5 text-xs text-rose-100">
+              <X className="h-3 w-3" />
+              {err}
+            </div>
+          )}
+        </div>
 
-      <div className="flex flex-col gap-2 px-6 pb-28">
+        <div className="flex flex-col gap-2 px-2 pb-6 md:px-6 md:pb-8">
         <button
           onClick={() => void submit()}
           disabled={busy || (mode === "manual" && code.trim().length < 4)}
@@ -147,14 +148,15 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
           )}
           Aktivovať prístup
         </button>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="w-full rounded-2xl border border-white/20 bg-transparent py-3 text-sm font-medium text-white/80 hover:bg-white/10"
-          >
-            ← Späť
-          </button>
-        )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-full rounded-2xl border border-white/20 bg-transparent py-3 text-sm font-medium text-white/80 hover:bg-white/10"
+            >
+              ← Späť
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

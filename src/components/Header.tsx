@@ -3,15 +3,20 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
 import ruzindolErb from "@/assets/ruzindol-erb.png";
+import { cn } from "@/lib/utils";
 
 export function Header({
   profile,
   hasNotificationDot,
   onBellClick,
+  className,
+  subtitle = "Komunitná aplikácia",
 }: {
   profile: Profile | null;
   hasNotificationDot: boolean;
   onBellClick: () => void;
+  className?: string;
+  subtitle?: string;
 }) {
   const navigate = useNavigate();
 
@@ -29,7 +34,12 @@ export function Header({
       .toUpperCase() ?? "?";
 
   return (
-    <header className="glass-panel relative z-50 mx-3 mt-3 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3 md:mx-4 md:mt-4">
+    <header
+      className={cn(
+        "glass-panel relative z-50 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3",
+        className,
+      )}
+    >
       <div className="flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/80 shadow-lg shadow-brand/15 ring-1 ring-border/60">
           <img
@@ -42,7 +52,7 @@ export function Header({
           <h1 className="text-base font-semibold tracking-tight text-foreground">
             Ružindol
           </h1>
-          <p className="text-[11px] text-muted-foreground">Komunita · mobilný zážitok</p>
+          <p className="text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
       </div>
 

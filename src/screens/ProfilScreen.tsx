@@ -177,63 +177,75 @@ export function ProfilScreen() {
   }
 
   const isStarosta = profile.role === "Starosta";
+  const isWideAdminSection =
+    openSection === "admin" ||
+    openSection === "moderation" ||
+    openSection === "aktuality-admin";
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto px-5 py-5">
-      {/* Header card — always visible */}
-      <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-600 text-xl font-semibold text-white">
-            {profile.name
-              .split(" ")
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase() || "?"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-              {profile.name}
-            </h2>
-            <div className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{profile.street || "—"}</span>
+    <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-4 overflow-y-auto px-4 py-5 md:px-6">
+      <div className={`grid gap-4 ${isWideAdminSection ? "xl:grid-cols-1" : "xl:grid-cols-[320px_minmax(0,1fr)]"}`}>
+        <div className={`flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start ${isWideAdminSection ? "xl:hidden" : ""}`}>
+          {/* Header card — always visible */}
+          <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-600 text-xl font-semibold text-white">
+                {profile.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase() || "?"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+                  {profile.name}
+                </h2>
+                <div className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{profile.street || "—"}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      isStarosta
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-neutral-100 text-neutral-700 dark:bg-white/10 dark:text-neutral-200"
+                    }`}
+                  >
+                    <Shield className="h-3 w-3" />
+                    {profile.role}
+                  </span>
+                  {profile.is_active_neighbor && <ActiveNeighborBadge />}
+                  {isAdmin && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white">
+                      <Shield className="h-3 w-3" /> Admin
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  isStarosta
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-neutral-100 text-neutral-700 dark:bg-white/10 dark:text-neutral-200"
-                }`}
-              >
-                <Shield className="h-3 w-3" />
-                {profile.role}
-              </span>
-              {profile.is_active_neighbor && <ActiveNeighborBadge />}
-              {isAdmin && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white">
-                  <Shield className="h-3 w-3" /> Admin
-                </span>
-              )}
-            </div>
           </div>
+
+          {/* Ban status */}
+          <BanBanner profile={profile} />
         </div>
-      </div>
 
-      {/* Ban status */}
-      <BanBanner profile={profile} />
-
-      {/* Collapsible sections — iba jedna otvorená naraz */}
-      <Accordion
-        type="single"
-        collapsible
-        value={openSection}
-        onValueChange={setOpenSection}
-        className="flex flex-col gap-2"
-      >
+        {/* Collapsible sections — iba jedna otvorená naraz */}
+        <Accordion
+          type="single"
+          collapsible
+          value={openSection}
+          onValueChange={setOpenSection}
+          className="flex flex-col gap-2"
+        >
         {(isAdmin || profile.role === "Starosta") && (
-          <AccordionSection value="admin" title="Admin panel">
+          <AccordionSection
+            value="admin"
+            title="Admin panel"
+            itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
+            contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+          >
             {openSection === "admin" && (
               <Suspense fallback={<SectionLoader />}>
                 <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />
@@ -243,7 +255,12 @@ export function ProfilScreen() {
         )}
 
         {(isAdmin || profile.role === "Starosta") && (
-          <AccordionSection value="moderation" title="Moderácia">
+          <AccordionSection
+            value="moderation"
+            title="Moderácia"
+            itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
+            contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+          >
             {openSection === "moderation" && (
               <Suspense fallback={<SectionLoader />}>
                 <ModerationPanel currentUserId={profile.id} />
@@ -253,7 +270,12 @@ export function ProfilScreen() {
         )}
 
         {(isAdmin || profile.role === "Starosta") && (
-          <AccordionSection value="aktuality-admin" title="Administrácia aktualít sekcií">
+          <AccordionSection
+            value="aktuality-admin"
+            title="Administrácia aktualít sekcií"
+            itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
+            contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+          >
             {openSection === "aktuality-admin" && (
               <Suspense fallback={<SectionLoader />}>
                 <AktualityGroupsPanel />
@@ -396,10 +418,11 @@ export function ProfilScreen() {
           )}
         </AccordionSection>
 
-        <AccordionSection value="account" title="Účet & odhlásenie">
-          <AccountActions userId={profile.id} />
-        </AccordionSection>
-      </Accordion>
+          <AccordionSection value="account" title="Účet & odhlásenie">
+            <AccountActions userId={profile.id} />
+          </AccordionSection>
+        </Accordion>
+      </div>
     </div>
   );
 }
@@ -415,21 +438,25 @@ function SectionLoader() {
 function AccordionSection({
   value,
   title,
+  itemClassName,
+  contentClassName,
   children,
 }: {
   value: string;
   title: string;
+  itemClassName?: string;
+  contentClassName?: string;
   children: React.ReactNode;
 }) {
   return (
     <AccordionItem
       value={value}
-      className="overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl"
+      className={`overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
     >
       <AccordionTrigger className="px-5 py-4">
         {title}
       </AccordionTrigger>
-      <AccordionContent className="border-t border-border px-5 pb-5 pt-4">
+      <AccordionContent className={`border-t border-border px-5 pb-5 pt-4 ${contentClassName ?? ""}`}>
         {children}
       </AccordionContent>
     </AccordionItem>
