@@ -17,7 +17,7 @@ const tabs: { id: Tab; label: string; icon: typeof Newspaper }[] = [
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="glass-panel relative flex items-center justify-around border-x-0 border-b-0 pb-safe z-50 shrink-0">
+    <nav className="glass-panel relative z-50 mx-3 mb-3 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe md:mx-4 md:mb-4">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
@@ -26,16 +26,16 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             key={tab.id}
             type="button"
             onClick={() => onTabChange(tab.id)}
-            className={`group relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 transition-all active:scale-95 ${
+            className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
               isActive
-                ? "text-brand"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-white text-brand shadow-md shadow-brand/10"
+                : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
             }`}
           >
             <span
               className={`grid h-8 w-14 place-items-center rounded-2xl transition-all ${
                 isActive
-                  ? "bg-gradient-to-br from-brand/15 to-brand-glow/10 shadow-sm"
+                  ? "bg-gradient-to-br from-brand/15 to-brand-glow/10"
                   : "bg-transparent"
               }`}
             >

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   Building2,
@@ -7,24 +7,28 @@ import {
   Ticket,
   Megaphone,
   Church,
-  Flag,
   Trash2,
   Plus,
   Loader2,
   Copy,
   Check,
 } from "lucide-react";
-import { useApp } from "@/context/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useAppMode } from "@/context/AppModeContext";
-import type { ProfileRole } from "@/hooks/useCurrentUser";
+import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import type { PostPriority } from "@/types";
+
+type ReviewPost = {
+  id: string;
+  title: string;
+  userName: string;
+};
 
 // =============================================================
 // VIP Firma — Dashboard, business profile, mini-web builder
 // =============================================================
 
-export function VipDashboard() {
-  const { posts, items } = useApp();
+export function VipDashboard({ postsCount, itemsCount }: { postsCount: number; itemsCount: number }) {
   const [ico, setIco] = useState("");
   const [dic, setDic] = useState("");
   const [companyName, setCompanyName] = useState("Pekáreň u Anny");
@@ -36,11 +40,11 @@ export function VipDashboard() {
 
   const analytics = useMemo(
     () => ({
-      visits: 128 + items.length * 7,
-      leads: 12 + posts.length,
-      shares: 5 + Math.floor(items.length / 2),
+      visits: 128 + itemsCount * 7,
+      leads: 12 + postsCount,
+      shares: 5 + Math.floor(itemsCount / 2),
     }),
-    [posts.length, items.length],
+    [itemsCount, postsCount],
   );
 
   function addPhoto(file: File | null) {
@@ -125,12 +129,21 @@ export function VipDashboard() {
 // Panel Starostu — municipal metrics, moderation, batch invites
 // =============================================================
 
-export function PanelStarostu() {
-  const { posts, items, users, reportPost, deletePost } = useApp();
+export function PanelStarostu({
+  posts,
+  itemsCount,
+  usersCount,
+  onDeleted,
+}: {
+  posts: ReviewPost[];
+  itemsCount: number;
+  usersCount: number;
+  onDeleted: () => void;
+}) {
   const { generateInviteCode } = useAppMode();
   const [batch, setBatch] = useState<string[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
-  const reported = posts.filter((p) => p.isReported);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   function generateBatch(n: number) {
     const codes: string[] = [];
@@ -148,6 +161,13 @@ export function PanelStarostu() {
     });
   }
 
+  async function deletePost(id: string) {
+    setDeletingPostId(id);
+    await supabase.from("posts").delete().eq("id", id);
+    setDeletingPostId(null);
+    onDeleted();
+  }
+
   return (
     <section className="rounded-3xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm dark:border-blue-500/20 dark:from-blue-500/10 dark:to-white/5">
       <PanelHeader
@@ -158,23 +178,23 @@ export function PanelStarostu() {
       />
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <Stat label="Občania" value={users.length} />
+        <Stat label="Občania" value={usersCount} />
         <Stat label="Príspevky" value={posts.length} />
-        <Stat label="Inzeráty" value={items.length} />
+        <Stat label="Inzeráty" value={itemsCount} />
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          <Flag className="h-3.5 w-3.5" /> Nahlásené príspevky ({reported.length})
+          Posledné príspevky ({posts.length})
         </p>
-        {reported.length === 0 ? (
-          <p className="mt-2 text-xs text-neutral-500">Žiadne nahlásenia.</p>
+        {posts.length === 0 ? (
+          <p className="mt-2 text-xs text-neutral-500">Žiadne príspevky.</p>
         ) : (
           <ul className="mt-2 space-y-2">
-            {reported.map((p) => (
+            {posts.map((p) => (
               <li
                 key={p.id}
-                className="flex items-start justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50/70 p-2 text-xs dark:border-rose-500/20 dark:bg-rose-500/5"
+                className="flex items-start justify-between gap-2 rounded-xl border border-neutral-200 bg-white p-2 text-xs dark:border-white/10 dark:bg-white/5"
               >
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-neutral-900 dark:text-neutral-100">
@@ -182,20 +202,17 @@ export function PanelStarostu() {
                   </p>
                   <p className="truncate text-neutral-500">{p.userName}</p>
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <button
-                    onClick={() => reportPost(p.id)}
-                    className="rounded-md bg-white px-2 py-1 text-[10px] font-medium text-neutral-700 dark:bg-white/10 dark:text-neutral-200"
-                  >
-                    Ponechať
-                  </button>
-                  <button
-                    onClick={() => deletePost(p.id)}
-                    className="rounded-md bg-rose-600 px-2 py-1 text-[10px] font-medium text-white"
-                  >
+                <button
+                  onClick={() => void deletePost(p.id)}
+                  disabled={deletingPostId === p.id}
+                  className="rounded-md bg-rose-600 px-2 py-1 text-[10px] font-medium text-white disabled:opacity-60"
+                >
+                  {deletingPostId === p.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
                     <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
+                  )}
+                </button>
               </li>
             ))}
           </ul>
@@ -243,14 +260,13 @@ export function PanelStarostu() {
 }
 
 // =============================================================
-// Digitálny Rozhlas — Uradnik alert composer
+// Digitalny Rozhlas — Uradnik alert composer
 // =============================================================
 
 const EXPIRY_OPTIONS: { label: string; hours: number }[] = [
   { label: "24 hodín", hours: 24 },
   { label: "3 dni", hours: 72 },
-  { label: "7 dní", hours: 168 },
-  { label: "10 dní", hours: 240 },
+  { label: "5 dní", hours: 120 },
 ];
 
 const PRIORITIES: { key: PostPriority; label: string; color: string }[] = [
@@ -259,30 +275,47 @@ const PRIORITIES: { key: PostPriority; label: string; color: string }[] = [
   { key: "normal", label: "Nízka", color: "bg-emerald-500 text-white" },
 ];
 
-export function DigitalnyRozhlas() {
-  const { addPost, currentUser } = useApp();
+export function DigitalnyRozhlas({
+  userId,
+  onPosted,
+}: {
+  userId: string | null;
+  onPosted: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [priority, setPriority] = useState<PostPriority>("high");
   const [expiryH, setExpiryH] = useState(72);
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  function send(e: React.FormEvent) {
+  async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-    addPost({
-      userId: currentUser.id,
-      userName: currentUser.name,
+    if (!title.trim() || !content.trim() || !userId) return;
+
+    setBusy(true);
+    const safeExpiryH = Math.min(expiryH, 120);
+    const expiresAtIso = new Date(Date.now() + safeExpiryH * 3600_000).toISOString();
+    const expiry = new Date(expiresAtIso).toLocaleString("sk-SK");
+    const finalContent = `${content.trim()}\n\nPlatnosť do: ${expiry}`;
+    const category = priority === "urgent" ? "Výstraha" : "Hlasnik";
+
+    const { error } = await supabase.from("posts").insert({
+      user_id: userId,
       type: "hlasnik",
-      category: "Oznam",
+      category,
       title: title.trim(),
-      content: content.trim(),
-      priority,
-      expiresAt: new Date(Date.now() + expiryH * 3600_000).toISOString(),
+      content: finalContent,
+      expires_at: expiresAtIso,
     });
+
+    setBusy(false);
+    if (error) return;
+
     setTitle("");
     setContent("");
     setSent(true);
+    onPosted();
     setTimeout(() => setSent(false), 1500);
   }
 
@@ -355,9 +388,16 @@ export function DigitalnyRozhlas() {
 
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-sm"
+          disabled={busy || !userId}
+          className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
         >
-          {sent ? <Check className="h-4 w-4" /> : <Megaphone className="h-4 w-4" />}
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : sent ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Megaphone className="h-4 w-4" />
+          )}
           {sent ? "Odoslané" : "Vysielať"}
         </button>
       </form>
@@ -366,11 +406,18 @@ export function DigitalnyRozhlas() {
 }
 
 // =============================================================
-// Farský Úrad — Farar
+// Farsky Urad — Farar
 // =============================================================
 
-export function FarskyUrad() {
-  const { addPost, addEvent, currentUser } = useApp();
+export function FarskyUrad({
+  userId,
+  municipalityId,
+  onPosted,
+}: {
+  userId: string | null;
+  municipalityId: string | null;
+  onPosted: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("Kostol sv. Martina");
@@ -381,27 +428,37 @@ export function FarskyUrad() {
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim() || !userId) return;
+
     setBusy(true);
-    addPost({
-      userId: currentUser.id,
-      userName: currentUser.name,
+    const startsAt = new Date(dt).toISOString();
+
+    const postResult = await supabase.from("posts").insert({
+      user_id: userId,
       type: "farsky_oznam",
       category: "Farský oznam",
       title: title.trim(),
       content: content.trim(),
     });
-    addEvent({
-      userId: currentUser.id,
-      title: title.trim(),
-      description: content.trim(),
-      location,
-      startsAt: new Date(dt).toISOString(),
-      type: "Kostol",
-    });
+
+    if (!postResult.error) {
+      await supabase.from("events").insert({
+        author_id: userId,
+        municipality_id: municipalityId,
+        title: title.trim(),
+        description: content.trim(),
+        location,
+        starts_at: startsAt,
+        type: "Kostol",
+      });
+      onPosted();
+    }
+
     setBusy(false);
+    if (postResult.error) return;
+
     setOk(true);
     setTitle("");
     setContent("");
@@ -444,7 +501,7 @@ export function FarskyUrad() {
         </label>
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !userId}
           className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-purple-600 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40"
         >
           {busy ? (
@@ -466,12 +523,67 @@ export function FarskyUrad() {
 // =============================================================
 
 export function RolePanels({ role }: { role: ProfileRole }) {
+  const { profile, userId } = useCurrentUser();
+  const [posts, setPosts] = useState<ReviewPost[]>([]);
+  const [usersCount, setUsersCount] = useState(0);
+  const [itemsCount, setItemsCount] = useState(0);
+
+  const loadStats = useCallback(async () => {
+    const [postsRes, usersRes, itemsRes] = await Promise.all([
+      supabase
+        .from("posts")
+        .select("id, title, user_id, profiles(name)")
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("warehouse_items").select("id", { count: "exact", head: true }),
+    ]);
+
+    const mappedPosts: ReviewPost[] = ((postsRes.data as any[] | null) ?? []).map((p) => ({
+      id: p.id,
+      title: p.title,
+      userName: p.profiles?.name ?? "Sused",
+    }));
+
+    setPosts(mappedPosts);
+    setUsersCount(usersRes.count ?? 0);
+    setItemsCount(itemsRes.count ?? 0);
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
   return (
     <div className="flex flex-col gap-4">
-      {role === "VIP_Firma" && <VipDashboard />}
-      {role === "Starosta" && <PanelStarostu />}
-      {role === "Uradnik" && <DigitalnyRozhlas />}
-      {role === "Farar" && <FarskyUrad />}
+      {role === "VIP_Firma" && <VipDashboard postsCount={posts.length} itemsCount={itemsCount} />}
+      {role === "Starosta" && (
+        <PanelStarostu
+          posts={posts}
+          itemsCount={itemsCount}
+          usersCount={usersCount}
+          onDeleted={() => {
+            void loadStats();
+          }}
+        />
+      )}
+      {role === "Uradnik" && (
+        <DigitalnyRozhlas
+          userId={userId}
+          onPosted={() => {
+            void loadStats();
+          }}
+        />
+      )}
+      {role === "Farar" && (
+        <FarskyUrad
+          userId={userId}
+          municipalityId={profile?.municipality_id ?? null}
+          onPosted={() => {
+            void loadStats();
+          }}
+        />
+      )}
     </div>
   );
 }

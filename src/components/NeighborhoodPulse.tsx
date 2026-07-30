@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
+import { MapPin, Sun, Sunrise, Sunset } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /**
- * Neighborhood Pulse — real interactive OpenStreetMap (Leaflet) with an
- * animated glow overlay for key village zones. Intensity/radius reacts to
- * the selected time-of-day filter.
+ * Neighborhood Pulse renders a live OpenStreetMap view centered on the
+ * current municipality. The pulse markers are positioned relative to the
+ * municipality coordinates that come from the database.
  */
 
 type TimeOfDay = "morning" | "noon" | "evening";
@@ -14,52 +16,70 @@ interface Zone {
   label: string;
   lat: number;
   lng: number;
-  // Base weight per zone at each daypart (0..1).
   weights: Record<TimeOfDay, number>;
-  color: string; // hex without alpha
+  color: string;
 }
 
-// Mock GPS around a Slovak village center (example: Modra ~48.3341, 17.3086).
-const CENTER: [number, number] = [48.3341, 17.3086];
+type MunicipalityRow = {
+  id: string;
+  name: string;
+  slug: string;
+  region: string | null;
+  logo_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
 
-const ZONES: Zone[] = [
+type ZoneTemplate = {
+  key: string;
+  label: string;
+  latOffset: number;
+  lngOffset: number;
+  weights: Record<TimeOfDay, number>;
+  color: string;
+};
+
+const DEFAULT_CENTER: [number, number] = [48.37001, 17.4943815];
+const DEFAULT_ZOOM = 15;
+
+const ZONE_TEMPLATES: ZoneTemplate[] = [
   {
-    key: "namestie",
-    label: "Námestie",
-    lat: 48.3345,
-    lng: 17.3088,
+    key: "centrum",
+    label: "Centrum",
+    latOffset: 0.00035,
+    lngOffset: 0.00025,
     weights: { morning: 0.55, noon: 0.95, evening: 0.7 },
     color: "#f59e0b",
   },
   {
-    key: "trhovisko",
-    label: "Trhovisko",
-    lat: 48.3335,
-    lng: 17.3105,
+    key: "trh",
+    label: "Trh",
+    latOffset: -0.00055,
+    lngOffset: 0.00115,
     weights: { morning: 0.95, noon: 0.6, evening: 0.25 },
     color: "#10b981",
   },
   {
     key: "park",
     label: "Park",
-    lat: 48.3352,
-    lng: 17.3072,
+    latOffset: 0.0011,
+    lngOffset: -0.0009,
     weights: { morning: 0.4, noon: 0.7, evening: 0.9 },
     color: "#22d3ee",
   },
   {
     key: "skola",
     label: "Škola",
-    lat: 48.3328,
-    lng: 17.3062,
+    latOffset: -0.0012,
+    lngOffset: -0.00145,
     weights: { morning: 0.9, noon: 0.85, evening: 0.15 },
     color: "#6366f1",
   },
   {
     key: "kostol",
     label: "Kostol",
-    lat: 48.3348,
-    lng: 17.3110,
+    latOffset: 0.0007,
+    lngOffset: 0.0018,
     weights: { morning: 0.5, noon: 0.35, evening: 0.85 },
     color: "#a855f7",
   },
@@ -71,87 +91,141 @@ const TIME_LABEL: Record<TimeOfDay, { label: string; icon: React.ReactNode }> = 
   evening: { label: "Večer", icon: <Sunset className="h-3.5 w-3.5" /> },
 };
 
+function buildZones(center: [number, number]): Zone[] {
+  return ZONE_TEMPLATES.map((template) => ({
+    key: template.key,
+    label: template.label,
+    lat: center[0] + template.latOffset,
+    lng: center[1] + template.lngOffset,
+    weights: template.weights,
+    color: template.color,
+  }));
+}
+
 export function NeighborhoodPulse() {
   const [tod, setTod] = useState<TimeOfDay>("noon");
   const [ready, setReady] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<unknown>(null);
-  const layerRef = useRef<unknown>(null);
-  const LRef = useRef<typeof import("leaflet") | null>(null);
+  const [municipality, setMunicipality] = useState<MunicipalityRow | null>(null);
+  const { profile } = useCurrentUser();
 
-  // Load Leaflet only in the browser.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
-      if (typeof window === "undefined") return;
+      if (!profile?.municipality_id) {
+        setMunicipality(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("municipalities")
+        .select("id, name, slug, region, logo_url, latitude, longitude")
+        .eq("id", profile.municipality_id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setMunicipality((data as MunicipalityRow | null) ?? null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.municipality_id]);
+
+  const center = useMemo<[number, number]>(() => {
+    const latitude = municipality?.latitude ?? DEFAULT_CENTER[0];
+    const longitude = municipality?.longitude ?? DEFAULT_CENTER[1];
+    return [latitude, longitude];
+  }, [municipality?.latitude, municipality?.longitude]);
+
+  const zonesForTod = useMemo(
+    () =>
+      buildZones(center).map((zone) => ({
+        ...zone,
+        intensity: zone.weights[tod],
+      })),
+    [center, tod],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (typeof window === "undefined" || !containerRef.current) return;
+
       const L = await import("leaflet");
       await import("leaflet/dist/leaflet.css");
       if (cancelled || !containerRef.current) return;
-      LRef.current = L;
+
+      leafletRef.current = L;
 
       const map = L.map(containerRef.current, {
-        center: CENTER,
-        zoom: 15,
+        center,
+        zoom: DEFAULT_ZOOM,
         zoomControl: false,
         attributionControl: false,
         scrollWheelZoom: false,
       });
+
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
       }).addTo(map);
-      L.control.attribution({ position: "bottomright", prefix: false })
+      L.control
+        .attribution({ position: "bottomright", prefix: false })
         .addAttribution("© OpenStreetMap")
         .addTo(map);
 
       mapRef.current = map;
       setReady(true);
     })();
+
     return () => {
       cancelled = true;
-      const m = mapRef.current as { remove?: () => void } | null;
-      m?.remove?.();
-      mapRef.current = null;
+      layerRef.current?.remove();
+      mapRef.current?.remove();
       layerRef.current = null;
+      mapRef.current = null;
+      leafletRef.current = null;
     };
   }, []);
 
-  const zonesForTod = useMemo(
-    () =>
-      ZONES.map((z) => ({
-        ...z,
-        intensity: z.weights[tod],
-      })),
-    [tod],
-  );
-
-  // Rebuild markers whenever intensity changes.
   useEffect(() => {
-    const L = LRef.current;
-    const map = mapRef.current as
-      | (import("leaflet").Map & { removeLayer: (l: unknown) => void })
-      | null;
+    mapRef.current?.setView(center, DEFAULT_ZOOM);
+  }, [center]);
+
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
     if (!ready || !L || !map) return;
 
-    if (layerRef.current) map.removeLayer(layerRef.current);
+    layerRef.current?.remove();
 
     const group = L.layerGroup();
-    for (const z of zonesForTod) {
-      const radius = 14 + z.intensity * 22; // px
-      const glow = 8 + z.intensity * 18; // px
-      const html = `
-        <div class="np-pulse" style="--np-color:${z.color};--np-size:${radius}px;--np-glow:${glow}px;">
-          <span class="np-dot"></span>
-          <span class="np-ring"></span>
-          <span class="np-label">${z.label}</span>
-        </div>`;
+    for (const zone of zonesForTod) {
+      const radius = 14 + zone.intensity * 22;
+      const glow = 8 + zone.intensity * 18;
       const icon = L.divIcon({
-        html,
+        html: `
+          <div class="np-pulse" style="--np-color:${zone.color};--np-size:${radius}px;--np-glow:${glow}px;">
+            <span class="np-dot"></span>
+            <span class="np-ring"></span>
+            <span class="np-label">${zone.label}</span>
+          </div>
+        `,
         className: "np-icon",
         iconSize: [radius * 2, radius * 2],
         iconAnchor: [radius, radius],
       });
-      L.marker([z.lat, z.lng], { icon, interactive: false }).addTo(group);
+
+      L.marker([zone.lat, zone.lng], { icon, interactive: false }).addTo(group);
     }
+
     group.addTo(map);
     layerRef.current = group;
   }, [zonesForTod, ready]);
@@ -162,54 +236,53 @@ export function NeighborhoodPulse() {
         <div className="min-w-0">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             <MapPin className="h-4 w-4" />
-            Neighborhood Pulse
+            {municipality?.name ?? "Ružindol"} pulse mapa
           </h3>
           <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-            Živá mapa aktivít v obci
+            Živá mapa aktivít v komunite {municipality?.name ?? "Ružindol"}
           </p>
         </div>
         <div className="flex overflow-hidden rounded-full border border-neutral-200 bg-white/70 p-0.5 text-[11px] dark:border-white/10 dark:bg-white/5">
-          {(Object.keys(TIME_LABEL) as TimeOfDay[]).map((k) => (
+          {(Object.keys(TIME_LABEL) as TimeOfDay[]).map((key) => (
             <button
-              key={k}
-              onClick={() => setTod(k)}
+              key={key}
+              onClick={() => setTod(key)}
               className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition ${
-                tod === k
+                tod === key
                   ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
                   : "text-neutral-600 dark:text-neutral-300"
               }`}
             >
-              {TIME_LABEL[k].icon}
-              {TIME_LABEL[k].label}
+              {TIME_LABEL[key].icon}
+              {TIME_LABEL[key].label}
             </button>
           ))}
         </div>
       </div>
+
       <div className="relative mt-3">
-        <div
-          ref={containerRef}
-          className="h-64 w-full bg-neutral-100 dark:bg-neutral-900"
-        />
+        <div ref={containerRef} className="h-64 w-full bg-neutral-100 dark:bg-neutral-900" />
         {!ready && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-neutral-500">
-            Načítavam mapu…
+            Načítavam mapu komunity…
           </div>
         )}
       </div>
+
       <div className="flex flex-wrap gap-1.5 px-4 py-3">
-        {zonesForTod.map((z) => (
+        {zonesForTod.map((zone) => (
           <span
-            key={z.key}
+            key={zone.key}
             className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
           >
             <span
               className="h-2 w-2 rounded-full"
               style={{
-                background: z.color,
-                boxShadow: `0 0 ${4 + z.intensity * 10}px ${z.color}`,
+                background: zone.color,
+                boxShadow: `0 0 ${4 + zone.intensity * 10}px ${zone.color}`,
               }}
             />
-            {z.label} · {Math.round(z.intensity * 100)}%
+            {zone.label} · {Math.round(zone.intensity * 100)}%
           </span>
         ))}
       </div>
@@ -249,14 +322,14 @@ export function NeighborhoodPulse() {
           font-size: 10px;
           font-weight: 600;
           color: #111;
-          background: rgba(255,255,255,0.85);
+          background: rgba(255, 255, 255, 0.9);
           padding: 1px 6px;
           border-radius: 9999px;
           white-space: nowrap;
           pointer-events: none;
         }
         @keyframes npPulse {
-          0%   { transform: scale(0.4); opacity: 0.8; }
+          0% { transform: scale(0.4); opacity: 0.8; }
           100% { transform: scale(1.4); opacity: 0; }
         }
       `}</style>

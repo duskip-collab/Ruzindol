@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, X, Send, Heart, Flag, Search, AlertTriangle, Loader2 } from "lucide-react";
-import { useApp } from "@/context/AppContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { PostLightbox } from "@/components/PostLightbox";
@@ -10,7 +9,6 @@ import { uploadCompressedImage } from "@/lib/upload-image";
 import type { CompressedImage } from "@/lib/compress-image";
 import { supabase } from "@/integrations/supabase/client";
 import type { Post, PostType } from "@/types";
-
 
 const CATEGORIES = [
   "Otazka",
@@ -27,21 +25,18 @@ const CATEGORY_LABEL: Record<Category, string> = {
   Hlasnik: "📢 Hlásnik",
 };
 
-// Nástenka (Susedský život) povoľuje IBA tieto 3 kategórie.
-// Všetko ostatné (predaj, darovanie, služby…) patrí do Susedského skladu.
 const NEIGHBOR_CATEGORIES: Category[] = [
   "Otazka",
   "Straty_a_nalezy",
   "Info_pre_susedov",
 ];
 
-// Príspevky na nástenke expirujú po 4 dňoch.
-const NEIGHBOR_MAX_AGE_MS = 4 * 24 * 60 * 60 * 1000;
-
 const TRH_DISCLAIMER =
   "Prevádzkovateľ aplikácie nezodpovedá za legálnosť, kvalitu ani pôvod produktov. Používatelia sú povinní dodržiavať legislatívu SR (dane, hygiena).";
+const OFFICIAL_NOTICE_MAX_DAYS = 5;
 
 function timeAgo(iso: string) {
+  if (!iso) return "pred chvíľou";
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "pred chvíľou";
   if (s < 3600) return `pred ${Math.floor(s / 60)} min`;
@@ -51,15 +46,219 @@ function timeAgo(iso: string) {
 
 type ModalMode = null | { kind: "official" } | { kind: "neighbor" };
 
+type CreatedPost = {
+  id: string;
+  userId: string;
+  userName: string;
+  type: PostType;
+  category: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  createdAt: string;
+  expiresAt?: string;
+};
+
+function isOfficialNoticeExpired(post: {
+  type: PostType;
+  userRole?: string | null;
+  createdAt: string;
+  expiresAt?: string;
+}) {
+  if (post.type !== "hlasnik") return false;
+  const role = (post.userRole ?? "").toLowerCase();
+  if (role !== "starosta" && role !== "uradnik") return false;
+
+  const fallbackExpiryTs =
+    new Date(post.createdAt).getTime() + OFFICIAL_NOTICE_MAX_DAYS * 24 * 3600_000;
+  const explicitExpiryTs = post.expiresAt ? new Date(post.expiresAt).getTime() : NaN;
+  const expiryTs = Number.isFinite(explicitExpiryTs) ? explicitExpiryTs : fallbackExpiryTs;
+  return expiryTs <= Date.now();
+}
+
 export function NastenkaScreen() {
-  const { posts, currentUser, toggleLike, reportPost } = useApp();
-  const { profile } = useCurrentUser();
+  const { profile, userId } = useCurrentUser();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [likesByPost, setLikesByPost] = useState<Record<string, boolean>>({});
+  const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
+  const [reportedByPost, setReportedByPost] = useState<Record<string, boolean>>({});
   const isReadonly = !(profile?.is_active_neighbor ?? false);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalMode>(null);
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
 
-  const isStarosta = currentUser.role === "Starosta";
+  const canCreateOfficialNotice =
+    profile?.role === "Starosta" || profile?.role === "Uradnik";
+
+  const loadPosts = useCallback(async () => {
+    // Načítame príspevky bez toho, aby sme riskovali vyradenie kvôli chýbajúcemu profilu
+    const { data, error } = await supabase
+  .from("posts")
+  .select("id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)")
+  .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Chyba pri načítaní príspevkov zo Supabase:", error);
+      return;
+    }
+
+    const mapped: Post[] = ((data as any[] | null) ?? [])
+      .map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+       userName: row.profiles?.name || "Sused", // Ochrana: ak chýba profil, nevypadneme, ale dáme default
+        type: row.type,
+        category: row.category ?? "Oznam",
+        title: row.title,
+        content: row.content,
+        imageUrl: row.image_url ?? undefined,
+        createdAt: row.created_at,
+        expiresAt: row.expires_at ?? undefined,
+        likes: [],
+        isReported: false,
+      }))
+      .filter((post, index) => {
+        const row = (data as any[])[index];
+        return !isOfficialNoticeExpired({
+          type: post.type,
+          userRole: row?.profiles?.role,
+          createdAt: post.createdAt,
+          expiresAt: post.expiresAt,
+        });
+      });
+
+    setPosts(mapped);
+
+    const postIds = mapped.map((post) => post.id);
+    if (postIds.length === 0) {
+      setLikesByPost({});
+      setLikesCountByPost({});
+      setReportedByPost({});
+      return;
+    }
+
+    const { data: likeRows } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    const likesCount: Record<string, number> = {};
+    for (const row of likeRows ?? []) {
+      likesCount[row.post_id] = (likesCount[row.post_id] ?? 0) + 1;
+    }
+    setLikesCountByPost(likesCount);
+
+    if (!userId) {
+      setLikesByPost({});
+      setReportedByPost({});
+      return;
+    }
+
+    const [{ data: likedRows }, { data: reportRows }] = await Promise.all([
+      supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", userId)
+        .in("post_id", postIds),
+      supabase
+        .from("post_reports")
+        .select("post_id")
+        .eq("reporter_id", userId)
+        .in("post_id", postIds),
+    ]);
+
+    const likedMap: Record<string, boolean> = {};
+    for (const row of likedRows ?? []) {
+      likedMap[row.post_id] = true;
+    }
+
+    const reportedMap: Record<string, boolean> = {};
+    for (const row of reportRows ?? []) {
+      reportedMap[row.post_id] = true;
+    }
+
+    setLikesByPost(likedMap);
+    setReportedByPost(reportedMap);
+  }, [userId]);
+
+  useEffect(() => {
+    void loadPosts();
+  }, [loadPosts]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("nastenka-posts-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        () => {
+          void loadPosts();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadPosts]);
+
+  async function toggleLike(postId: string) {
+    if (!userId) return;
+
+    const isLiked = !!likesByPost[postId];
+    setLikesByPost((prev) => ({ ...prev, [postId]: !isLiked }));
+    setLikesCountByPost((prev) => ({
+      ...prev,
+      [postId]: Math.max(0, (prev[postId] ?? 0) + (isLiked ? -1 : 1)),
+    }));
+
+    if (isLiked) {
+      const { error } = await supabase
+        .from("post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", userId);
+
+      if (error) {
+        setLikesByPost((prev) => ({ ...prev, [postId]: isLiked }));
+        setLikesCountByPost((prev) => ({ ...prev, [postId]: (prev[postId] ?? 0) + 1 }));
+      }
+      return;
+    }
+
+    const { error } = await supabase.from("post_likes").insert({
+      post_id: postId,
+      user_id: userId,
+    });
+
+    if (error) {
+      setLikesByPost((prev) => ({ ...prev, [postId]: isLiked }));
+      setLikesCountByPost((prev) => ({
+        ...prev,
+        [postId]: Math.max(0, (prev[postId] ?? 0) - 1),
+      }));
+    }
+  }
+
+  async function reportPost(postId: string) {
+    if (!userId || reportedByPost[postId]) return;
+    setReportedByPost((prev) => ({ ...prev, [postId]: true }));
+
+    const { error } = await supabase.from("post_reports").upsert(
+      {
+        post_id: postId,
+        reporter_id: userId,
+      },
+      {
+        onConflict: "post_id,reporter_id",
+        ignoreDuplicates: true,
+      },
+    );
+
+    if (error) {
+      setReportedByPost((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
 
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => {
@@ -75,14 +274,24 @@ export function NastenkaScreen() {
   const oznamy = filtered.filter(
     (p) => p.type === "hlasnik" || p.type === "official_alert",
   );
+
   const prispevky = filtered.filter((p) => {
     if (p.type !== "susedsky_zivot" && p.type !== "farsky_oznam") return false;
-    // Iba povolené kategórie na Nástenke.
+    // Povolíme iba kategórie priradené pre Nástenku
     if (!NEIGHBOR_CATEGORIES.includes(p.category as Category)) return false;
-    // Expirácia po 4 dňoch.
-    if (Date.now() - new Date(p.createdAt).getTime() > NEIGHBOR_MAX_AGE_MS) return false;
+    // OSTRÁNENÝ FILTER expirácie na 4 dni, aby staršie testovacie príspevky nezmizli potichu
     return true;
   });
+
+  const lightboxViewPost = useMemo(() => {
+    if (!lightboxPost) return null;
+    const likesCount = likesCountByPost[lightboxPost.id] ?? 0;
+    return {
+      ...lightboxPost,
+      likes: Array.from({ length: likesCount }, () => ""),
+      isReported: lightboxPost.isReported || !!reportedByPost[lightboxPost.id],
+    };
+  }, [lightboxPost, likesCountByPost, reportedByPost]);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -105,7 +314,6 @@ export function NastenkaScreen() {
         </div>
       )}
 
-
       {/* Hlásnik */}
       <section className="border-b border-neutral-200/70 pb-3 dark:border-white/10">
         <div className="flex items-center justify-between px-5 pb-2 pt-1">
@@ -113,7 +321,7 @@ export function NastenkaScreen() {
             <h2 className="text-base font-semibold tracking-tight">📢 Obecný hlásnik</h2>
             <p className="text-[11px] text-muted-foreground">Oficiálne oznamy obce</p>
           </div>
-          {isStarosta && !isReadonly && (
+          {canCreateOfficialNotice && !isReadonly && (
             <button
               onClick={() => setModal({ kind: "official" })}
               className="flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-orange-600"
@@ -134,7 +342,10 @@ export function NastenkaScreen() {
                 key={o.id}
                 post={o}
                 onOpen={() => setLightboxPost(o)}
-                onReport={() => reportPost(o.id)}
+                onReport={() => {
+                  void reportPost(o.id);
+                }}
+                reported={o.isReported || !!reportedByPost[o.id]}
               />
             ))}
           </div>
@@ -168,35 +379,54 @@ export function NastenkaScreen() {
               <NeighborCard
                 key={p.id}
                 post={p}
-                liked={p.likes.includes(currentUser.id)}
+                liked={!!likesByPost[p.id]}
                 onOpen={() => setLightboxPost(p)}
-                onLike={() => toggleLike(p.id)}
-                onReport={() => reportPost(p.id)}
+                onLike={() => {
+                  void toggleLike(p.id);
+                }}
+                onReport={() => {
+                  void reportPost(p.id);
+                }}
+                likesCount={likesCountByPost[p.id] ?? 0}
+                reported={p.isReported || !!reportedByPost[p.id]}
               />
             ))}
           </div>
         </div>
       </section>
 
-
       {modal && (
-        <NewPostModal mode={modal.kind} onClose={() => setModal(null)} />
+        <NewPostModal
+          mode={modal.kind}
+          onClose={() => setModal(null)}
+          onPosted={(createdPost) => {
+            setPosts((prev) => [
+              {
+                ...createdPost,
+                likes: [],
+                isReported: false,
+              },
+              ...prev.filter((post) => post.id !== createdPost.id),
+            ]);
+            void loadPosts();
+          }}
+        />
       )}
 
       <PostLightbox
-        post={lightboxPost}
-        liked={lightboxPost ? lightboxPost.likes.includes(currentUser.id) : false}
+        post={lightboxViewPost}
+        liked={lightboxPost ? !!likesByPost[lightboxPost.id] : false}
         onLike={
           lightboxPost
             ? () => {
-                toggleLike(lightboxPost.id);
+                void toggleLike(lightboxPost.id);
               }
             : undefined
         }
         onReport={
           lightboxPost
             ? () => {
-                reportPost(lightboxPost.id);
+                void reportPost(lightboxPost.id);
                 setLightboxPost(null);
               }
             : undefined
@@ -205,7 +435,6 @@ export function NastenkaScreen() {
       />
     </div>
   );
-
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -221,10 +450,12 @@ function OfficialCard({
   post,
   onOpen,
   onReport,
+  reported,
 }: {
   post: Post;
   onOpen: () => void;
   onReport: () => void;
+  reported: boolean;
 }) {
   return (
     <article
@@ -233,7 +464,7 @@ function OfficialCard({
     >
       <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-orange-600">
         <span>{timeAgo(post.createdAt)}</span>
-        {post.isReported && <span className="text-rose-600">nahlásené</span>}
+        {reported && <span className="text-rose-600">nahlásené</span>}
       </div>
       <h3 className="text-sm font-semibold text-neutral-900">{post.title}</h3>
       <p className="mt-1 line-clamp-3 flex-1 text-xs leading-snug text-neutral-700">
@@ -246,7 +477,7 @@ function OfficialCard({
             e.stopPropagation();
             onReport();
           }}
-          disabled={post.isReported}
+          disabled={reported}
           className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-neutral-500 hover:bg-white/70 disabled:opacity-40"
         >
           <Flag className="h-3 w-3" /> Nahlásiť
@@ -259,12 +490,16 @@ function OfficialCard({
 function NeighborCard({
   post,
   liked,
+  likesCount,
+  reported,
   onOpen,
   onLike,
   onReport,
 }: {
   post: Post;
   liked: boolean;
+  likesCount: number;
+  reported: boolean;
   onOpen: () => void;
   onLike: () => void;
   onReport: () => void;
@@ -325,31 +560,31 @@ function NeighborCard({
           }`}
         >
           <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
-          <span>{post.likes.length}</span>
+          <span>{likesCount}</span>
         </button>
         <button
           onClick={stop(onReport)}
-          disabled={post.isReported}
+          disabled={reported}
           className="ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:hover:bg-white/10"
         >
           <Flag className="h-3.5 w-3.5" />
-          {post.isReported ? "Nahlásené" : "Nahlásiť"}
+          {reported ? "Nahlásené" : "Nahlásiť"}
         </button>
       </div>
     </article>
   );
 }
 
-
 function NewPostModal({
   mode,
   onClose,
+  onPosted,
 }: {
   mode: "official" | "neighbor";
   onClose: () => void;
+  onPosted: (createdPost: CreatedPost) => void;
 }) {
-  const { addPost, currentUser } = useApp();
-  const { userId } = useCurrentUser();
+  const { profile, userId } = useCurrentUser();
   const isOfficial = mode === "official";
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -364,45 +599,64 @@ function NewPostModal({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim() || busy) return;
+
+    if (!content.trim() || busy || !userId) return;
+    
     setBusy(true);
     setErr(null);
+
     try {
       const type: PostType = isOfficial ? "hlasnik" : "susedsky_zivot";
       const finalTitle = title.trim() || (isOfficial ? "Oznam" : "Príspevok");
       const finalContent = content.trim();
 
       let imageUrl: string | null = null;
-      if (canAttachImage && image && userId) {
+      if (canAttachImage && image) {
         imageUrl = await uploadCompressedImage(image, userId);
       }
 
-      // Perzistencia do Supabase (posts) — obrázok prepojíme cez image_url.
-      if (userId) {
-        const { error } = await supabase.from("posts").insert({
-          user_id: userId,
-          type,
-          category,
-          title: finalTitle,
-          content: finalContent,
-          image_url: imageUrl,
-        });
-        if (error) throw error;
-      }
-
-      // Lokálny cache pre okamžité zobrazenie v UI.
-      addPost({
-        userId: currentUser.id,
-        userName: currentUser.name,
+      const postData = {
+        user_id: userId,
         type,
         category,
         title: finalTitle,
         content: finalContent,
-        imageUrl: imageUrl ?? undefined,
+        image_url: imageUrl,
+        expires_at: isOfficial
+          ? new Date(Date.now() + OFFICIAL_NOTICE_MAX_DAYS * 24 * 3600_000).toISOString()
+          : null,
+      };
+
+      console.log("Odosielam do Supabase:", postData);
+
+      const { data, error } = await supabase
+        .from("posts")
+        .insert(postData)
+        .select("id, user_id, type, category, title, content, image_url, created_at, expires_at")
+        .single();
+
+      if (error) {
+        console.error("CHYBA SUPABASE (DETAIL):", error);
+        throw new Error(error.message || "Nepodarilo sa uložiť príspevok.");
+      }
+
+      onPosted({
+        id: data.id,
+        userId: data.user_id,
+        userName: profile?.name ?? "Sused",
+        type: data.type as PostType,
+        category: data.category ?? category,
+        title: data.title,
+        content: data.content,
+        imageUrl: data.image_url ?? undefined,
+        createdAt: data.created_at,
+        expiresAt: data.expires_at ?? undefined,
       });
+
       onClose();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Nepodarilo sa uložiť príspevok.");
+    } catch (err: any) {
+      console.error("Užívateľská chyba:", err);
+      setErr(err.message);
     } finally {
       setBusy(false);
     }

@@ -25,13 +25,19 @@ function ResetPasswordPage() {
 
   useEffect(() => {
     // Supabase automatically picks up the recovery token from the URL hash
-    supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
     // If user already has a session (arrived from recovery link), allow reset
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) setReady(true);
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function submit(e: React.FormEvent) {

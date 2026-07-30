@@ -10,9 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppModeProvider } from "../context/AppModeContext";
-import { AppProvider } from "../context/AppContext";
 import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { RealtimeNotificationBanner } from "../components/RealtimeNotificationBanner";
@@ -44,7 +42,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    console.error("TanStack root error boundary", error);
   }, [error]);
 
   return (
@@ -141,14 +139,15 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AppModeProvider>
-          <AppProvider>
-            <NotificationProvider>
+          <NotificationProvider>
+            <div className="relative min-h-screen bg-app-shell text-foreground">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.18))] dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.1),rgba(2,6,23,0.22))]" />
               <Splash />
               <RealtimeNotificationBanner />
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />
-            </NotificationProvider>
-          </AppProvider>
+            </div>
+          </NotificationProvider>
         </AppModeProvider>
       </ThemeProvider>
     </QueryClientProvider>

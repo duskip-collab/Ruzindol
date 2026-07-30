@@ -3,6 +3,7 @@ import { Loader2, MessageCircle, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SafeChat } from "@/components/SafeChat";
+import { retryAsync, withTimeout } from "@/lib/async-guard";
 
 type ChatRow = {
   id: string;
@@ -39,47 +40,83 @@ export function MojeSpravyScreen() {
   const { userId, loading: authLoading } = useCurrentUser();
   const [convos, setConvos] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
+    setLoadError(null);
 
-    const { data: chats, error } = await supabase
-      .from("chats")
-      .select("id, item_id, buyer_id, seller_id, created_at")
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-      .order("created_at", { ascending: false });
+    try {
+      const { data: chats, error } = await withTimeout(
+        () =>
+          retryAsync(
+            () =>
+              supabase
+                .from("chats")
+                .select("id, item_id, buyer_id, seller_id, created_at")
+                .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+                .order("created_at", { ascending: false }),
+            { retries: 1, delayMs: 250 },
+          ),
+        7000,
+        "Načítanie konverzácií trvalo príliš dlho.",
+      );
 
-    if (error || !chats) {
-      setConvos([]);
-      setLoading(false);
-      return;
-    }
+      if (error || !chats) {
+        setConvos([]);
+        setLoadError(error?.message ?? "Nepodarilo sa načítať konverzácie.");
+        return;
+      }
 
-    const chatRows = chats as ChatRow[];
-    if (chatRows.length === 0) {
-      setConvos([]);
-      setLoading(false);
-      return;
-    }
+      const chatRows = chats as ChatRow[];
+      if (chatRows.length === 0) {
+        setConvos([]);
+        return;
+      }
 
-    const itemIds = Array.from(new Set(chatRows.map((c) => c.item_id)));
-    const otherIds = Array.from(
-      new Set(chatRows.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
-    );
-    const chatIds = chatRows.map((c) => c.id);
+      const itemIds = Array.from(new Set(chatRows.map((c) => c.item_id)));
+      const otherIds = Array.from(
+        new Set(chatRows.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
+      );
+      const chatIds = chatRows.map((c) => c.id);
 
-    const [{ data: items }, { data: profiles }, { data: msgs }] = await Promise.all([
-      supabase.from("warehouse_items").select("id, title, user_id").in("id", itemIds),
-      supabase.from("profiles").select("id, name").in("id", otherIds),
-      supabase
-        .from("messages")
-        .select("chat_id, text, created_at, sender_id")
-        .in("chat_id", chatIds)
-        .order("created_at", { ascending: false }),
-    ]);
+      const [{ data: items }, { data: profiles }, { data: msgs }] = await Promise.all([
+        withTimeout(
+          () =>
+            retryAsync(
+              () => supabase.from("warehouse_items").select("id, title, user_id").in("id", itemIds),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie inzerátov ku konverzáciám trvalo príliš dlho.",
+        ),
+        withTimeout(
+          () =>
+            retryAsync(
+              () => supabase.from("profiles").select("id, name").in("id", otherIds),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie profilov ku konverzáciám trvalo príliš dlho.",
+        ),
+        withTimeout(
+          () =>
+            retryAsync(
+              () =>
+                supabase
+                  .from("messages")
+                  .select("chat_id, text, created_at, sender_id")
+                  .in("chat_id", chatIds)
+                  .order("created_at", { ascending: false }),
+              { retries: 1, delayMs: 250 },
+            ),
+          7000,
+          "Načítanie správ trvalo príliš dlho.",
+        ),
+      ]);
 
     const itemMap = new Map<string, ItemRow>((items ?? []).map((i) => [i.id, i as ItemRow]));
     const profMap = new Map<string, ProfileRow>(
@@ -105,9 +142,15 @@ export function MojeSpravyScreen() {
       };
     });
 
-    result.sort((a, b) => +new Date(b.lastAt) - +new Date(a.lastAt));
-    setConvos(result);
-    setLoading(false);
+      result.sort((a, b) => +new Date(b.lastAt) - +new Date(a.lastAt));
+      setConvos(result);
+    } catch (e) {
+      console.error("Failed to load conversations", e);
+      setConvos([]);
+      setLoadError("Načítanie správ trvá príliš dlho. Skús to znova.");
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -190,6 +233,11 @@ export function MojeSpravyScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {loadError && (
+          <div className="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+            {loadError}
+          </div>
+        )}
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />

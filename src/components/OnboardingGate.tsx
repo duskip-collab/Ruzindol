@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, KeyRound } from "lucide-react";
 import { useAppMode } from "@/context/AppModeContext";
@@ -13,10 +13,11 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>(onboarded ? "app" : "welcome");
   const [showActivation, setShowActivation] = useState(false);
 
-  // once onboarded flips true (after wizard), jump into app.
-  if (onboarded && phase !== "app") {
-    setPhase("app");
-  }
+  useEffect(() => {
+    if (onboarded) {
+      setPhase("app");
+    }
+  }, [onboarded]);
 
   return (
     <>

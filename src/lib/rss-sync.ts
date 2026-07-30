@@ -1,9 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import { retryAsync, withTimeout } from "@/lib/async-guard";
 
 const RSS_URL = "https://www.ruzindol.sk/api/rss/";
 const PROXY = "https://api.allorigins.win/raw?url=";
 const LAST_SYNC_KEY = "aktuality_rss_last_sync";
+const LAST_SYNC_DAY_KEY = "aktuality_rss_last_sync_day";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 8000;
 
 export type RssItem = {
   external_id: string;
@@ -54,16 +57,70 @@ export async function cleanupExpiredAnnouncements() {
   const now = Date.now();
   const rssCut = new Date(now - 3 * DAY_MS).toISOString();
   const intCut = new Date(now - 4 * DAY_MS).toISOString();
-  await supabase.from("announcements").delete().eq("source", "rss").lt("published_at", rssCut);
-  await supabase.from("announcements").delete().eq("source", "internal").lt("published_at", intCut);
+  await withTimeout(
+    () =>
+      retryAsync(
+        () =>
+          Promise.all([
+            supabase.from("announcements").delete().eq("source", "rss").lt("published_at", rssCut),
+            supabase
+              .from("announcements")
+              .delete()
+              .eq("source", "internal")
+              .lt("published_at", intCut),
+          ]).then(() => undefined),
+        { retries: 1, delayMs: 250 },
+      ),
+    8000,
+    "Čistenie starých oznamov trvalo príliš dlho.",
+  );
+}
+
+function getTodayLocalKey() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function shouldSyncToday(force: boolean) {
+  if (force) return true;
+
+  const today = getTodayLocalKey();
+  const lastDay = localStorage.getItem(LAST_SYNC_DAY_KEY);
+  if (lastDay === today) return false;
+
+  // Backward compatibility for older key based on timestamp.
+  const lastTs = Number(localStorage.getItem(LAST_SYNC_KEY) ?? 0);
+  if (lastTs > 0 && Date.now() - lastTs < DAY_MS) return false;
+
+  return true;
+}
+
+function markSyncedToday() {
+  localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+  localStorage.setItem(LAST_SYNC_DAY_KEY, getTodayLocalKey());
+}
+
+async function fetchWithTimeout(url: string, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean; count: number }> {
   try {
-    const last = Number(localStorage.getItem(LAST_SYNC_KEY) ?? 0);
-    if (!force && Date.now() - last < DAY_MS) return { synced: false, count: 0 };
+    if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
-    const res = await fetch(PROXY + encodeURIComponent(RSS_URL));
+    const res = await retryAsync(
+      () => fetchWithTimeout(PROXY + encodeURIComponent(RSS_URL), FETCH_TIMEOUT_MS),
+      { retries: 1, delayMs: 400 },
+    );
     if (!res.ok) throw new Error("RSS fetch failed");
     const xml = await res.text();
     const items = parseRss(xml);
@@ -85,13 +142,21 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
         published_at: i.published_at,
         author_id: null,
       }));
-      await supabase.from("announcements").upsert(rows, { onConflict: "source,external_id" });
+      await withTimeout(
+        () =>
+          retryAsync(
+            () => supabase.from("announcements").upsert(rows, { onConflict: "source,external_id" }),
+            { retries: 1, delayMs: 250 },
+          ).then(() => undefined),
+        8000,
+        "Ukladanie RSS oznamov trvalo príliš dlho.",
+      );
     }
 
-    localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+    markSyncedToday();
     return { synced: true, count: fresh.length };
   } catch (e) {
-    console.error("[RSS sync] failed", e);
+    console.error("Nepodarilo sa stiahnut aktuality z obce:", e);
     return { synced: false, count: 0 };
   }
 }

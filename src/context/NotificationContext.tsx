@@ -45,6 +45,11 @@ interface NotificationCtx {
   setCategory: (key: NotifCategory, on: boolean) => void;
   current: LiveNotification | null;
   dismiss: () => void;
+  hasOfficialUnread: boolean;
+  hasMessageUnread: boolean;
+  hasBellDot: boolean;
+  clearOfficialUnread: () => void;
+  clearMessageUnread: () => void;
 }
 
 const DEFAULT_CATS: Record<NotifCategory, boolean> = {
@@ -83,6 +88,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] =
     useState<Record<NotifCategory, boolean>>(DEFAULT_CATS);
   const [current, setCurrent] = useState<LiveNotification | null>(null);
+  const [hasOfficialUnread, setHasOfficialUnread] = useState(false);
+  const [hasMessageUnread, setHasMessageUnread] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const mutedRef = useRef(false);
   const catsRef = useRef(categories);
@@ -129,6 +137,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const dismiss = useCallback(() => setCurrent(null), []);
+  const clearOfficialUnread = useCallback(() => setHasOfficialUnread(false), []);
+  const clearMessageUnread = useCallback(() => setHasMessageUnread(false), []);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setCurrentUserId(data.user?.id ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserId(session?.user?.id ?? null);
+      if (!session?.user) {
+        setHasOfficialUnread(false);
+        setHasMessageUnread(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -164,10 +197,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             .select("name, role")
             .eq("id", row.user_id)
             .maybeSingle();
-          if (!prof || prof.role !== "Starosta") return;
+          if (!prof || (prof.role !== "Starosta" && prof.role !== "Uradnik")) return;
 
           const bucket = classify(row.type, row.category);
           if (!catsRef.current[bucket]) return;
+
+          setHasOfficialUnread(true);
 
           setCurrent({
             id: `${row.id}-${Date.now()}`,
@@ -182,13 +217,40 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           timerRef.current = setTimeout(() => setCurrent(null), 12000);
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        async (payload) => {
+          const row = payload.new as {
+            chat_id: string;
+            sender_id: string;
+          };
+
+          if (!currentUserId) return;
+          if (!row?.chat_id || row.sender_id === currentUserId) return;
+
+          const { data: chat } = await supabase
+            .from("chats")
+            .select("buyer_id, seller_id")
+            .eq("id", row.chat_id)
+            .maybeSingle();
+
+          if (!chat) return;
+
+          if (chat.buyer_id === currentUserId || chat.seller_id === currentUserId) {
+            setHasMessageUnread(true);
+          }
+        },
+      )
       .subscribe();
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUserId]);
+
+  const hasBellDot = hasOfficialUnread || hasMessageUnread;
 
   const value = useMemo<NotificationCtx>(
     () => ({
@@ -198,8 +260,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setCategory,
       current,
       dismiss,
+      hasOfficialUnread,
+      hasMessageUnread,
+      hasBellDot,
+      clearOfficialUnread,
+      clearMessageUnread,
     }),
-    [muted, setMuted, categories, setCategory, current, dismiss],
+    [
+      muted,
+      setMuted,
+      categories,
+      setCategory,
+      current,
+      dismiss,
+      hasOfficialUnread,
+      hasMessageUnread,
+      hasBellDot,
+      clearOfficialUnread,
+      clearMessageUnread,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

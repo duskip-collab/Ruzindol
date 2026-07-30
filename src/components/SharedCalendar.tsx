@@ -130,6 +130,7 @@ export function SharedCalendar() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setExpanded(true);
                 setShowForm(true);
               }}
               className="ml-1 flex items-center gap-1 rounded-full bg-neutral-900 px-2 py-1 text-[10px] font-semibold text-white hover:bg-neutral-800"
@@ -186,6 +187,17 @@ export function SharedCalendar() {
       >
         <div className="flex flex-col h-full" onClick={(e) => e.stopPropagation()}>
           <CalendarContent />
+
+          {showForm && canManage && userId && (
+            <EventForm
+              userId={userId}
+              onClose={() => setShowForm(false)}
+              onCreated={async () => {
+                setShowForm(false);
+                await load();
+              }}
+            />
+          )}
         </div>
       </div>
     );
@@ -197,7 +209,7 @@ export function SharedCalendar() {
       onClick={toggleExpand}
       title="Kliknite pre zobrazenie na celú obrazovku"
     >
-      <div className="pointer-events-none">
+      <div onClick={(e) => e.stopPropagation()}>
         <CalendarContent />
       </div>
       <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-400">

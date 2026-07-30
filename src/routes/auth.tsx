@@ -1,76 +1,59 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, Chrome, Mail, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { InviteRedeemSection } from "@/components/InviteRedeemSection";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
-  head: () => ({
-    meta: [
-      { title: "Prihlásenie · Komunita" },
-      { name: "description", content: "Prihlás sa do komunitnej aplikácie." },
-    ],
-  }),
 });
 
 type MuniOpt = { id: string; name: string; region: string | null; slug: string };
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [isClient, setIsClient] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [street, setStreet] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [municipalityId, setMunicipalityId] = useState<string>("");
   const [municipalities, setMunicipalities] = useState<MuniOpt[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotSent, setForgotSent] = useState(false);
 
-  // Load municipalities for the signup dropdown.
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("municipalities")
-        .select("id, name, region, slug")
-        .eq("is_active", true)
-        .order("name");
-      const list = (data as MuniOpt[] | null) ?? [];
-      setMunicipalities(list);
-      const rz = list.find((m) => m.slug === "ruzindol");
-      if (rz) setMunicipalityId(rz.id);
-      else if (list.length > 0) setMunicipalityId(list[0].id);
-    })();
+    setIsClient(true);
+    // Načítanie obcí
+    supabase
+      .from("municipalities")
+      .select("id, name, region, slug")
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data }) => {
+        const list = (data as MuniOpt[] | null) ?? [];
+        setMunicipalities(list);
+        if (list.length > 0) {
+          const rz = list.find((m) => m.slug === "ruzindol") || list[0];
+          setMunicipalityId(rz.id);
+        }
+      });
   }, []);
 
-  async function handleForgot(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setBusy(false);
-    if (error) return setError(error.message);
-    setForgotSent(true);
-  }
-
-
-
+  // Presmerovanie ak je už prihlásený
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getUser();
+    if (!isClient) return;
+    supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
-    })();
-  }, [navigate]);
+    });
+  }, [navigate, isClient]);
 
-  async function handleEmailSubmit(e: React.FormEvent) {
+  async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setBusy(true);
@@ -79,252 +62,239 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        if (!municipalityId) {
-          throw new Error("Vyber si obec, do ktorej patríš.");
-        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: {
-              name: name.trim() || email.split("@")[0],
-              street: street.trim(),
-              municipality_id: municipalityId,
-            },
+            data: { name, street, municipality_id: municipalityId },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        // Optional invite code redemption after signup (session should be active).
-        const code = inviteCode.trim();
-        if (code) {
-          const { error: rpcErr } = await supabase.rpc("redeem_invite_code", {
-            _code: code,
-          });
-          if (rpcErr) {
-            // Non-fatal: user is registered, just show info.
-            setError(
-              "Účet vytvorený, ale pozývací kód sa nepodarilo aktivovať: " +
-                rpcErr.message +
-                ". Skús ho zadať v profile."
-            );
-          }
-        }
       }
       navigate({ to: "/" });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Nepodarilo sa prihlásiť.");
+    } catch (e: any) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }
 
   async function handleGoogle() {
-    setError(null);
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
-    if (result.error) {
-      setError(result.error instanceof Error ? result.error.message : "Google prihlásenie zlyhalo.");
+    if (error) {
+      setError(error.message);
       setBusy(false);
-      return;
     }
-    if (result.redirected) return;
-    navigate({ to: "/" });
   }
 
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-slate-100 px-4 py-8 text-slate-900">
-      <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-        <div className="mb-5 text-center">
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Komunita Ružindol</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {forgotOpen ? "Obnova hesla" : mode === "signin" ? "Prihlás sa do aplikácie" : "Vytvor si účet"}
-          </p>
-        </div>
+  if (!isClient) return null;
 
-        {forgotOpen ? (
-          <form onSubmit={handleForgot} className="flex flex-col gap-3">
-            {forgotSent ? (
-              <div className="rounded-xl bg-emerald-50 px-3 py-3 text-sm text-emerald-800">
-                Ak email existuje, poslali sme naň odkaz na obnovu hesla. Skontroluj si schránku.
+  return (
+    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.18),_transparent_34%),linear-gradient(180deg,_#08111d_0%,_#0f172a_52%,_#111827_100%)] px-4 py-8 text-slate-50">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl lg:w-[42%]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.22),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.18),_transparent_24%)]" />
+          <div className="relative flex h-full flex-col justify-between gap-8">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">
+                <Sparkles className="h-3.5 w-3.5" />
+                Prihlásenie do Komunita Ružindol
               </div>
-            ) : (
-              <>
-                <input
-                  type="email"
-                  required
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="Tvoj email"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-                />
-                {error && <p className="text-xs text-rose-600">{error}</p>}
-                <button
+              <div className="space-y-4">
+                <h1 className="max-w-md text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  Jedna obrazovka, tri cesty dovnútra.
+                </h1>
+                <p className="max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
+                  Prihlás sa emailom, pokračuj cez Google alebo odomkni účet
+                  voliteľným invite kódom. Všetko prehľadne na jednom mieste.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { title: "Email", desc: "Klasické prihlásenie", icon: Mail },
+                { title: "Google", desc: "Rýchly vstup", icon: Chrome },
+                { title: "Invite", desc: "Voliteľné odomknutie", icon: BadgeCheck },
+              ].map(({ title, desc, icon: Icon }) => (
+                <div key={title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <Icon className="mb-3 h-5 w-5 text-emerald-300" />
+                  <div className="text-sm font-semibold text-white">{title}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-300">{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="grid flex-1 gap-6 lg:max-w-2xl">
+          <Card className="border-white/10 bg-slate-950/80 text-slate-50 shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <CardHeader className="space-y-2 border-b border-white/10 bg-white/5">
+              <CardTitle className="text-2xl text-white">Prihlásenie emailom</CardTitle>
+              <CardDescription className="text-slate-300">
+                Prihlás sa existujúcim účtom alebo si vytvor účet pre svoju komunitu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="napr. meno@domena.sk"
+                    required
+                    className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200">Heslo</label>
+                  <Input
+                    type="password"
+                    placeholder="Tvoje heslo"
+                    required
+                    className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                {mode === "signup" && (
+                  <div className="grid gap-4 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <div className="text-sm font-semibold text-emerald-100">Registrácia účtu</div>
+                      <p className="text-xs leading-5 text-slate-300">
+                        Zadaj základné údaje, aby si bol pripravený na komunitné funkcie.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-200">Meno a priezvisko</label>
+                      <Input
+                        placeholder="Tvoje meno"
+                        className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-200">Ulica a číslo</label>
+                      <Input
+                        placeholder="Ulica 12"
+                        className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
+                        onChange={(e) => setStreet(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-sm font-medium text-slate-200">Profil komunity</label>
+                      {municipalities.length <= 1 ? (
+                        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
+                          <div className="text-sm font-semibold text-white">
+                            {municipalities[0]?.name ?? "Ružindol"}
+                          </div>
+                          <div className="mt-1 text-xs leading-5 text-slate-300">
+                            Aktuálne je dostupný iba jeden profil. Po vytvorení ďalšej komunity sa tu
+                            zobrazí aj výber.
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          className="h-11 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none ring-offset-transparent focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
+                          value={municipalityId}
+                          onChange={(e) => setMunicipalityId(e.target.value)}
+                        >
+                          {municipalities.map((m) => (
+                            <option key={m.id} value={m.id} className="bg-slate-950 text-white">
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                    {error}
+                  </div>
+                )}
+
+                <Button
                   type="submit"
                   disabled={busy}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+                  className="h-11 w-full rounded-2xl bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400"
                 >
-                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Poslať odkaz na obnovu
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setForgotOpen(false);
-                setForgotSent(false);
-                setError(null);
-              }}
-              className="mt-1 text-xs font-medium text-slate-600 hover:text-slate-900"
-            >
-              ← Späť na prihlásenie
-            </button>
-          </form>
-        ) : (
-          <>
-            <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => setMode("signin")}
-                className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition ${
-                  mode === "signin" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                }`}
-              >
-                Prihlásenie
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition ${
-                  mode === "signup" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                }`}
-              >
-                Registrácia
-              </button>
-            </div>
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : mode === "signin" ? (
+                    <>
+                      Prihlásiť sa emailom
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  ) : (
+                    <>
+                      Registrovať sa emailom
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
 
-            <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
-              {mode === "signup" && (
-                <>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Meno a priezvisko"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-                  />
-                  <input
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    placeholder="Ulica a číslo"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-                  />
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-slate-500">
-                      Obec (nedá sa neskôr zmeniť)
-                    </label>
-                    <select
-                      required
-                      value={municipalityId}
-                      onChange={(e) => setMunicipalityId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-                    >
-                      {municipalities.length === 0 && <option value="">Načítavam…</option>}
-                      {municipalities.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                          {m.region ? ` · ${m.region}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <input
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    placeholder="Pozývací kód (nepovinné)"
-                    maxLength={20}
-                    autoComplete="off"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-center font-mono text-sm tracking-[0.2em] text-slate-900 outline-none placeholder:font-sans placeholder:tracking-normal focus:border-slate-500"
-                  />
-                </>
-              )}
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-              />
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Heslo (min. 6 znakov)"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-slate-500"
-              />
-              {error && <p className="text-xs text-rose-600">{error}</p>}
-              <button
-                type="submit"
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                    className="text-emerald-300 underline-offset-4 hover:underline"
+                  >
+                    {mode === "signin" ? "Nemáš účet? Registrovať sa" : "Mám účet, chcem sa prihlásiť"}
+                  </button>
+                  <span className="text-slate-400">Email login je najrýchlejšia cesta.</span>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-white/95 text-slate-950 shadow-2xl shadow-black/20 backdrop-blur-xl">
+            <CardHeader className="space-y-2 border-b border-slate-200/80 bg-slate-50/90">
+              <CardTitle className="text-2xl text-slate-900">Prihlásenie cez Google</CardTitle>
+              <CardDescription className="text-slate-600">
+                Rýchle prihlásenie jedným klikom cez tvoj Google účet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <Button
+                onClick={handleGoogle}
                 disabled={busy}
-                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white shadow-sm active:scale-[0.99] disabled:opacity-60"
+                variant="outline"
+                className="h-11 w-full rounded-2xl border-slate-300 bg-white text-slate-900 shadow-sm hover:bg-slate-50"
               >
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "signin" ? "Prihlásiť sa" : "Zaregistrovať sa"}
-              </button>
+                <Chrome className="h-4 w-4" />
+                Pokračovať cez Google
+              </Button>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Po povolení providera v Supabase sa tu otvorí štandardný Google flow a po úspešnom
+                prihlásení sa vrátiš späť do aplikácie.
+              </p>
+            </CardContent>
+          </Card>
 
-              {mode === "signin" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotOpen(true);
-                    setForgotEmail(email);
-                    setError(null);
-                  }}
-                  className="text-center text-xs font-medium text-slate-600 underline hover:text-slate-900"
-                >
-                  Zabudol si heslo?
-                </button>
-              )}
-            </form>
-
-            <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
-              <div className="h-px flex-1 bg-slate-200" />
-              alebo
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 disabled:opacity-60"
-            >
-              <GoogleIcon /> Pokračovať cez Google
-            </button>
-          </>
-        )}
-
-        <p className="mt-4 text-center text-[11px] text-slate-500">
-          <Link to="/">Späť na úvod</Link>
-        </p>
+          <Card className="border-emerald-400/20 bg-emerald-50/95 text-slate-950 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl">
+            <CardHeader className="space-y-2 border-b border-emerald-200/80 bg-white/60">
+              <CardTitle className="text-2xl text-slate-900">Nepovinný invite kód</CardTitle>
+              <CardDescription className="text-slate-600">
+                Ak máš kód od suseda alebo starostu, môžeš ho aktivovať hneď po prihlásení.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <InviteRedeemSection />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
-  );
-}
-
-
-function GoogleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
-      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2C41 34.9 44 30 44 24c0-1.2-.1-2.3-.4-3.5z"/>
-    </svg>
   );
 }

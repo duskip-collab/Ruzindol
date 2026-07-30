@@ -149,6 +149,83 @@ export type Database = {
           },
         ]
       }
+      group_admins: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          group_key: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          group_key: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          group_key?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_admins_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_announcements: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          expires_at: string
+          group_key: string
+          id: string
+          title: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          expires_at?: string
+          group_key: string
+          id?: string
+          title: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          expires_at?: string
+          group_key?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_codes: {
         Row: {
           code: string
@@ -236,8 +313,10 @@ export type Database = {
           is_active: boolean
           logo_url: string | null
           mayor_name: string | null
+          latitude: number | null
           name: string
           region: string | null
+          longitude: number | null
           slug: string
         }
         Insert: {
@@ -246,8 +325,10 @@ export type Database = {
           is_active?: boolean
           logo_url?: string | null
           mayor_name?: string | null
+          latitude?: number | null
           name: string
           region?: string | null
+          longitude?: number | null
           slug: string
         }
         Update: {
@@ -256,8 +337,10 @@ export type Database = {
           is_active?: boolean
           logo_url?: string | null
           mayor_name?: string | null
+          latitude?: number | null
           name?: string
           region?: string | null
+          longitude?: number | null
           slug?: string
         }
         Relationships: []
@@ -267,6 +350,7 @@ export type Database = {
           category: string | null
           content: string
           created_at: string
+          expires_at: string | null
           id: string
           image_url: string | null
           title: string
@@ -278,6 +362,7 @@ export type Database = {
           category?: string | null
           content?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           title: string
@@ -289,6 +374,7 @@ export type Database = {
           category?: string | null
           content?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           title?: string
@@ -300,6 +386,78 @@ export type Database = {
           {
             foreignKeyName: "posts_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reports: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reason: string | null
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reason?: string | null
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reason?: string | null
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -432,6 +590,7 @@ export type Database = {
       }
       can_moderate: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_announcements: { Args: never; Returns: number }
+      cleanup_expired_group_announcements: { Args: never; Returns: number }
       cleanup_old_neighbor_posts: { Args: never; Returns: number }
       cleanup_used_invite_codes: { Args: never; Returns: number }
       current_user_municipality: { Args: never; Returns: string }
@@ -444,6 +603,7 @@ export type Database = {
         Returns: boolean
       }
       is_banned: { Args: { _user_id: string }; Returns: boolean }
+      is_group_admin: { Args: { _group_key: string; _user_id: string }; Returns: boolean }
       redeem_invite_code: { Args: { _code: string }; Returns: boolean }
       unban_neighbor: { Args: { _target: string }; Returns: boolean }
     }

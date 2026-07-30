@@ -489,6 +489,7 @@ function AddListingModal({
       let image_url: string | null = null;
       if (photo) image_url = await uploadCompressedImage(photo, userId);
       const numericPrice = isDarovanie ? 0 : Number(price) || 0;
+      console.log("Debug: Vkladam inzerat, userId:", userId, "Type:", type);
       const { error } = await supabase.from("warehouse_items").insert({
         user_id: userId,
         type,
@@ -608,6 +609,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       const description = `${text.trim()}\nKontakt: ${contact.trim()}`;
+      console.log("Debug: Vkladam inzerat, userId:", userId, "Type:", "sklad_dopyt");
       const { error } = await supabase.from("warehouse_items").insert({
         user_id: userId,
         type: "sklad_dopyt",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import {
   MapPin,
   Shield,
@@ -22,19 +22,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { RolePanels } from "@/components/RolePanels";
-import { NeighborhoodPulse } from "@/components/NeighborhoodPulse";
-import { AdminPanel } from "@/components/AdminPanel";
-import { ModerationPanel } from "@/components/ModerationPanel";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
-import { InviteRedeemSection } from "@/components/InviteRedeemSection";
 import { useAppMode } from "@/context/AppModeContext";
 import {
   useNotifications,
   NOTIF_CATEGORIES,
 } from "@/context/NotificationContext";
-import { useTheme } from "@/context/ThemeContext";
 import { Switch } from "@/components/ui/switch";
 import {
   Accordion,
@@ -62,6 +56,31 @@ type Item = {
   created_at: string;
 };
 
+const RolePanels = lazy(async () => {
+  const module = await import("@/components/RolePanels");
+  return { default: module.RolePanels };
+});
+
+const NeighborhoodPulse = lazy(async () => {
+  const module = await import("@/components/NeighborhoodPulse");
+  return { default: module.NeighborhoodPulse };
+});
+
+const AdminPanel = lazy(async () => {
+  const module = await import("@/components/AdminPanel");
+  return { default: module.AdminPanel };
+});
+
+const ModerationPanel = lazy(async () => {
+  const module = await import("@/components/ModerationPanel");
+  return { default: module.ModerationPanel };
+});
+
+const InviteRedeemSection = lazy(async () => {
+  const module = await import("@/components/InviteRedeemSection");
+  return { default: module.InviteRedeemSection };
+});
+
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "pred chvíľou";
@@ -84,6 +103,7 @@ export function ProfilScreen() {
   const [items, setItems] = useState<Item[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<string>("");
 
   async function loadItems(uid: string) {
     setItemsLoading(true);
@@ -132,10 +152,21 @@ export function ProfilScreen() {
     );
   }
 
-  if (loading || !profile) {
+  if (loading) {
     return (
       <div className="flex h-full items-center justify-center text-neutral-400">
         <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-sm font-medium text-neutral-700">Profil sa nepodarilo načítať.</p>
+        <p className="text-xs text-neutral-500">
+          Skús obnoviť stránku alebo sa znova prihlásiť.
+        </p>
       </div>
     );
   }
@@ -145,7 +176,7 @@ export function ProfilScreen() {
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto px-5 py-5">
       {/* Header card — always visible */}
-      <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-600 text-xl font-semibold text-white">
             {profile.name
@@ -192,17 +223,27 @@ export function ProfilScreen() {
       <Accordion
         type="single"
         collapsible
+        value={openSection}
+        onValueChange={setOpenSection}
         className="flex flex-col gap-2"
       >
         {isAdmin && (
           <AccordionSection value="admin" title="Admin panel">
-            <AdminPanel adminId={profile.id} />
+            {openSection === "admin" && (
+              <Suspense fallback={<SectionLoader />}>
+                <AdminPanel adminId={profile.id} />
+              </Suspense>
+            )}
           </AccordionSection>
         )}
 
         {(isAdmin || profile.role === "Starosta") && (
           <AccordionSection value="moderation" title="Moderácia">
-            <ModerationPanel currentUserId={profile.id} />
+            {openSection === "moderation" && (
+              <Suspense fallback={<SectionLoader />}>
+                <ModerationPanel currentUserId={profile.id} />
+              </Suspense>
+            )}
           </AccordionSection>
         )}
 
@@ -217,7 +258,6 @@ export function ProfilScreen() {
 
         <AccordionSection value="settings" title="Vzhľad & notifikácie">
           <div className="flex flex-col gap-3">
-            <ThemeToggle />
             <NotificationSettings />
           </div>
         </AccordionSection>
@@ -229,10 +269,14 @@ export function ProfilScreen() {
         )}
 
         <AccordionSection value="panels" title="Panely rolí">
-          <div className="flex flex-col gap-3">
-            <RolePanels role={profile.role} />
-            <NeighborhoodPulse />
-          </div>
+          {openSection === "panels" && (
+            <Suspense fallback={<SectionLoader />}>
+              <div className="flex flex-col gap-3">
+                <RolePanels role={profile.role} />
+                <NeighborhoodPulse />
+              </div>
+            </Suspense>
+          )}
         </AccordionSection>
 
         {!profile.is_active_neighbor && (
@@ -240,7 +284,11 @@ export function ProfilScreen() {
             value="activate"
             title="🔑 Máš invite kód od suseda?"
           >
-            <InviteRedeemSection onActivated={refresh} />
+            {openSection === "activate" && (
+              <Suspense fallback={<SectionLoader />}>
+                <InviteRedeemSection onActivated={refresh} />
+              </Suspense>
+            )}
           </AccordionSection>
         )}
 
@@ -341,6 +389,14 @@ export function ProfilScreen() {
   );
 }
 
+function SectionLoader() {
+  return (
+    <div className="flex justify-center py-6 text-neutral-400">
+      <Loader2 className="h-4 w-4 animate-spin" />
+    </div>
+  );
+}
+
 function AccordionSection({
   value,
   title,
@@ -353,12 +409,12 @@ function AccordionSection({
   return (
     <AccordionItem
       value={value}
-      className="overflow-hidden rounded-3xl border border-neutral-200/60 bg-white/80 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
+      className="overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl"
     >
-      <AccordionTrigger className="px-5 py-4 text-sm font-semibold text-neutral-900 hover:no-underline dark:text-neutral-100">
+      <AccordionTrigger className="px-5 py-4">
         {title}
       </AccordionTrigger>
-      <AccordionContent className="border-t border-neutral-200/60 px-5 pb-5 pt-4 dark:border-white/10">
+      <AccordionContent className="border-t border-border px-5 pb-5 pt-4">
         {children}
       </AccordionContent>
     </AccordionItem>
@@ -410,32 +466,32 @@ function ProfileEditForm({
   return (
     <form
       onSubmit={save}
-      className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
+      className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl"
     >
-      <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+      <h3 className="text-sm font-semibold text-foreground">
         Úprava profilu
       </h3>
       <div className="mt-3 space-y-3">
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <span className="text-xs font-medium text-muted-foreground">
             Meno
           </span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             required
           />
         </label>
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <span className="text-xs font-medium text-muted-foreground">
             Ulica
           </span>
           <input
             value={street}
             onChange={(e) => setStreet(e.target.value)}
             placeholder="Napr. Hlavná 12"
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
           />
         </label>
       </div>
@@ -443,7 +499,7 @@ function ProfileEditForm({
       <button
         type="submit"
         disabled={!dirty || saving}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-neutral-900 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-40"
       >
         {saving ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -455,33 +511,6 @@ function ProfileEditForm({
         {ok ? "Uložené" : "Uložiť zmeny"}
       </button>
     </form>
-  );
-}
-
-// ---------- Theme toggle ----------
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme();
-  const dark = theme === "dark";
-  return (
-    <div className="flex items-center gap-3 rounded-3xl border border-neutral-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-        {dark ? (
-          <Moon className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-        ) : (
-          <Sun className="h-5 w-5 text-neutral-700" />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-          {dark ? "Tmavý režim" : "Svetlý režim"}
-        </p>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Prepni vzhľad aplikácie.
-        </p>
-      </div>
-      <Switch checked={dark} onCheckedChange={toggle} aria-label="Dark mode" />
-    </div>
   );
 }
 
@@ -581,19 +610,19 @@ function InviteSection() {
     );
 
   return (
-    <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+    <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="text-sm font-semibold text-foreground">
             Pozvi suseda
           </h3>
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {role === "Sused"
               ? `Ako Sused môžeš vygenerovať max ${maxInvites} pozvánok.`
               : "Ako Starosta/Admin máš neobmedzené pozvánky."}
           </p>
         </div>
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:bg-white/10 dark:text-neutral-200">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
           {remainingLabel}
         </span>
       </div>
@@ -608,7 +637,7 @@ function InviteSection() {
           <button
             onClick={onGenerate}
             disabled={invitesRemaining === 0}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-neutral-900 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-40"
           >
             <Plus className="h-4 w-4" />
             Vygenerovať kód
@@ -620,14 +649,14 @@ function InviteSection() {
               {generatedCodes.map((code) => (
                 <li
                   key={code}
-                  className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-white/10 dark:bg-white/5"
+                  className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
                 >
-                  <span className="flex-1 font-mono text-sm tracking-wider text-neutral-900 dark:text-neutral-100">
+                  <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
                     {code}
                   </span>
                   <button
                     onClick={() => copy(code)}
-                    className="rounded-full p-1.5 text-neutral-600 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-white/10"
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     aria-label="Kopírovať"
                   >
                     {copied === code ? (
@@ -697,7 +726,7 @@ function AccountActions({ userId }: { userId: string }) {
       <div className="flex flex-col gap-2 pb-4">
         <button
           onClick={logout}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:hover:bg-white/10"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-medium text-foreground shadow-sm hover:bg-accent/60"
         >
           <LogOut className="h-4 w-4" />
           Odhlásiť sa
@@ -786,14 +815,14 @@ function RoleSwitcher({
   return (
     <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          <UserCog className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted">
+          <UserCog className="h-5 w-5 text-foreground" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <p className="text-sm font-semibold text-foreground">
             Rola v komunite
           </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             Odomkne špecializovaný panel nižšie.
           </p>
         </div>
@@ -808,8 +837,8 @@ function RoleSwitcher({
               disabled={!!busy}
               className={`flex flex-col items-center gap-0.5 rounded-xl border px-1 py-2 text-[10px] font-semibold transition ${
                 active
-                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                  : "border-neutral-200 bg-white text-neutral-600 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground"
               } disabled:opacity-40`}
             >
               <span className="text-base leading-none">

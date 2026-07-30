@@ -35,8 +35,8 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vitaj v Komunite</h1>
           <p className="mt-2 text-sm leading-relaxed text-white/90">
-            Miesto, kde susedia zdieľajú, pomáhajú si a spoznávajú sa. Bez reklám,
-            bez sledovania — len tvoja obec.
+            Miesto, kde susedia zdieľajú, pomáhajú si a spoznávajú sa. Aplikácia si
+            zapamätá posledný profil na zariadení, takže sa vždy otvorí tam, kde si skončil.
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export function WelcomeScreen({ onNext }: { onNext: () => void }) {
           onClick={onNext}
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm font-semibold text-neutral-900 shadow-lg"
         >
-          Začíname
+          Pokračovať do profilu Ružindol
           <ArrowRight className="h-4 w-4" />
         </motion.button>
       </motion.div>

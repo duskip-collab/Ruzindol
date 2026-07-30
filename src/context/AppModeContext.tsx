@@ -20,6 +20,7 @@ export interface OnboardingState {
   onboarded: boolean; // finished welcome + geo wizard
   region: string | null;
   municipality: string | null;
+  municipalityId: string | null;
   isVerified: boolean; // entered a valid invite/community code
   activatedCode: string | null;
   bypass: boolean;
@@ -46,6 +47,7 @@ const DEFAULT: OnboardingState = {
   onboarded: false,
   region: null,
   municipality: null,
+  municipalityId: null,
   isVerified: false,
   activatedCode: null,
   bypass: false,
@@ -87,18 +89,19 @@ function randomCode(): string {
 const AppModeContext = createContext<AppModeCtx | null>(null);
 
 export function AppModeProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<OnboardingState>(DEFAULT);
-
-  useEffect(() => {
-    setState(load());
-  }, []);
+  const [state, setState] = useState<OnboardingState>(() => load());
 
   useEffect(() => {
     save(state);
   }, [state]);
 
-  const setGeo = useCallback((region: string, municipality: string) => {
-    setState((s) => ({ ...s, region, municipality }));
+  const setGeo = useCallback((region: string, municipality: string, municipalityId?: string) => {
+    setState((s) => ({
+      ...s,
+      region,
+      municipality,
+      municipalityId: municipalityId ?? s.municipalityId,
+    }));
   }, []);
 
   const finishOnboarding = useCallback(() => {

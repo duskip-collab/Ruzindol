@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SharedCalendar } from "@/components/SharedCalendar";
+import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
 type Source = "rss" | "internal";
@@ -75,11 +76,16 @@ export function AktualityScreen() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setSyncing(true);
-      await syncRssIfNeeded();
-      setSyncing(false);
       await load();
       setLoading(false);
+
+      // RSS sync beží na pozadí, aby sa obsah zobrazil okamžite.
+      setSyncing(true);
+      const result = await syncRssIfNeeded();
+      if (result.synced) {
+        await load();
+      }
+      setSyncing(false);
     })();
   }, [load]);
 
@@ -136,6 +142,10 @@ export function AktualityScreen() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="mb-4">
+          <AktualityGroupsPanel />
+        </div>
+
         <div className="mb-4">
           <SharedCalendar />
         </div>

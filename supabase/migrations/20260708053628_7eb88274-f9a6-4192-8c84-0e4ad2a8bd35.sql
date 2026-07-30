@@ -2,7 +2,14 @@
 -- 1. Add mayor_name and logo_url to municipalities
 ALTER TABLE public.municipalities
   ADD COLUMN IF NOT EXISTS mayor_name text,
-  ADD COLUMN IF NOT EXISTS logo_url text;
+  ADD COLUMN IF NOT EXISTS logo_url text,
+  ADD COLUMN IF NOT EXISTS latitude double precision,
+  ADD COLUMN IF NOT EXISTS longitude double precision;
+
+UPDATE public.municipalities
+SET latitude = 48.37001,
+    longitude = 17.4943815
+WHERE slug = 'ruzindol';
 
 -- 2. Update handle_new_user to read municipality from user metadata
 CREATE OR REPLACE FUNCTION public.handle_new_user()

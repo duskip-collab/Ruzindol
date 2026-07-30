@@ -1,13 +1,19 @@
-import { Bell, LogOut, Moon, Sun } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
-import { useTheme } from "@/context/ThemeContext";
 import ruzindolErb from "@/assets/ruzindol-erb.png";
 
-export function Header({ profile }: { profile: Profile | null }) {
+export function Header({
+  profile,
+  hasNotificationDot,
+  onBellClick,
+}: {
+  profile: Profile | null;
+  hasNotificationDot: boolean;
+  onBellClick: () => void;
+}) {
   const navigate = useNavigate();
-  const { theme, toggle } = useTheme();
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -23,39 +29,37 @@ export function Header({ profile }: { profile: Profile | null }) {
       .toUpperCase() ?? "?";
 
   return (
-    <header className="glass-panel flex items-center justify-between border-x-0 border-t-0 px-5 py-3.5 z-50 shrink-0">
-      <div className="flex items-center gap-2.5">
-        <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-brand/25 ring-1 ring-border">
+    <header className="glass-panel relative z-50 mx-3 mt-3 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3 md:mx-4 md:mt-4">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/80 shadow-lg shadow-brand/15 ring-1 ring-border/60">
           <img
             src={ruzindolErb}
             alt="Erb obce Ružindol"
             className="h-full w-full object-contain"
           />
         </div>
-        <h1 className="text-base font-semibold tracking-tight text-foreground">
-          Ružindol
-        </h1>
+        <div>
+          <h1 className="text-base font-semibold tracking-tight text-foreground">
+            Ružindol
+          </h1>
+          <p className="text-[11px] text-muted-foreground">Komunita · mobilný zážitok</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={toggle}
-          className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
-          aria-label={theme === "dark" ? "Zapnúť svetlý režim" : "Zapnúť tmavý režim"}
-        >
-          {theme === "dark" ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
-        </button>
-        <button
-          type="button"
-          className="relative grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
+          onClick={onBellClick}
+          className="relative grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95"
           aria-label="Notifikácie"
         >
           <Bell size={17} strokeWidth={2} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
+          {hasNotificationDot && (
+            <span className="absolute right-[0.7rem] top-[0.7rem] h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
+          )}
         </button>
         <div
-          className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand to-brand-glow text-[11px] font-semibold text-brand-foreground shadow-md shadow-brand/20"
+          className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-brand to-brand-glow text-[11px] font-semibold text-brand-foreground shadow-md shadow-brand/20"
           title={profile?.name ?? ""}
         >
           {initials}
@@ -63,7 +67,7 @@ export function Header({ profile }: { profile: Profile | null }) {
         <button
           type="button"
           onClick={handleSignOut}
-          className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
+          className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95"
           aria-label="Odhlásiť sa"
         >
           <LogOut size={15} strokeWidth={2} />

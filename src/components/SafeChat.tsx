@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
 };
 
-const MAX_MESSAGES = 4;
+const MAX_MESSAGES = 15;
 
 export function SafeChat({
   chatId,
@@ -85,10 +85,10 @@ export function SafeChat({
       .single();
     setSending(false);
     if (err) {
-      // The DB trigger enforces the 4-message limit and raises
+      // The DB trigger enforces the 15-message limit and raises
       // ERRCODE 'check_violation' (23514). Show a friendly banner.
       if (err.code === "23514" || /Limit/i.test(err.message)) {
-        setError("Limit správ (4) pre tento chat bol dosiahnutý.");
+        setError("Limit správ (15) pre tento chat bol dosiahnutý.");
       } else {
         setError(err.message);
       }
