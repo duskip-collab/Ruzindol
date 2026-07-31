@@ -58,14 +58,18 @@ function ScreenFallback() {
 }
 
 function Index() {
-  const navigate = useNavigate({ from: "/_authenticated/" });
+  const navigate = useNavigate({ from: "/" });
   const search = Route.useSearch();
-  const activeTab = useMemo<Tab>(() => {
+
+  const initialTab = useMemo<Tab>(() => {
     const value = search.tab;
     if (!value) return "nastenka";
     return TAB_ORDER.includes(value as Tab) ? (value as Tab) : "nastenka";
-  }, [search.tab]);
+  }, []);
+
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [direction, setDirection] = useState<1 | -1>(1);
+
   const { profile, error: userLoadError } = useCurrentUser();
   const {
     hasBellDot,
@@ -80,11 +84,26 @@ function Index() {
     const from = TAB_ORDER.indexOf(activeTab);
     const to = TAB_ORDER.indexOf(next);
     setDirection(to >= from ? 1 : -1);
-    navigate({
-      search: (prev: Search) => ({ ...prev, tab: next }),
-      replace: false,
-    });
+
+    setActiveTab(next);
+
+    try {
+      navigate({
+        search: (prev: Search) => ({ ...prev, tab: next }),
+        replace: true,
+      });
+    } catch {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", next);
+      window.history.replaceState({}, "", url.toString());
+    }
   }
+
+  useEffect(() => {
+    if (search.tab && TAB_ORDER.includes(search.tab as Tab)) {
+      setActiveTab(search.tab as Tab);
+    }
+  }, [search.tab]);
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     const { offset, velocity } = info;
