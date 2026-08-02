@@ -9,12 +9,10 @@ const router = getRouter();
 
 // Registrácia Service Workera pre PWA a Push notifikácie na pozadí
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((reg) => console.log("Service Worker úspešne zaregistrovaný:", reg))
-      .catch((err) => console.error("Chyba registrácie Service Workera:", err));
-  });
+  navigator.serviceWorker
+    .register("/sw.js", { scope: "/" })
+    .then((reg) => console.log("Service Worker úspešne zaregistrovaný:", reg))
+    .catch((err) => console.error("Chyba registrácie Service Workera:", err));
 }
 
 createRoot(document.getElementById("root")!).render(

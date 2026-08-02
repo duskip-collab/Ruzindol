@@ -130,6 +130,7 @@ export function NastenkaScreen() {
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
 
   const canCreateOfficialNotice = profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const canWrite = profile?.is_active_neighbor ?? false;
 
   const loadPosts = useCallback(async () => {
     // Načítame príspevky bez toho, aby sme riskovali vyradenie kvôli chýbajúcemu profilu
@@ -435,6 +436,15 @@ export function NastenkaScreen() {
         </div>
       )}
 
+      {profile && !canWrite && (
+        <div className="px-4 pt-3 md:px-6">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Režim čítania: na pridanie príspevkov, odpovedí, lajkov a správ potrebuješ platný
+            pozývací kód.
+          </div>
+        </div>
+      )}
+
       {/* Hlásnik */}
       <section className="border-b border-neutral-200/70 pb-3 dark:border-white/10">
         <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
@@ -467,6 +477,7 @@ export function NastenkaScreen() {
                   void reportPost(o.id);
                 }}
                 reported={o.isReported || !!reportedByPost[o.id]}
+                locked={!canWrite}
               />
             ))}
           </div>
@@ -501,6 +512,7 @@ export function NastenkaScreen() {
                 key={p.id}
                 post={p}
                 liked={!!likesByPost[p.id]}
+                locked={!canWrite}
                 onOpen={() => setLightboxPost(p)}
                 onLike={() => {
                   void toggleLike(p.id);
@@ -549,9 +561,10 @@ export function NastenkaScreen() {
       <PostLightbox
         post={lightboxViewPost}
         liked={lightboxPost ? !!likesByPost[lightboxPost.id] : false}
-        canManage={!!lightboxPost && lightboxPost.userId === userId}
+        isReadonly={!canWrite}
+        canManage={!!lightboxPost && lightboxPost.userId === userId && canWrite}
         onEdit={
-          lightboxPost
+          lightboxPost && canWrite
             ? () => {
                 setEditingPost(lightboxPost);
                 setLightboxPost(null);
@@ -559,24 +572,24 @@ export function NastenkaScreen() {
             : undefined
         }
         onDelete={
-          lightboxPost
+          lightboxPost && canWrite
             ? () => {
                 void deletePost(lightboxPost.id);
               }
             : undefined
         }
         replies={lightboxPost ? (repliesByPost[lightboxPost.id] ?? []) : []}
-        canReply={!!lightboxPost && canReplyToPost(lightboxPost)}
+        canReply={!!lightboxPost && canWrite && canReplyToPost(lightboxPost)}
         replyDraft={lightboxPost ? (replyDraftByPost[lightboxPost.id] ?? "") : ""}
         onReplyDraftChange={
-          lightboxPost
+          lightboxPost && canWrite
             ? (value) => {
                 setReplyDraftByPost((prev) => ({ ...prev, [lightboxPost.id]: value }));
               }
             : undefined
         }
         onReplySubmit={
-          lightboxPost
+          lightboxPost && canWrite
             ? () => {
                 void addReply(lightboxPost.id);
               }
@@ -618,11 +631,13 @@ function OfficialCard({
   onOpen,
   onReport,
   reported,
+  locked,
 }: {
   post: Post;
   onOpen: () => void;
   onReport: () => void;
   reported: boolean;
+  locked: boolean;
 }) {
   return (
     <article
@@ -644,8 +659,9 @@ function OfficialCard({
             e.stopPropagation();
             onReport();
           }}
-          disabled={reported}
+          disabled={reported || locked}
           className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-neutral-500 hover:bg-white/70 disabled:opacity-40"
+          title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Flag className="h-3 w-3" /> Nahlásiť
         </button>
@@ -659,6 +675,7 @@ function NeighborCard({
   liked,
   likesCount,
   reported,
+  locked,
   onOpen,
   onLike,
   onReport,
@@ -668,6 +685,7 @@ function NeighborCard({
   liked: boolean;
   likesCount: number;
   reported: boolean;
+  locked: boolean;
   onOpen: () => void;
   onLike: () => void;
   onReport: () => void;
@@ -720,9 +738,11 @@ function NeighborCard({
       <div className="mt-2 flex items-center gap-3 border-t border-neutral-100 pt-2 text-[11px] dark:border-white/10">
         <button
           onClick={stop(onLike)}
+          disabled={locked}
           className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition ${
             liked ? "text-rose-600" : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white/10"
-          }`}
+          } ${locked ? "cursor-not-allowed opacity-40 hover:bg-transparent" : ""}`}
+          title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
           <span>{likesCount}</span>
@@ -730,8 +750,9 @@ function NeighborCard({
         <span className="text-neutral-500">💬 {replies.length}</span>
         <button
           onClick={stop(onReport)}
-          disabled={reported}
+          disabled={reported || locked}
           className="ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:hover:bg-white/10"
+          title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Flag className="h-3.5 w-3.5" />
           {reported ? "Nahlásené" : "Nahlásiť"}

@@ -1,25 +1,41 @@
+// Aktivujeme nový SW okamžite po nasadení, aby push handler neostal v waiting stave.
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 // Počúvanie na prichádzajúce push notifikácie
 self.addEventListener("push", (event) => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch {
-      data = { title: "Moji Susedia", body: event.data.text() };
-    }
-  }
+  event.waitUntil(
+    (async () => {
+      let data = {};
 
-  const title = data.title || "Moji Susedia";
-  const options = {
-    body: data.body || "Máte novú správu alebo aktualizáciu.",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    data: {
-      url: data.url || "/",
-    },
-  };
+      if (event.data) {
+        try {
+          data = event.data.json();
+        } catch {
+          data = { title: "Moji Susedia", body: event.data.text() };
+        }
+      }
 
-  event.waitUntil(self.registration.showNotification(title, options));
+      const title = data.title || "Moji Susedia";
+      const options = {
+        body: data.body || "Máte novú správu alebo aktualizáciu.",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: data.tag || "komunita-push",
+        renotify: true,
+        data: {
+          url: data.url || "/",
+        },
+      };
+
+      await self.registration.showNotification(title, options);
+    })(),
+  );
 });
 
 // Otvorenie aplikácie po kliknutí na notifikáciu

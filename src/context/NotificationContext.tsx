@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { subscribeToPush } from "@/lib/push";
 
 const MUTE_KEY = "komunita.notifications.muted.v1";
 const CATS_KEY = "komunita.notifications.categories.v1";
@@ -251,6 +252,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (timerRef.current) clearTimeout(timerRef.current);
       supabase.removeChannel(channel);
     };
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+
+    subscribeToPush({ requestPermission: false }).catch((error) => {
+      console.error("Chyba pri synchronizácii push subskripcie:", error);
+    });
   }, [currentUserId]);
 
   const hasBellDot = hasOfficialUnread || hasMessageUnread;

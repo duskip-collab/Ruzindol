@@ -9,7 +9,19 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-export async function subscribeToPush() {
+async function getPushServiceWorkerRegistration() {
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  if (existing) return existing;
+  return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+}
+
+type SubscribeToPushOptions = {
+  requestPermission?: boolean;
+};
+
+export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
+  const { requestPermission = true } = options;
+
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
     return;
@@ -20,13 +32,18 @@ export async function subscribeToPush() {
     return;
   }
 
-  const permission = await Notification.requestPermission();
+  const permission = requestPermission
+    ? await Notification.requestPermission()
+    : Notification.permission;
+
   if (permission !== "granted") {
     console.warn("Používateľ nepovolil notifikácie.");
     return;
   }
 
-  const registration = await navigator.serviceWorker.ready;
+  const registration = await getPushServiceWorkerRegistration();
+  await navigator.serviceWorker.ready;
+
   let subscription = await registration.pushManager.getSubscription();
 
   if (!subscription) {
@@ -42,12 +59,18 @@ export async function subscribeToPush() {
     return;
   }
 
-  const { error } = await supabase.from("user_push_subscriptions").upsert(
+  const serializedSubscription = subscription.toJSON();
+  if (!serializedSubscription.endpoint) {
+    console.error("Neplatná push subskripcia: chýba endpoint.");
+    return;
+  }
+
+  const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
     {
       user_id: session.user.id,
-      subscription: subscription.toJSON(),
+      subscription: serializedSubscription,
     },
-    { onConflict: "user_id, subscription" }
+    { onConflict: "user_id" }
   );
 
   if (error) {

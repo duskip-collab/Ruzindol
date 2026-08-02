@@ -14,6 +14,7 @@ type Props = {
   currentUserId: string;
   listingTitle: string;
   counterpartyName: string;
+  canSendMessages?: boolean;
   onClose: () => void;
 };
 
@@ -24,6 +25,7 @@ export function SafeChat({
   currentUserId,
   listingTitle,
   counterpartyName,
+  canSendMessages = true,
   onClose,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,6 +36,7 @@ export function SafeChat({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isLocked = messages.length >= MAX_MESSAGES;
+  const isWriteLocked = !canSendMessages || isLocked;
   const remaining = Math.max(0, MAX_MESSAGES - messages.length);
 
   // Initial load + realtime subscription.
@@ -73,7 +76,7 @@ export function SafeChat({
   }, [messages.length]);
 
   async function trySend() {
-    if (isLocked || sending) return;
+    if (isWriteLocked || sending) return;
     const text = draft.trim();
     if (!text) return;
     setSending(true);
@@ -151,11 +154,17 @@ export function SafeChat({
           }}
           className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl"
         >
-          {!isLocked && !error && (
+          {!isWriteLocked && !error && (
             <p className="mb-2 text-center text-xs text-neutral-500">
               Ostáva {remaining} {remaining === 1 ? "správa" : remaining < 5 ? "správy" : "správ"}{" "}
               do limitu — dohodnite sa stručne.
             </p>
+          )}
+
+          {!canSendMessages && (
+            <div className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Režim čítania: na odoslanie správy potrebuješ platný pozývací kód.
+            </div>
           )}
 
           <div className="flex items-end gap-2">
@@ -168,14 +177,14 @@ export function SafeChat({
                   void trySend();
                 }
               }}
-              disabled={isLocked || sending}
+              disabled={isWriteLocked || sending}
               rows={1}
-              placeholder={isLocked ? "Chat je uzamknutý" : "Napíš správu…"}
+              placeholder={isWriteLocked ? "Režim čítania" : "Napíš správu…"}
               className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
             />
             <button
               type="submit"
-              disabled={isLocked || sending || draft.trim().length === 0}
+              disabled={isWriteLocked || sending || draft.trim().length === 0}
               aria-label="Odoslať"
               className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
             >
@@ -187,12 +196,12 @@ export function SafeChat({
             </button>
           </div>
 
-          {(isLocked || error) && (
+          {(isLocked || error || !canSendMessages) && (
             <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 shadow-sm ring-1 ring-amber-200/50 backdrop-blur-xl">
               <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <p className="text-xs leading-relaxed text-amber-900">
                 <span className="font-semibold">
-                  ⚠️ {error ?? "Limit správ pre tento inzerát bol dosiahnutý."}
+                  ⚠️ {error ?? (!canSendMessages ? "Režim čítania pre správy." : "Limit správ pre tento chat bol dosiahnutý.")}
                 </span>{" "}
                 Detaily (miesto, čas, telefón) si, prosím, dohodnite osobne.
               </p>

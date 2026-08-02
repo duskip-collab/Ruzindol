@@ -37,7 +37,7 @@ function timeAgo(iso: string) {
 }
 
 export function MojeSpravyScreen() {
-  const { userId, loading: authLoading } = useCurrentUser();
+  const { userId, profile, loading: authLoading } = useCurrentUser();
   const [convos, setConvos] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -297,6 +297,7 @@ export function MojeSpravyScreen() {
           currentUserId={userId}
           listingTitle={selected.itemTitle}
           counterpartyName={selected.counterpartyName}
+          canSendMessages={profile?.is_active_neighbor ?? false}
           onClose={() => {
             setSelectedId(null);
             void load();

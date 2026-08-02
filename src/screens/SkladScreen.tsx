@@ -345,6 +345,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
           currentUserId={userId}
           listingTitle={chat.item.title}
           counterpartyName={chat.item.profiles?.name ?? "Sused"}
+          canSendMessages={isActive}
           onClose={() => setChat(null)}
         />
       )}

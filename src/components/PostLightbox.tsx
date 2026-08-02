@@ -25,6 +25,7 @@ export function PostLightbox({
   onLike,
   onReport,
   canManage,
+  isReadonly,
   onEdit,
   onDelete,
   replies,
@@ -40,6 +41,7 @@ export function PostLightbox({
   onLike?: () => void;
   onReport?: () => void;
   canManage?: boolean;
+  isReadonly?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   replies?: PostReply[];
@@ -51,6 +53,7 @@ export function PostLightbox({
   onClose: () => void;
 }) {
   const list = replies ?? [];
+  const locked = !!isReadonly;
 
   return (
     <AnimatePresence>
@@ -106,6 +109,12 @@ export function PostLightbox({
                 <img src={post.imageUrl} alt="" className="mt-4 w-full rounded-2xl object-cover" />
               )}
 
+              {locked && (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Režim čítania: aktivuj pozývací kód, ak chceš odpovedať alebo pridávať reakcie.
+                </div>
+              )}
+
               {(list.length > 0 || canReply) && (
                 <div className="mt-4 border-t border-neutral-200 pt-3 dark:border-white/10">
                   <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -113,7 +122,9 @@ export function PostLightbox({
                   </p>
 
                   {list.length === 0 && !canReply && (
-                    <p className="mt-2 text-xs text-neutral-500">Zatiaľ bez odpovedí.</p>
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Zatiaľ bez odpovedí. Po aktivácii pozývacieho kódu tu môžeš reagovať.
+                    </p>
                   )}
 
                   {list.length > 0 && (
@@ -173,11 +184,12 @@ export function PostLightbox({
                 {onLike && (
                   <button
                     onClick={onLike}
+                    disabled={locked}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       liked
                         ? "bg-rose-100 text-rose-700"
                         : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-white/10 dark:text-neutral-200"
-                    }`}
+                    } ${locked ? "cursor-not-allowed opacity-40" : ""}`}
                   >
                     <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
                     {post.likes?.length ?? 0}
@@ -202,7 +214,7 @@ export function PostLightbox({
                 {onReport && (
                   <button
                     onClick={onReport}
-                    disabled={post.isReported}
+                    disabled={post.isReported || locked}
                     className="ml-auto flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 dark:bg-white/10 dark:text-neutral-200"
                   >
                     <Flag className="h-3.5 w-3.5" />
