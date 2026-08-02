@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ExternalLink,
+  Megaphone,
   Loader2,
   Pin,
   Plus,
@@ -14,6 +15,7 @@ import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SharedCalendar } from "@/components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
+import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
 type Source = "rss" | "internal";
@@ -71,8 +73,10 @@ export function AktualityScreen() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showRozhlas, setShowRozhlas] = useState(false);
 
   const isAdmin = profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const isUradnik = profile?.role === "Uradnik";
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -155,6 +159,28 @@ export function AktualityScreen() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        {isUradnik && (
+          <div className="mb-4 rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-4 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
+            <button
+              type="button"
+              onClick={() => setShowRozhlas(true)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-orange-200/70 bg-white/80 px-4 py-3 text-left shadow-sm transition hover:border-orange-300 hover:bg-white dark:border-orange-500/20 dark:bg-white/5"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
+                <Megaphone className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  Digitálny rozhlas
+                </span>
+                <span className="block text-xs text-neutral-500 dark:text-neutral-400">
+                  Otvor hlásenie pre obecné oznamy a urgentné správy.
+                </span>
+              </span>
+            </button>
+          </div>
+        )}
+
         <div className="mb-4">
           <AktualityGroupsPanel />
         </div>
@@ -202,6 +228,30 @@ export function AktualityScreen() {
             await load();
           }}
         />
+      )}
+
+      {showRozhlas && isUradnik && userId && (
+        <div className="absolute inset-0 z-50 flex items-end bg-black/35 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+          <div className="relative h-full w-full bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:bg-neutral-950 dark:md:border-white/15">
+            <button
+              type="button"
+              onClick={() => setShowRozhlas(false)}
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+              aria-label="Zavrieť digitálny rozhlas"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="max-h-[92vh] overflow-y-auto p-4 md:p-5">
+              <DigitalnyRozhlas
+                userId={userId}
+                onPosted={() => {
+                  setSyncing(true);
+                  void load().finally(() => setSyncing(false));
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

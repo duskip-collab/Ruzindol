@@ -573,12 +573,18 @@ export function RolePanels({ role }: { role: ProfileRole }) {
         />
       )}
       {role === "Uradnik" && (
-        <DigitalnyRozhlas
-          userId={userId}
-          onPosted={() => {
-            void loadStats();
-          }}
-        />
+        <section className="rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
+          <PanelHeader
+            icon={<Megaphone className="h-4 w-4" />}
+            title="Digitálny Rozhlas"
+            subtitle="Presunuté do záložky Aktuality"
+            tone="orange"
+          />
+          <p className="mt-3 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+            Hlásenie teraz otvoríš priamo v Aktualitách cez ikonu megafónu v sekcii Aktuality a
+            oznamy.
+          </p>
+        </section>
       )}
       {role === "Farar" && (
         <FarskyUrad
