@@ -24,7 +24,6 @@ import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
-import { useAppMode } from "@/context/AppModeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
 import { Switch } from "@/components/ui/switch";
@@ -52,6 +51,14 @@ type Item = {
   title: string;
   price: number;
   created_at: string;
+};
+
+type InviteCodeRow = {
+  id: string;
+  code: string;
+  created_at: string;
+  used_by: string | null;
+  used_at: string | null;
 };
 
 const RolePanels = lazy(async () => {
@@ -333,11 +340,16 @@ export function ProfilScreen() {
             </AccordionSection>
           )}
 
-          {isAdmin && (
-            <AccordionSection value="invites" title="Pozvánky pre susedov (admin)">
-              <InviteSection />
-            </AccordionSection>
-          )}
+          <AccordionSection value="invite-neighbor" title="Pozvať suseda">
+            <NeighborInviteSection
+              userId={profile.id}
+              canUse={
+                profile.is_active_neighbor ||
+                isAdmin ||
+                ["Starosta", "Uradnik", "Farar", "VIP_Firma"].includes(profile.role)
+              }
+            />
+          </AccordionSection>
 
           <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
             {itemsLoading ? (
@@ -394,25 +406,50 @@ export function ProfilScreen() {
                             {busy ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (
-                              <RefreshCw className="h-3 w-3" />
-                            )}
-                            Zaktivovať
-                          </button>
-                        )}
-                        <button
-                          onClick={() => void deleteItem(item.id)}
-                          disabled={busy}
-                          className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-transparent"
-                        >
+                              function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boolean }) {
+                                const [codes, setCodes] = useState<InviteCodeRow[]>([]);
+                                const [loading, setLoading] = useState(true);
+                                const [busy, setBusy] = useState(false);
                           {busy ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <Trash2 className="h-3 w-3" />
+                                async function loadOwnCodes() {
+                                  setLoading(true);
+                                  setErr(null);
+                                  const { data, error } = await supabase
+                                    .from("invite_codes")
+                                    .select("id, code, created_at, used_by, used_at")
+                                    .eq("created_by", userId)
+                                    .is("used_by", null)
+                                    .order("created_at", { ascending: true })
+                                    .limit(3);
+                                  if (error) {
+                                    setErr(error.message);
+                                    setLoading(false);
+                                    return;
+                                  }
+                                  setCodes((data as InviteCodeRow[] | null) ?? []);
+                                  setLoading(false);
+                                }
+
+                                useEffect(() => {
+                                  void loadOwnCodes();
+                                  // eslint-disable-next-line react-hooks/exhaustive-deps
+                                }, [userId]);
                           )}
-                          Vymazať
+                                async function ensureThreeCodes() {
+                                  if (!canUse) return;
+                                  setBusy(true);
                         </button>
-                      </div>
-                    </li>
+                                  const { data, error } = await supabase.rpc("get_or_create_neighbor_invite_codes", {
+                                    _count: 3,
+                                  });
+                                  setBusy(false);
+                                  if (error) {
+                                    setErr(error.message);
+                                    return;
+                                  }
+                                  setCodes((data as InviteCodeRow[] | null) ?? []);
                   );
                 })}
               </ul>
@@ -422,38 +459,84 @@ export function ProfilScreen() {
           <AccordionSection value="account" title="Účet & odhlásenie">
             <AccountActions userId={profile.id} />
           </AccordionSection>
-        </Accordion>
-      </div>
+                                function inviteMessage(code: string) {
+                                  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+                                  return `Ahoj, pozývam ťa do susedskej aplikácie. Použi pozývací kód: ${code}. Odkaz: ${appUrl}`;
+                                }
+
+                                async function shareNative(code: string) {
+                                  const msg = inviteMessage(code);
+                                  if (!navigator.share) {
+                                    copy(msg);
+                                    return;
+                                  }
+                                  try {
+                                    await navigator.share({
+                                      title: "Pozvať suseda",
+                                      text: msg,
+                                    });
+                                  } catch {
+                                    // User may cancel the native share sheet.
+                                  }
+                                }
+
+                                async function shareAll() {
+                                  const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
+                                  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+                                  const text = `Pozývam ťa do susedskej aplikácie. Vyber si kód:\n${all}\nOdkaz: ${appUrl}`;
+                                  if (navigator.share) {
+                                    try {
+                                      await navigator.share({ title: "Pozvať suseda", text });
+                                      return;
+                                    } catch {
+                                      // User may cancel the native share sheet.
+                                    }
+                                  }
+                                  await navigator.clipboard?.writeText(text);
+                                  setCopied("__all__");
+                                  setTimeout(() => setCopied(null), 1500);
+                                }
     </div>
   );
 }
 
 function SectionLoader() {
-  return (
+                                        <h3 className="text-sm font-semibold text-foreground">Pozvať suseda</h3>
     <div className="flex justify-center py-6 text-neutral-400">
-      <Loader2 className="h-4 w-4 animate-spin" />
-    </div>
-  );
+                                          Vygeneruj alebo načítaj 3 aktívne kódy a pošli ich susedom.
 }
 
-function AccordionSection({
-  value,
-  title,
+                                      <button
+                                        onClick={() => void loadOwnCodes()}
+                                        className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
+                                      >
+                                        Obnoviť
+                                      </button>
   itemClassName,
   contentClassName,
-  children,
+                                    {!canUse ? (
 }: {
-  value: string;
+                                        Pozývacie kódy sa odomknú po aktivácii susedského účtu.
   title: string;
   itemClassName?: string;
   contentClassName?: string;
-  children: React.ReactNode;
+                                        <div className="mt-4 flex flex-wrap gap-2">
 }) {
-  return (
-    <AccordionItem
+                                            onClick={() => void ensureThreeCodes()}
+                                            disabled={busy}
+                                            className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
       value={value}
-      className={`overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
+                                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                            Získať 3 kódy
     >
+                                          {codes.length > 0 && (
+                                            <button
+                                              onClick={() => void shareAll()}
+                                              className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
+                                            >
+                                              <Share2 className="h-3.5 w-3.5" /> Zdieľať všetky
+                                            </button>
+                                          )}
       <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
       <AccordionContent
         className={`border-t border-border px-5 pb-5 pt-4 ${contentClassName ?? ""}`}
@@ -462,15 +545,25 @@ function AccordionSection({
       </AccordionContent>
     </AccordionItem>
   );
-}
+                                        {loading ? (
+                                          <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Načítavam pozývacie kódy...
+                                          </div>
+                                        ) : codes.length === 0 ? (
 
-// ---------- Profile Edit ----------
+                                            Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať 3 kódy".
 
 function ProfileEditForm({
   initialName,
-  initialStreet,
+                                            {codes.map((row) => {
+                                              const code = row.code;
+                                              const whatsappText = encodeURIComponent(inviteMessage(code));
+                                              const shareUrl =
+                                                typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+                                              const fbQuote = encodeURIComponent(inviteMessage(code));
+                                              return (
   userId,
-  onSaved,
+                                                key={row.id}
 }: {
   initialName: string;
   initialStreet: string;
@@ -482,8 +575,14 @@ function ProfileEditForm({
   const [saving, setSaving] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+                                                  <button
+                                                    onClick={() => void shareNative(code)}
+                                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
+                                                  >
+                                                    <Share2 className="h-3 w-3" /> Zdieľať
+                                                  </button>
 
-  const dirty = name !== initialName || street !== initialStreet;
+                                                    href={`https://wa.me/?text=${whatsappText}`}
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -491,23 +590,24 @@ function ProfileEditForm({
     setSaving(true);
     setErr(null);
     setOk(false);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name: name.trim(), street: street.trim() })
-      .eq("id", userId);
+                                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                                                      shareUrl,
+                                                    )}&quote=${fbQuote}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
     setSaving(false);
-    if (error) {
+                                                    Facebook
       setErr(error.message);
       return;
     }
-    setOk(true);
+                                              );
+                                            })}
     setTimeout(() => setOk(false), 1500);
     await onSaved();
-  }
-
-  return (
-    <form
-      onSubmit={save}
+                                        {copied === "__all__" && (
+                                          <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
+                                        )}
       className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl"
     >
       <h3 className="text-sm font-semibold text-foreground">Úprava profilu</h3>
@@ -661,25 +761,50 @@ function NotificationSettings() {
 
 // ---------- Invite section ----------
 
-function InviteSection() {
-  const {
-    isVerified,
-    role,
-    maxInvites,
-    invitesRemaining,
-    invitesGenerated,
-    generatedCodes,
-    generateInviteCode,
-  } = useAppMode();
+function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boolean }) {
+  const [codes, setCodes] = useState<InviteCodeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const remainingLabel = maxInvites === Infinity ? "∞" : `${invitesRemaining} / ${maxInvites}`;
-
-  function onGenerate() {
+  async function loadOwnCodes() {
+    setLoading(true);
     setErr(null);
-    const res = generateInviteCode();
-    if (!res.ok) setErr(res.error);
+    const { data, error } = await supabase
+      .from("invite_codes")
+      .select("id, code, created_at, used_by, used_at")
+      .eq("created_by", userId)
+      .is("used_by", null)
+      .order("created_at", { ascending: true })
+      .limit(3);
+    if (error) {
+      setErr(error.message);
+      setLoading(false);
+      return;
+    }
+    setCodes((data as InviteCodeRow[] | null) ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    void loadOwnCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  async function ensureThreeCodes() {
+    if (!canUse) return;
+    setBusy(true);
+    setErr(null);
+    const { data, error } = await supabase.rpc("get_or_create_neighbor_invite_codes", {
+      _count: 3,
+    });
+    setBusy(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    setCodes((data as InviteCodeRow[] | null) ?? []);
   }
 
   function copy(code: string) {
@@ -689,47 +814,112 @@ function InviteSection() {
     });
   }
 
-  const shareText = (code: string) =>
-    encodeURIComponent(`Pozývam ťa do našej susedskej komunity. Použi kód: ${code}`);
+  function inviteMessage(code: string) {
+    const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+    return `Ahoj, pozývam ťa do susedskej aplikácie. Použi pozývací kód: ${code}. Odkaz: ${appUrl}`;
+  }
+
+  async function shareNative(code: string) {
+    const msg = inviteMessage(code);
+    if (!navigator.share) {
+      copy(msg);
+      return;
+    }
+    try {
+      await navigator.share({
+        title: "Pozvať suseda",
+        text: msg,
+      });
+    } catch {
+      // User may cancel the native share sheet.
+    }
+  }
+
+  async function shareAll() {
+    const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
+    const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+    const text = `Pozývam ťa do susedskej aplikácie. Vyber si kód:\n${all}\nOdkaz: ${appUrl}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Pozvať suseda", text });
+        return;
+      } catch {
+        // User may cancel the native share sheet.
+      }
+    }
+    await navigator.clipboard?.writeText(text);
+    setCopied("__all__");
+    setTimeout(() => setCopied(null), 1500);
+  }
 
   return (
     <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Pozvi suseda</h3>
+          <h3 className="text-sm font-semibold text-foreground">Pozvať suseda</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {role === "Sused"
-              ? `Ako Sused môžeš vygenerovať max ${maxInvites} pozvánok.`
-              : "Ako Starosta/Admin máš neobmedzené pozvánky."}
+            Vygeneruj alebo načítaj 3 aktívne kódy a pošli ich susedom.
           </p>
         </div>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          {remainingLabel}
-        </span>
+        <button
+          onClick={() => void loadOwnCodes()}
+          className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
+        >
+          Obnoviť
+        </button>
       </div>
 
-      {!isVerified ? (
+      {!canUse ? (
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <Lock className="h-3.5 w-3.5" />
-          Najprv aktivuj svoj účet pozývacím kódom.
+          Pozývacie kódy sa odomknú po aktivácii susedského účtu.
         </div>
       ) : (
         <>
-          <button
-            onClick={onGenerate}
-            disabled={invitesRemaining === 0}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-40"
-          >
-            <Plus className="h-4 w-4" />
-            Vygenerovať kód
-          </button>
-          {err && <p className="mt-2 text-xs text-rose-600">{err}</p>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => void ensureThreeCodes()}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Získať 3 kódy
+            </button>
+            {codes.length > 0 && (
+              <button
+                onClick={() => void shareAll()}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Zdieľať všetky
+              </button>
+            )}
+          </div>
 
-          {generatedCodes.length > 0 && (
+          {err && (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {err}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Načítavam pozývacie kódy...
+            </div>
+          ) : codes.length === 0 ? (
+            <p className="mt-3 text-xs text-neutral-500">
+              Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať 3 kódy".
+            </p>
+          ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {generatedCodes.map((code) => (
+              {codes.map((row) => {
+                const code = row.code;
+                const whatsappText = encodeURIComponent(inviteMessage(code));
+                const shareUrl =
+                  typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+                const fbQuote = encodeURIComponent(inviteMessage(code));
+                return (
                 <li
-                  key={code}
+                  key={row.id}
                   className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
                 >
                   <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
@@ -746,8 +936,14 @@ function InviteSection() {
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </button>
+                    <button
+                      onClick={() => void shareNative(code)}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
+                    >
+                      <Share2 className="h-3 w-3" /> Zdieľať
+                    </button>
                   <a
-                    href={`https://wa.me/?text=${shareText(code)}`}
+                      href={`https://wa.me/?text=${whatsappText}`}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
@@ -755,21 +951,22 @@ function InviteSection() {
                     WhatsApp
                   </a>
                   <a
-                    href={`fb-messenger://share?link=${encodeURIComponent(
-                      "https://komunita.sk",
-                    )}&app_id=0`}
-                    className="rounded-full bg-blue-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                        shareUrl,
+                      )}&quote=${fbQuote}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
                   >
-                    <Share2 className="inline h-3 w-3" />
+                      Facebook
                   </a>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
-          {invitesGenerated > 0 && (
-            <p className="mt-2 text-[11px] text-neutral-400">
-              Vygenerovaných celkom: {invitesGenerated}
-            </p>
+          {copied === "__all__" && (
+            <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
           )}
         </>
       )}

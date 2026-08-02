@@ -666,6 +666,16 @@ export type Database = {
       cleanup_used_invite_codes: { Args: never; Returns: number };
       current_user_municipality: { Args: never; Returns: string };
       delete_neighbor: { Args: { _target: string }; Returns: boolean };
+      get_or_create_neighbor_invite_codes: {
+        Args: { _count?: number };
+        Returns: {
+          id: string;
+          code: string;
+          created_at: string;
+          used_by: string | null;
+          used_at: string | null;
+        }[];
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];
