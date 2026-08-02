@@ -694,32 +694,32 @@ function MunicipalityManager() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Názov obce"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
         />
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder="slug (napr. ruzindol)"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
         />
         <input
           value={region}
           onChange={(e) => setRegion(e.target.value)}
           placeholder="Kraj / okres"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
         />
         <input
           value={mayorName}
           onChange={(e) => setMayorName(e.target.value)}
           placeholder="Meno starostu"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
         />
         <input
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="URL loga / erbu (voliteľné)"
-          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
         />
         <button
           type="submit"

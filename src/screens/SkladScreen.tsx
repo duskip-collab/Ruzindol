@@ -444,7 +444,7 @@ function ListingDetailModal({
             </div>
           )}
           {isMine && (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300">
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
               Toto je tvoj inzerát.
             </div>
           )}
@@ -640,7 +640,7 @@ function AddListingModal({
               onChange={(e) => setTitle(e.target.value)}
               required
               placeholder={isPoz ? "Napr. Vŕtačka Makita" : "Napr. Detský bicykel"}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
             />
           </div>
 
@@ -653,7 +653,7 @@ function AddListingModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Krátky popis…"
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
             />
           </div>
 
@@ -671,7 +671,7 @@ function AddListingModal({
               onChange={(e) => setPrice(e.target.value)}
               disabled={isDarovanie}
               placeholder={pricePlaceholder}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 dark:disabled:bg-white/5 dark:disabled:text-neutral-500"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 dark:disabled:bg-neutral-200 dark:disabled:text-neutral-700"
             />
             {isDarovanie && (
               <p className="mt-1 text-xs text-rose-600">
@@ -694,7 +694,7 @@ function AddListingModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
               Zrušiť
             </button>
@@ -779,7 +779,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setContact(e.target.value)}
               required
               placeholder="Telefón alebo meno"
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
             />
           </div>
 
@@ -801,7 +801,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
               Zrušiť
             </button>

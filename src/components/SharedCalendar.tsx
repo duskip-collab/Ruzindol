@@ -355,7 +355,7 @@ function EventForm({
                   className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                     active
                       ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
                   }`}
                 >
                   {m.icon}
@@ -373,7 +373,7 @@ function EventForm({
             onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
           />
         </div>
 
@@ -384,7 +384,7 @@ function EventForm({
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
           />
         </div>
 
@@ -395,7 +395,7 @@ function EventForm({
             onChange={(e) => setLocation(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
           />
         </div>
 
@@ -406,7 +406,7 @@ function EventForm({
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
             required
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
           />
         </div>
 

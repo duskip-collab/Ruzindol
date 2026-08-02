@@ -83,7 +83,7 @@ export function Header({
         <button
           type="button"
           onClick={handleBellClick}
-          className="relative grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95"
+          className="relative grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
           aria-label="Notifikácie"
         >
           <Bell size={17} strokeWidth={2} />
@@ -100,7 +100,7 @@ export function Header({
         <button
           type="button"
           onClick={handleSignOut}
-          className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95"
+          className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
           aria-label="Odhlásiť sa"
         >
           <LogOut size={15} strokeWidth={2} />

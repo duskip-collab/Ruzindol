@@ -273,7 +273,7 @@ export function NeighborhoodPulse() {
         {zonesForTod.map((zone) => (
           <span
             key={zone.key}
-            className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+            className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900"
           >
             <span
               className="h-2 w-2 rounded-full"

@@ -425,7 +425,7 @@ function AdminForm({
                     className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                       active
                         ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
+                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
                     }`}
                   >
                     <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
@@ -448,7 +448,7 @@ function AdminForm({
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={200}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
             />
           </div>
 
@@ -459,7 +459,7 @@ function AdminForm({
               onChange={(e) => setContent(e.target.value)}
               required
               rows={6}
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
             />
           </div>
 
@@ -469,7 +469,7 @@ function AdminForm({
               type="datetime-local"
               value={publishedAt}
               onChange={(e) => setPublishedAt(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
             />
             <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400">
               Interné oznamy sa automaticky mažú po 4 dňoch.

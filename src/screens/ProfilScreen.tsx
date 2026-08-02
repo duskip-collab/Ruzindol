@@ -637,7 +637,7 @@ function NotificationSettings() {
                   : `Veľké písmo (${fontSizePx}px)`}
             </p>
           </div>
-          <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200">
+          <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
             {fontScale}
           </span>
         </div>

@@ -158,7 +158,7 @@ export function PostLightbox({
                         rows={2}
                         maxLength={400}
                         placeholder="Napíš odpoveď..."
-                        className="min-h-[56px] flex-1 resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        className="min-h-[56px] flex-1 resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
                       />
                       <button
                         type="button"
