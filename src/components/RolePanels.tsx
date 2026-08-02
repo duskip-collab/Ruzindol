@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
   Building2,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppMode } from "@/context/AppModeContext";
+import { uploadAnnouncementAudio } from "@/lib/upload-announcement-audio";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import type { PostPriority } from "@/types";
 
@@ -286,35 +287,162 @@ export function DigitalnyRozhlas({
   const [expiryH, setExpiryH] = useState(72);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const canRecord =
+    typeof window !== "undefined" &&
+    !!navigator.mediaDevices?.getUserMedia &&
+    typeof MediaRecorder !== "undefined";
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    };
+  }, [audioPreviewUrl]);
+
+  function clearAudio() {
+    setAudioFile(null);
+    setAudioPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    setRecordError(null);
+  }
+
+  function setAudioFromBlob(blob: Blob, name: string) {
+    clearAudio();
+    const file = new File([blob], name, { type: blob.type || "audio/webm" });
+    setAudioFile(file);
+    setAudioPreviewUrl(URL.createObjectURL(blob));
+  }
+
+  async function startRecording() {
+    if (!canRecord || recording) return;
+    setRecordError(null);
+    clearAudio();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+
+      const mimeType =
+        MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : MediaRecorder.isTypeSupported("audio/webm")
+            ? "audio/webm"
+            : "";
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        setRecordError("Nahrávanie zlyhalo.");
+        setRecording(false);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        if (blob.size > 0) {
+          setAudioFromBlob(blob, `rozhlas-${Date.now()}.webm`);
+        }
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        chunksRef.current = [];
+        setRecording(false);
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setRecordError("Mikrofón nie je dostupný alebo bol zamietnutý.");
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      setRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    if (recorderRef.current && recording) {
+      recorderRef.current.stop();
+    }
+  }
+
+  function handleFileUpload(file: File | null) {
+    if (!file) return;
+    const allowed = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/webm"];
+    if (!allowed.includes(file.type)) {
+      setRecordError("Podporované sú len súbory MP3 alebo WAV.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setRecordError("Zvukový súbor je príliš veľký. Zvoľ menší než 20 MB.");
+      return;
+    }
+    setRecordError(null);
+    clearAudio();
+    setAudioFile(file);
+    setAudioPreviewUrl(URL.createObjectURL(file));
+  }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !content.trim() || !userId) return;
+    if (!title.trim() || !content.trim() || !userId || recording) return;
 
     setBusy(true);
-    const safeExpiryH = Math.min(expiryH, 120);
-    const expiresAtIso = new Date(Date.now() + safeExpiryH * 3600_000).toISOString();
-    const expiry = new Date(expiresAtIso).toLocaleString("sk-SK");
-    const finalContent = `${content.trim()}\n\nPlatnosť do: ${expiry}`;
-    const category = priority === "urgent" ? "Výstraha" : "Hlasnik";
+    try {
+      const safeExpiryH = Math.min(expiryH, 120);
+      const expiresAtIso = new Date(Date.now() + safeExpiryH * 3600_000).toISOString();
+      const announcementPriority =
+        priority === "urgent" ? "vystraha" : priority === "high" ? "urgentne" : "oznam";
 
-    const { error } = await supabase.from("posts").insert({
-      user_id: userId,
-      type: "hlasnik",
-      category,
-      title: title.trim(),
-      content: finalContent,
-      expires_at: expiresAtIso,
-    });
+      let audioAttachment: { audioPath: string; audioUrl: string } | null = null;
+      if (audioFile) {
+        audioAttachment = await uploadAnnouncementAudio(audioFile, userId);
+      }
 
-    setBusy(false);
-    if (error) return;
+      const { error } = await supabase.from("announcements").insert({
+        source: "internal",
+        author_id: userId,
+        title: title.trim(),
+        content: content.trim(),
+        priority: announcementPriority,
+        published_at: new Date().toISOString(),
+        expires_at: expiresAtIso,
+        audio_url: audioAttachment?.audioUrl ?? null,
+        audio_path: audioAttachment?.audioPath ?? null,
+      });
 
-    setTitle("");
-    setContent("");
-    setSent(true);
-    onPosted();
-    setTimeout(() => setSent(false), 1500);
+      if (error) {
+        setRecordError(error.message);
+        return;
+      }
+
+      setTitle("");
+      setContent("");
+      clearAudio();
+      setSent(true);
+      onPosted();
+      setTimeout(() => setSent(false), 1500);
+    } catch (error) {
+      setRecordError(error instanceof Error ? error.message : "Odoslanie zlyhalo.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -337,6 +465,84 @@ export function DigitalnyRozhlas({
             required
           />
         </label>
+
+        <div className="rounded-2xl border border-neutral-200/70 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (recording) stopRecording();
+                else void startRecording();
+              }}
+              disabled={!canRecord && !recording}
+              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                recording
+                  ? "bg-rose-600 text-white hover:bg-rose-700"
+                  : "bg-neutral-900 text-white hover:bg-neutral-800"
+              } disabled:opacity-50`}
+            >
+              {recording ? "Zastaviť nahrávanie" : "Nahrať hlasovú správu"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+            >
+              Nahrať súbor MP3 / WAV
+            </button>
+
+            {audioFile && (
+              <button
+                type="button"
+                onClick={clearAudio}
+                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-500 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300"
+              >
+                Odstrániť audio
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav"
+            className="hidden"
+            onChange={(e) => {
+              handleFileUpload(e.target.files?.[0] ?? null);
+              e.currentTarget.value = "";
+            }}
+          />
+
+          {audioPreviewUrl && audioFile && (
+            <div className="mt-3 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-3 dark:border-white/10 dark:bg-white/5">
+              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+                Nahraná zvuková správa
+              </p>
+              <p className="mt-0.5 text-[11px] text-neutral-500">{audioFile.name}</p>
+              <audio controls preload="none" className="mt-2 w-full">
+                <source src={audioPreviewUrl} type={audioFile.type || "audio/webm"} />
+              </audio>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAudio();
+                    if (canRecord) void startRecording();
+                  }}
+                  className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+                >
+                  Nahrať znova
+                </button>
+              </div>
+            </div>
+          )}
+
+          {recording && (
+            <p className="mt-2 text-[11px] font-medium text-rose-600">Nahrávam... hovorte do mikrofónu.</p>
+          )}
+          {recordError && <p className="mt-2 text-[11px] text-rose-600">{recordError}</p>}
+        </div>
 
         <div>
           <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
@@ -384,7 +590,7 @@ export function DigitalnyRozhlas({
 
         <button
           type="submit"
-          disabled={busy || !userId}
+          disabled={busy || !userId || recording}
           className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
         >
           {busy ? (

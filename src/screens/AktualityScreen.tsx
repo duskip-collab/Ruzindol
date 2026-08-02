@@ -25,6 +25,8 @@ type Announcement = {
   source: Source;
   title: string;
   content: string;
+  audio_url: string | null;
+  expires_at: string | null;
   link: string | null;
   priority: Priority;
   published_at: string;
@@ -67,6 +69,11 @@ function timeAgo(iso: string) {
   return `pred ${Math.floor(s / 86400)} dňami`;
 }
 
+function isExpired(item: Announcement) {
+  if (!item.expires_at) return false;
+  return new Date(item.expires_at).getTime() <= Date.now();
+}
+
 export function AktualityScreen() {
   const { profile, userId } = useCurrentUser();
   const [items, setItems] = useState<Announcement[]>([]);
@@ -84,7 +91,7 @@ export function AktualityScreen() {
       .select("*")
       .order("published_at", { ascending: false })
       .limit(100);
-    setItems((data as Announcement[]) ?? []);
+    setItems(((data as Announcement[]) ?? []).filter((item) => !isExpired(item)));
   }, []);
 
   useEffect(() => {
@@ -306,6 +313,14 @@ function AnnouncementCard({
         <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-neutral-700">
           {item.content}
         </p>
+      )}
+
+      {item.audio_url && (
+        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2">
+          <audio controls preload="none" className="w-full">
+            <source src={item.audio_url} />
+          </audio>
+        </div>
       )}
 
       {item.priority === "vystraha" && (

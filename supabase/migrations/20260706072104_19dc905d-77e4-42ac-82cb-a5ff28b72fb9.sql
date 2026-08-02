@@ -53,10 +53,23 @@ BEGIN
   IF v_uid IS NULL OR NOT public.can_moderate(v_uid) THEN
     RAISE EXCEPTION 'Forbidden' USING ERRCODE = '42501';
   END IF;
-  WITH del AS (
+  WITH expired AS (
+    SELECT id, audio_path
+    FROM public.announcements
+    WHERE (source = 'rss' AND published_at < now() - interval '3 days')
+       OR (
+         source = 'internal'
+         AND COALESCE(expires_at, published_at + interval '4 days') <= now()
+       )
+  ),
+  audio_del AS (
+    DELETE FROM storage.objects
+    WHERE bucket_id = 'announcements-audio'
+      AND name IN (SELECT audio_path FROM expired WHERE audio_path IS NOT NULL)
+  ),
+  del AS (
     DELETE FROM public.announcements
-     WHERE (source = 'rss' AND published_at < now() - interval '3 days')
-        OR (source = 'internal' AND published_at < now() - interval '4 days')
+     WHERE id IN (SELECT id FROM expired)
      RETURNING 1
   )
   SELECT count(*) INTO v_count FROM del;

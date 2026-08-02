@@ -5,9 +5,12 @@ CREATE TABLE public.announcements (
   external_id TEXT,
   title TEXT NOT NULL,
   content TEXT NOT NULL,
+  audio_url TEXT,
+  audio_path TEXT,
   link TEXT,
   priority TEXT NOT NULL DEFAULT 'oznam' CHECK (priority IN ('oznam','prioritne','urgentne','vystraha')),
   published_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ,
   author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (source, external_id)
@@ -20,6 +23,29 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.announcements TO authenticated;
 GRANT ALL ON public.announcements TO service_role;
 
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('announcements-audio', 'announcements-audio', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "announcements_audio_read"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'announcements-audio');
+
+CREATE POLICY "announcements_audio_insert"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'announcements-audio' AND owner = auth.uid());
+
+CREATE POLICY "announcements_audio_update"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'announcements-audio' AND owner = auth.uid());
+
+CREATE POLICY "announcements_audio_delete"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'announcements-audio' AND owner = auth.uid());
 
 -- Anyone authenticated can read
 CREATE POLICY "announcements_read_all" ON public.announcements

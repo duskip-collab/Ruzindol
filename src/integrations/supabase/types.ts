@@ -11,32 +11,47 @@ export type Database = {
       announcements: {
         Row: {
           author_id: string | null;
+          audio_path: string | null;
+          audio_url: string | null;
           content: string;
           created_at: string;
+          audio_path: string | null;
+          audio_url: string | null;
           external_id: string | null;
           id: string;
+          expires_at: string | null;
           link: string | null;
           priority: string;
           published_at: string;
           source: string;
           title: string;
         };
+          audio_path?: string | null;
+          audio_url?: string | null;
         Insert: {
           author_id?: string | null;
           content: string;
           created_at?: string;
+          audio_path?: string | null;
+          audio_url?: string | null;
+          expires_at?: string | null;
           external_id?: string | null;
           id?: string;
           link?: string | null;
           priority?: string;
           published_at?: string;
           source: string;
+          audio_path?: string | null;
+          audio_url?: string | null;
           title: string;
         };
         Update: {
           author_id?: string | null;
           content?: string;
           created_at?: string;
+          expires_at?: string | null;
+          audio_path?: string | null;
+          audio_url?: string | null;
           external_id?: string | null;
           id?: string;
           link?: string | null;
