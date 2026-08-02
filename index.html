@@ -6,7 +6,7 @@
     <title>Moji Susedia - Komunita</title>
 
     <!-- PWA a Manifest pre Android / Chrome -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#18181b" />
 
     <!-- PWA nastavenia pre iOS (Safari) -->
@@ -15,6 +15,26 @@
     <meta name="apple-mobile-web-app-title" content="Moji Susedia" />
     <!-- Ak máš ikony pomenované inak, zmeň href -->
     <link rel="apple-touch-icon" href="/icon-192.png" />
+      <script>
+        (function () {
+          var key = "komunita.ui.theme.v1";
+          var theme = "light";
+          try {
+            var saved = window.localStorage.getItem(key);
+            if (saved === "light" || saved === "dark") {
+              theme = saved;
+            } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+              theme = "dark";
+            }
+          } catch (e) {
+            if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+              theme = "dark";
+            }
+          }
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.style.colorScheme = theme;
+        })();
+      </script>
       <script>
         (function () {
           var key = "komunita.ui.fontScale.v1";

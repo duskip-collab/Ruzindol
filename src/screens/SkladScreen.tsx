@@ -653,7 +653,7 @@ function AddListingModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Krátky popis…"
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm outline-none backdrop-blur focus:border-neutral-400"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </div>
 
@@ -694,7 +694,7 @@ function AddListingModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
             >
               Zrušiť
             </button>
@@ -783,7 +783,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200">
+          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
             ⚡ Tento dopyt sa automaticky skryje po 24 hodinách.
           </div>
 
@@ -801,7 +801,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
             >
               Zrušiť
             </button>

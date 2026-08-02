@@ -57,10 +57,16 @@ serve(async (req) => {
       title: record.title || "Moji Susedia",
       body: record.body || "Máte novú správu v aplikácii.",
       url: record.ref_id ? `/chat/${record.ref_id}` : "/",
+      priority: "high",
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [300, 120, 300, 120, 500],
+      sound: "default",
+      tag: record.type ? `komunita-${record.type}` : "komunita-system",
     });
 
     const pushOptions = {
-      TTL: 86400,
+      TTL: 3600,
       headers: {
         "Urgency": "high",
         "Topic": record.type || "system",

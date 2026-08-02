@@ -110,7 +110,7 @@ export function PostLightbox({
               )}
 
               {locked && (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                   Režim čítania: aktivuj pozývací kód, ak chceš odpovedať alebo pridávať reakcie.
                 </div>
               )}
@@ -158,7 +158,7 @@ export function PostLightbox({
                         rows={2}
                         maxLength={400}
                         placeholder="Napíš odpoveď..."
-                        className="min-h-[56px] flex-1 resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5"
+                        className="min-h-[56px] flex-1 resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                       />
                       <button
                         type="button"
@@ -187,7 +187,7 @@ export function PostLightbox({
                     disabled={locked}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       liked
-                        ? "bg-rose-100 text-rose-700"
+                        ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
                         : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-white/10 dark:text-neutral-200"
                     } ${locked ? "cursor-not-allowed opacity-40" : ""}`}
                   >
@@ -206,7 +206,7 @@ export function PostLightbox({
                 {canManage && onDelete && (
                   <button
                     onClick={onDelete}
-                    className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200"
+                    className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-200 dark:hover:bg-rose-500/30"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Zmazať
                   </button>

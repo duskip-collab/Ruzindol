@@ -24,6 +24,7 @@ import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
+import { useTheme } from "@/context/ThemeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
 import { Switch } from "@/components/ui/switch";
@@ -59,6 +60,8 @@ type InviteCodeRow = {
   created_at: string;
   used_by: string | null;
   used_at: string | null;
+  shared_at?: string | null;
+  shared_via?: string | null;
 };
 
 const RolePanels = lazy(async () => {
@@ -190,7 +193,10 @@ export function ProfilScreen() {
 
   const isStarosta = profile.role === "Starosta";
   const canInviteNeighbors =
-    profile.role === "Sused" && profile.is_active_neighbor && Boolean(profile.invite_code);
+    isAdmin ||
+    profile.role === "Starosta" ||
+    (profile.role === "Sused" && profile.is_active_neighbor && Boolean(profile.invite_code));
+  const inviteLimit = isAdmin || profile.role === "Starosta" ? 50 : 3;
   const isWideAdminSection =
     openSection === "admin" || openSection === "moderation" || openSection === "aktuality-admin";
 
@@ -343,7 +349,7 @@ export function ProfilScreen() {
           )}
 
           <AccordionSection value="invite-neighbor" title="Pozvať suseda">
-            <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} />
+            <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} maxCodes={inviteLimit} />
           </AccordionSection>
 
           <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
@@ -565,8 +571,10 @@ function ProfileEditForm({
 // ---------- Notification settings ----------
 
 function NotificationSettings() {
+  const { theme, setTheme } = useTheme();
   const { muted, setMuted, categories, setCategory } = useNotifications();
   const { fontScale, setFontScale, fontSizePx } = useFontScale();
+  const darkMode = theme === "dark";
 
   const handleFontScaleChange = (value: number[]) => {
     const next = Math.min(3, Math.max(1, Math.round(value[0] ?? 1))) as 1 | 2 | 3;
@@ -575,6 +583,27 @@ function NotificationSettings() {
 
   return (
     <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-neutral-200/70 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
+          {darkMode ? (
+            <Moon className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
+          ) : (
+            <Sun className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Tmavý režim</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {darkMode ? "Aktívny tmavý vzhľad" : "Aktívny svetlý vzhľad"}
+          </p>
+        </div>
+        <Switch
+          checked={darkMode}
+          onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
+          aria-label="Prepnúť tmavý režim"
+        />
+      </div>
+
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
           {muted ? (
@@ -673,7 +702,15 @@ function NotificationSettings() {
 
 // ---------- Invite section ----------
 
-function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boolean }) {
+function NeighborInviteSection({
+  userId,
+  canUse,
+  maxCodes,
+}: {
+  userId: string;
+  canUse: boolean;
+  maxCodes: number;
+}) {
   const [codes, setCodes] = useState<InviteCodeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -685,11 +722,12 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     setErr(null);
     const { data, error } = await supabase
       .from("invite_codes")
-      .select("id, code, created_at, used_by, used_at")
+      .select("id, code, created_at, used_by, used_at, shared_at, shared_via")
       .eq("created_by", userId)
       .is("used_by", null)
+      .is("shared_at", null)
       .order("created_at", { ascending: true })
-      .limit(3);
+      .limit(maxCodes);
     if (error) {
       setErr(error.message);
       setLoading(false);
@@ -699,12 +737,12 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     setLoading(false);
   }
 
-  async function ensureThreeCodes() {
+  async function ensureCodes() {
     if (!canUse) return;
     setBusy(true);
     setErr(null);
     const { data, error } = await supabase.rpc("get_or_create_neighbor_invite_codes", {
-      _count: 3,
+      _count: maxCodes,
     });
     setBusy(false);
     if (error) {
@@ -714,14 +752,35 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     setCodes((data as InviteCodeRow[] | null) ?? []);
   }
 
+  async function markCodeAsShared(inviteId: string, via: string) {
+    const { data, error } = await supabase.rpc("mark_invite_code_shared", {
+      _invite_id: inviteId,
+      _via: via,
+    });
+    if (error) {
+      setErr(mapInviteError(error.message));
+      return false;
+    }
+    if (!data) return false;
+    setCodes((prev) => prev.filter((c) => c.id !== inviteId));
+    return true;
+  }
+
+  async function markAllCodesAsShared(via: string) {
+    const ids = codes.map((c) => c.id);
+    for (const id of ids) {
+      await markCodeAsShared(id, via);
+    }
+  }
+
   useEffect(() => {
     if (canUse) {
-      void ensureThreeCodes();
+      void ensureCodes();
     } else {
       void loadOwnCodes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, canUse]);
+  }, [userId, canUse, maxCodes]);
 
   function copy(code: string) {
     navigator.clipboard?.writeText(code).then(() => {
@@ -736,6 +795,8 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
   }
 
   async function shareNative(code: string) {
+    const row = codes.find((c) => c.code === code);
+    if (!row) return;
     const msg = inviteMessage(code);
     if (!navigator.share) {
       copy(msg);
@@ -746,6 +807,7 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
         title: "Pozvať suseda",
         text: msg,
       });
+      await markCodeAsShared(row.id, "native");
     } catch {
       // User may cancel the native share sheet.
     }
@@ -758,12 +820,14 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     if (navigator.share) {
       try {
         await navigator.share({ title: "Pozvať suseda", text });
+        await markAllCodesAsShared("native-bulk");
         return;
       } catch {
         // User may cancel the native share sheet.
       }
     }
     await navigator.clipboard?.writeText(text);
+    await markAllCodesAsShared("clipboard-bulk");
     setCopied("__all__");
     setTimeout(() => setCopied(null), 1500);
   }
@@ -774,7 +838,7 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
         <div>
           <h3 className="text-sm font-semibold text-foreground">Pozvať suseda</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Vygeneruj alebo načítaj 3 aktívne kódy a pošli ich susedom.
+            Vygeneruj alebo načítaj až {maxCodes} aktívnych kódov a pošli ich susedom.
           </p>
         </div>
         <button
@@ -788,18 +852,18 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
       {!canUse ? (
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <Lock className="h-3.5 w-3.5" />
-          Pozývacie kódy sa odomknú po aktivácii susedského účtu.
+          Pozývanie je dostupné pre aktívneho suseda s invite kódom alebo pre rolu admin/starosta.
         </div>
       ) : (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={() => void ensureThreeCodes()}
+              onClick={() => void ensureCodes()}
               disabled={busy}
               className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Získať 3 kódy
+              Získať {maxCodes} kódov
             </button>
             {codes.length > 0 && (
               <button
@@ -823,7 +887,7 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
             </div>
           ) : codes.length === 0 ? (
             <p className="mt-3 text-xs text-neutral-500">
-              Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať 3 kódy".
+              Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať {maxCodes} kódov".
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
@@ -860,6 +924,9 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
                     </button>
                   <a
                       href={`https://wa.me/?text=${whatsappText}`}
+                    onClick={() => {
+                      void markCodeAsShared(row.id, "whatsapp");
+                    }}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
@@ -870,6 +937,9 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
                       href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
                         shareUrl,
                       )}&quote=${fbQuote}`}
+                      onClick={() => {
+                        void markCodeAsShared(row.id, "facebook");
+                      }}
                       target="_blank"
                       rel="noreferrer"
                       className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
@@ -894,8 +964,11 @@ function mapInviteError(message: string) {
   if (/get_or_create_neighbor_invite_codes/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
     return "V databáze ešte chýba funkcia pre generovanie kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
   }
+  if (/mark_invite_code_shared/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+    return "V databáze ešte chýba funkcia pre označenie zdieľaných kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
+  }
   if (/forbidden|permission|42501/i.test(message)) {
-    return "Na generovanie pozvánok zatiaľ nemáš oprávnenie. Účet musí byť aktívny sused s aktivovaným invite kódom.";
+    return "Na generovanie pozvánok zatiaľ nemáš oprávnenie. Potrebný je aktívny sused s invite kódom alebo rola admin/starosta.";
   }
   return message;
 }

@@ -717,11 +717,11 @@ function GroupPostForm({
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex h-dvh flex-col bg-white md:inset-y-8 md:mx-auto md:h-auto md:max-h-[90vh] md:w-full md:max-w-3xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+    <div className="fixed inset-0 z-[140] flex h-dvh flex-col bg-white dark:bg-neutral-950 md:inset-y-8 md:mx-auto md:h-auto md:max-h-[90vh] md:w-full md:max-w-3xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
           aria-label="Zavrieť"
         >
           <X className="h-5 w-5" />
@@ -731,11 +731,11 @@ function GroupPostForm({
 
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         {canCreateParte && (
-          <div className="rounded-xl border border-violet-200 bg-violet-50 p-2">
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-2 dark:border-violet-500/30 dark:bg-violet-500/10">
             <button
               type="button"
               onClick={() => setIsParte((v) => !v)}
-              className="w-full rounded-lg bg-white px-3 py-2 text-left text-xs font-semibold text-violet-800"
+              className="w-full rounded-lg bg-white px-3 py-2 text-left text-xs font-semibold text-violet-800 dark:bg-white/10 dark:text-violet-200"
             >
               {isParte ? "Režim: Parte" : "Prepnúť na Parte"}
             </button>
@@ -744,38 +744,38 @@ function GroupPostForm({
 
         {isParte ? (
           <div>
-            <label className="text-sm font-medium text-neutral-700">Meno zosnulého</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Meno zosnulého</label>
             <input
               value={deceasedName}
               onChange={(e) => setDeceasedName(e.target.value)}
               required
               maxLength={200}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
         ) : (
           <div>
-            <label className="text-sm font-medium text-neutral-700">Názov</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Názov</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={200}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
         )}
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Obsah</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Obsah</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
             rows={6}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
-          <p className="mt-1 text-[10px] text-neutral-500">
+          <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400">
             Príspevok bude automaticky zmazaný po 4 dňoch.
           </p>
         </div>
@@ -786,7 +786,7 @@ function GroupPostForm({
           label={isParte ? "Fotka zosnulého" : "Obrázok k oznamu"}
         />
 
-        <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+        <label className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200">
           <input
             type="checkbox"
             checked={addToCalendar}
@@ -797,31 +797,35 @@ function GroupPostForm({
         </label>
 
         {addToCalendar && (
-          <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+          <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-500/30 dark:bg-blue-500/10">
             <div>
-              <label className="text-sm font-medium text-neutral-700">Miesto udalosti</label>
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Miesto udalosti</label>
               <input
                 value={eventLocation}
                 onChange={(e) => setEventLocation(e.target.value)}
                 placeholder={groupTitle}
                 maxLength={200}
-                className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+                className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-neutral-700">Termín</label>
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Termín</label>
               <input
                 type="datetime-local"
                 value={eventAt}
                 onChange={(e) => setEventAt(e.target.value)}
                 required
-                className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+                className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
               />
             </div>
           </div>
         )}
 
-        {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</p>}
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
+            {err}
+          </p>
+        )}
 
         <div className="mt-auto pt-4">
           <button
@@ -963,11 +967,11 @@ function GroupAdminModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex h-screen min-h-screen w-screen max-w-none flex-col overflow-hidden bg-white md:inset-y-8 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-4xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+    <div className="fixed inset-0 z-[300] flex h-screen min-h-screen w-screen max-w-none flex-col overflow-hidden bg-white dark:bg-neutral-950 md:inset-y-8 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-4xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
           aria-label="Zavrieť"
         >
           <X className="h-5 w-5" />
@@ -976,20 +980,20 @@ function GroupAdminModal({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3">
-          <p className="text-xs font-semibold text-neutral-700">
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-white/10 dark:bg-white/5">
+          <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
             Vyber registrovaného suseda pre túto sekciu
           </p>
-          <p className="mt-1 text-[11px] text-neutral-500">
+          <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
             Nový výber automaticky nahradí aktuálneho povereného suseda.
           </p>
           {currentAdmin && (
-            <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs">
-              <span className="font-semibold text-emerald-800">Aktuálny správca:</span>{" "}
-              <span className="text-emerald-900">
+            <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs dark:border-emerald-500/30 dark:bg-emerald-500/10">
+              <span className="font-semibold text-emerald-800 dark:text-emerald-200">Aktuálny správca:</span>{" "}
+              <span className="text-emerald-900 dark:text-emerald-100">
                 {people[currentAdmin.user_id]?.name ?? "Sused"}
               </span>{" "}
-              <span className="text-emerald-700">
+              <span className="text-emerald-700 dark:text-emerald-300">
                 ({people[currentAdmin.user_id]?.role ?? "neznáma rola"})
               </span>
             </div>
@@ -1002,13 +1006,13 @@ function GroupAdminModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filtrovať meno suseda"
-                className="w-full rounded-xl border border-neutral-200 bg-white py-2 pl-7 pr-2 text-sm"
+                className="w-full rounded-xl border border-neutral-200 bg-white py-2 pl-7 pr-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               />
             </label>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             >
               <option value="all">Rola: Všetky</option>
               {roleOptions.map((role) => (
@@ -1020,13 +1024,13 @@ function GroupAdminModal({
           </div>
 
           {options.length > 0 && (
-            <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2">
+            <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-2 dark:border-white/10 dark:bg-white/5">
               {options.slice(0, 40).map((u) => (
                 <div
                   key={u.id}
-                  className="flex items-center justify-between rounded-lg border border-neutral-100 px-2 py-1.5"
+                  className="flex items-center justify-between rounded-lg border border-neutral-100 px-2 py-1.5 dark:border-white/10"
                 >
-                  <span className="min-w-0 truncate pr-2 text-xs text-neutral-700">
+                  <span className="min-w-0 truncate pr-2 text-xs text-neutral-700 dark:text-neutral-200">
                     {u.name} ({u.role})
                   </span>
                   <button
@@ -1048,7 +1052,7 @@ function GroupAdminModal({
             <select
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             >
               <option value="">Vyber používateľa</option>
               {options.map((n) => (
@@ -1068,27 +1072,27 @@ function GroupAdminModal({
               {currentAdmin ? "Zmeniť" : "Pridať"}
             </button>
           </div>
-          <p className="mt-1 text-[11px] text-neutral-500">
+          <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
             Nájdení registrovaní susedia: {options.length}
           </p>
-          <p className="mt-1 text-[11px] text-neutral-500">
+          <p className="mt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
             Poradie zoznamu: najprv rola Sused, potom ostatné roly.
           </p>
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold text-neutral-700">Aktuálne poverený sused</p>
+          <p className="mb-2 text-xs font-semibold text-neutral-700 dark:text-neutral-200">Aktuálne poverený sused</p>
           {!currentAdmin ? (
-            <p className="rounded-lg border border-dashed border-neutral-200 py-4 text-center text-xs text-neutral-500">
+            <p className="rounded-lg border border-dashed border-neutral-200 py-4 text-center text-xs text-neutral-500 dark:border-white/15 dark:text-neutral-400">
               Zatiaľ nebol priradený žiadny sused pre túto sekciu.
             </p>
           ) : (
-            <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2">
+            <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/5">
               <div>
-                <p className="text-sm font-medium text-neutral-800">
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
                   {people[currentAdmin.user_id]?.name ?? "Sused"}
                 </p>
-                <p className="text-[11px] text-neutral-500">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
                   Práva môžeš kedykoľvek zmeniť výberom iného suseda.
                 </p>
               </div>
@@ -1098,7 +1102,7 @@ function GroupAdminModal({
                   void removeAdmin(currentAdmin.id);
                 }}
                 disabled={busy}
-                className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100 disabled:opacity-50"
+                className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-white/10"
               >
                 <Trash2 className="h-3 w-3" /> Odobrať
               </button>
@@ -1106,7 +1110,11 @@ function GroupAdminModal({
           )}
         </div>
 
-        {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</p>}
+        {err && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
+            {err}
+          </p>
+        )}
       </div>
     </div>
   );

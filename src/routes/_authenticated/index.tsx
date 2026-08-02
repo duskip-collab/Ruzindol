@@ -9,6 +9,7 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { ReadonlyBanner } from "@/components/ReadonlyBanner";
 import { FullscreenAlert } from "@/components/FullscreenAlert";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useNotifications } from "@/context/NotificationContext";
 
 const NastenkaScreen = lazy(async () => {
@@ -78,6 +79,7 @@ function Index() {
     clearMessageUnread,
     clearOfficialUnread,
   } = useNotifications();
+  const { canInstall, isPrompting, promptInstall } = usePwaInstall();
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
@@ -127,6 +129,10 @@ function Index() {
     }
   }
 
+  function handleInstallClick() {
+    void promptInstall();
+  }
+
   useEffect(() => {
     if (activeTab === "spravy") clearMessageUnread();
     if (activeTab === "nastenka") clearOfficialUnread();
@@ -164,6 +170,9 @@ function Index() {
                 profile={profile}
                 hasNotificationDot={hasBellDot}
                 onBellClick={handleBellClick}
+                canInstall={canInstall}
+                installBusy={isPrompting}
+                onInstallClick={handleInstallClick}
                 subtitle="Komunitné centrum"
                 className="mx-3 mt-2 md:mx-4 md:mt-3 xl:mx-5 xl:mt-5"
               />

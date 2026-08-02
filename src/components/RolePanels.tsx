@@ -89,7 +89,7 @@ export function VipDashboard({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </label>
         <TextField label="Kontakt" value={contact} onChange={setContact} />
@@ -461,7 +461,7 @@ export function DigitalnyRozhlas({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             required
           />
         </label>
@@ -694,7 +694,7 @@ export function FarskyUrad({
             type="datetime-local"
             value={dt}
             onChange={(e) => setDt(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </label>
         <button
@@ -868,7 +868,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+        className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
       />
     </label>
   );

@@ -262,6 +262,8 @@ export type Database = {
           id: string;
           municipality_id: string | null;
           role: string;
+          shared_at: string | null;
+          shared_via: string | null;
           used_at: string | null;
           used_by: string | null;
         };
@@ -272,6 +274,8 @@ export type Database = {
           id?: string;
           municipality_id?: string | null;
           role?: string;
+          shared_at?: string | null;
+          shared_via?: string | null;
           used_at?: string | null;
           used_by?: string | null;
         };
@@ -282,6 +286,8 @@ export type Database = {
           id?: string;
           municipality_id?: string | null;
           role?: string;
+          shared_at?: string | null;
+          shared_via?: string | null;
           used_at?: string | null;
           used_by?: string | null;
         };
@@ -672,9 +678,15 @@ export type Database = {
           id: string;
           code: string;
           created_at: string;
+          shared_at: string | null;
+          shared_via: string | null;
           used_by: string | null;
           used_at: string | null;
         }[];
+      };
+      mark_invite_code_shared: {
+        Args: { _invite_id: string; _via?: string };
+        Returns: boolean;
       };
       has_role: {
         Args: {

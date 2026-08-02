@@ -120,7 +120,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Hľadať meno alebo rolu…"
-          className="w-full bg-transparent text-xs outline-none"
+          className="w-full bg-transparent text-xs text-neutral-800 outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
       </div>
 
@@ -203,7 +203,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
                             [u.id]: Math.max(1, Math.min(10, Number(e.target.value) || 1)),
                           }))
                         }
-                        className="w-12 rounded-md border border-neutral-200 bg-white px-1 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
+                        className="w-12 rounded-md border border-neutral-200 bg-white px-1 py-0.5 text-[11px] text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
                       />
                     </label>
                     <input
@@ -211,7 +211,7 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
                       onChange={(e) => setReason((s) => ({ ...s, [u.id]: e.target.value }))}
                       placeholder="Dôvod (voliteľné)"
                       maxLength={200}
-                      className="min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
+                      className="min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                     />
                     <button
                       onClick={() => ban(u)}

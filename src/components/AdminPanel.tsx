@@ -9,11 +9,14 @@ type CodeRole = "Sused" | "Uradnik" | "Starosta" | "Farar";
 type InviteRow = {
   id: string;
   code: string;
+  created_by: string | null;
   role: CodeRole;
   municipality_id: string | null;
   created_at: string;
   used_by: string | null;
   used_at: string | null;
+  shared_at: string | null;
+  shared_via: string | null;
 };
 
 type Muni = {
@@ -59,12 +62,8 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
 
       <div className="space-y-6">
         <RoleAssigner />
-        {isSuperAdmin && (
-          <>
-            <InviteCodeManager adminId={adminId} />
-            <MunicipalityManager />
-          </>
-        )}
+        <InviteCodeManager adminId={adminId} />
+        {isSuperAdmin && <MunicipalityManager />}
       </div>
     </div>
   );
@@ -84,7 +83,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   const [role, setRole] = useState<CodeRole>("Sused");
   const [muniId, setMuniId] = useState<string>("");
   const [filterRole, setFilterRole] = useState<"all" | CodeRole>("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "used" | "free">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "used" | "shared" | "free">("all");
 
   const load = async () => {
     setLoading(true);
@@ -95,7 +94,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         .order("name"),
       supabase
         .from("invite_codes")
-        .select("id, code, role, municipality_id, created_at, used_by, used_at")
+        .select("id, code, created_by, role, municipality_id, created_at, used_by, used_at, shared_at, shared_via")
         .order("created_at", { ascending: false })
         .limit(200),
     ]);
@@ -109,7 +108,9 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
     setCodes(rows);
 
     // Resolve used_by → profile name
-    const ids = Array.from(new Set(rows.map((r) => r.used_by).filter(Boolean))) as string[];
+    const ids = Array.from(
+      new Set(rows.flatMap((r) => [r.used_by, r.created_by]).filter(Boolean)),
+    ) as string[];
     if (ids.length) {
       const { data: pData } = await supabase.from("profiles").select("id, name").in("id", ids);
       const map: Record<string, { name: string }> = {};
@@ -167,12 +168,21 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
     () =>
       codes.filter((c) => {
         if (filterRole !== "all" && c.role !== filterRole) return false;
-        if (filterStatus === "used" && !c.used_by) return false;
-        if (filterStatus === "free" && c.used_by) return false;
+        const used = !!c.used_by;
+        const shared = !!c.shared_at;
+        if (filterStatus === "used" && !used) return false;
+        if (filterStatus === "shared" && (!shared || used)) return false;
+        if (filterStatus === "free" && (used || shared)) return false;
         return true;
       }),
     [codes, filterRole, filterStatus],
   );
+
+  function codeStatus(c: InviteRow) {
+    if (c.used_by) return "used" as const;
+    if (c.shared_at) return "shared" as const;
+    return "free" as const;
+  }
 
   return (
     <div>
@@ -182,11 +192,11 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
 
       <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 dark:border-white/10 dark:bg-white/5">
         <label className="col-span-1 text-[11px]">
-          <span className="mb-0.5 block text-neutral-500">Rola</span>
+          <span className="mb-0.5 block text-neutral-500 dark:text-neutral-400">Rola</span>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as CodeRole)}
-            className="w-full rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+            className="w-full rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
           >
             {CODE_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -196,11 +206,11 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
           </select>
         </label>
         <label className="col-span-1 text-[11px]">
-          <span className="mb-0.5 block text-neutral-500">Obec</span>
+          <span className="mb-0.5 block text-neutral-500 dark:text-neutral-400">Obec</span>
           <select
             value={muniId}
             onChange={(e) => setMuniId(e.target.value)}
-            className="w-full rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+            className="w-full rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
           >
             {munis.map((m) => (
               <option key={m.id} value={m.id}>
@@ -224,6 +234,13 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
           >
             <Plus className="h-3 w-3" /> 10 kódov
           </button>
+          <button
+            onClick={() => generate(50)}
+            disabled={busy || !muniId}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-500 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50"
+          >
+            <Plus className="h-3 w-3" /> 50 kódov
+          </button>
         </div>
       </div>
 
@@ -234,7 +251,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         <select
           value={filterRole}
           onChange={(e) => setFilterRole(e.target.value as "all" | CodeRole)}
-          className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
+          className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
         >
           <option value="all">Všetky roly</option>
           {CODE_ROLES.map((r) => (
@@ -245,11 +262,12 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         </select>
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as "all" | "used" | "free")}
-          className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
+          onChange={(e) => setFilterStatus(e.target.value as "all" | "used" | "shared" | "free")}
+          className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
         >
           <option value="all">Všetky stavy</option>
           <option value="free">Nepoužité</option>
+          <option value="shared">Zdieľané</option>
           <option value="used">Použité</option>
         </select>
         <span className="ml-auto text-[10px] text-neutral-400">{filtered.length} zázn.</span>
@@ -263,26 +281,27 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         <p className="text-xs text-neutral-500">Žiadne kódy.</p>
       ) : (
         <div className="max-h-72 overflow-y-auto rounded-xl border border-neutral-200 dark:border-white/10">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-[11px] text-neutral-800 dark:text-neutral-200">
             <thead className="bg-neutral-50 text-left text-neutral-500 dark:bg-white/5">
               <tr>
                 <th className="px-2 py-1.5 font-medium">Kód</th>
                 <th className="px-2 py-1.5 font-medium">Rola</th>
+                <th className="px-2 py-1.5 font-medium">Vytvoril</th>
                 <th className="px-2 py-1.5 font-medium">Obec</th>
                 <th className="px-2 py-1.5 font-medium">Stav</th>
                 <th className="px-2 py-1.5 font-medium">Použil</th>
-                <th className="px-2 py-1.5 font-medium">Dátum</th>
+                <th className="px-2 py-1.5 font-medium">História</th>
                 <th className="px-1 py-1.5"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((c) => {
-                const used = !!c.used_by;
+                const status = codeStatus(c);
                 return (
                   <tr key={c.id} className="border-t border-neutral-100 dark:border-white/5">
                     <td className="px-2 py-1.5 font-mono tracking-wider">
-                      <span className={used ? "text-neutral-400 line-through" : ""}>{c.code}</span>
-                      {!used && (
+                      <span className={status !== "free" ? "text-neutral-400 line-through" : ""}>{c.code}</span>
+                      {status === "free" && (
                         <button
                           onClick={() => copy(c.code)}
                           className="ml-1 rounded p-0.5 hover:bg-neutral-100 dark:hover:bg-white/10"
@@ -297,23 +316,35 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
                       )}
                     </td>
                     <td className="px-2 py-1.5">{c.role}</td>
+                    <td className="px-2 py-1.5 text-neutral-500">
+                      {c.created_by ? (users[c.created_by]?.name ?? c.created_by.slice(0, 6)) : "—"}
+                    </td>
                     <td className="px-2 py-1.5">{muniName(c.municipality_id)}</td>
                     <td className="px-2 py-1.5">
                       <span
                         className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                          used
+                          status === "used"
                             ? "bg-neutral-100 text-neutral-500 dark:bg-white/10"
-                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                            : status === "shared"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                         }`}
                       >
-                        {used ? "Použitý" : "Voľný"}
+                        {status === "used" ? "Použitý" : status === "shared" ? "Zdieľaný" : "Voľný"}
                       </span>
                     </td>
                     <td className="px-2 py-1.5 text-neutral-500">
                       {c.used_by ? (users[c.used_by]?.name ?? c.used_by.slice(0, 6)) : "—"}
                     </td>
                     <td className="px-2 py-1.5 text-neutral-400">
-                      {new Date(c.created_at).toLocaleDateString("sk-SK")}
+                      <div>Vytvorený: {new Date(c.created_at).toLocaleDateString("sk-SK")}</div>
+                      {c.shared_at && (
+                        <div>
+                          Zdieľaný: {new Date(c.shared_at).toLocaleDateString("sk-SK")}
+                          {c.shared_via ? ` (${c.shared_via})` : ""}
+                        </div>
+                      )}
+                      {c.used_at && <div>Použitý: {new Date(c.used_at).toLocaleDateString("sk-SK")}</div>}
                     </td>
                     <td className="px-1 py-1.5">
                       <button
@@ -332,7 +363,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         </div>
       )}
       <p className="mt-1.5 text-[10px] text-neutral-400">
-        Použité kódy sa automaticky mažú po 3 dňoch (šetrenie DB).
+        Zdieľané a použité kódy ostávajú v histórii pre administrátorský prehľad.
       </p>
     </div>
   );
@@ -434,7 +465,7 @@ function RoleAssigner() {
                 value={u.role}
                 onChange={(e) => assign(u.id, e.target.value as ProfileRole)}
                 disabled={busy === u.id}
-                className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] dark:border-white/10 dark:bg-neutral-800"
+                className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] text-neutral-800 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100"
               >
                 {ROLE_CHOICES.map((r) => (
                   <option key={r} value={r}>
@@ -560,7 +591,7 @@ function MunicipalityManager() {
                       setEditing((s) => ({ ...s, [m.id]: { ...s[m.id], name: ev.target.value } }))
                     }
                     placeholder="Názov"
-                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                   />
                   <input
                     value={e.region ?? ""}
@@ -568,7 +599,7 @@ function MunicipalityManager() {
                       setEditing((s) => ({ ...s, [m.id]: { ...s[m.id], region: ev.target.value } }))
                     }
                     placeholder="Kraj"
-                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                   />
                   <input
                     value={e.mayor_name ?? ""}
@@ -579,7 +610,7 @@ function MunicipalityManager() {
                       }))
                     }
                     placeholder="Meno starostu"
-                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                   />
                   <input
                     value={e.logo_url ?? ""}
@@ -590,7 +621,7 @@ function MunicipalityManager() {
                       }))
                     }
                     placeholder="URL loga / erbu"
-                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs dark:border-white/10 dark:bg-neutral-800"
+                    className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                   />
                 </div>
                 <div className="flex justify-end gap-1.5">
@@ -663,32 +694,32 @@ function MunicipalityManager() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Názov obce"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder="slug (napr. ruzindol)"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <input
           value={region}
           onChange={(e) => setRegion(e.target.value)}
           placeholder="Kraj / okres"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <input
           value={mayorName}
           onChange={(e) => setMayorName(e.target.value)}
           placeholder="Meno starostu"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <input
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="URL loga / erbu (voliteľné)"
-          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
+          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <button
           type="submit"

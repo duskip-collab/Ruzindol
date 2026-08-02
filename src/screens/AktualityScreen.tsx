@@ -398,11 +398,11 @@ function AdminForm({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+      <div className="flex h-full w-full flex-col bg-white dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -412,7 +412,7 @@ function AdminForm({
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Typ / Priorita</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Typ / Priorita</label>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
                 const m = PRIORITY_META[p];
@@ -424,8 +424,8 @@ function AdminForm({
                     onClick={() => setPriority(p)}
                     className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                       active
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
                     }`}
                   >
                     <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
@@ -435,48 +435,52 @@ function AdminForm({
               })}
             </div>
             {priority === "vystraha" && (
-              <p className="mt-2 rounded-lg bg-red-50 px-2 py-1.5 text-[11px] text-red-700">
+              <p className="mt-2 rounded-lg bg-red-50 px-2 py-1.5 text-[11px] text-red-700 dark:bg-red-500/10 dark:text-red-200">
                 ⚠️ Táto výstraha sa pri otvorení aplikácie zobrazí ako fullscreen upozornenie.
               </p>
             )}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Názov príspevku</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Názov príspevku</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={200}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Obsah / Text</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Obsah / Text</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               required
               rows={6}
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Dátum publikovania</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Dátum publikovania</label>
             <input
               type="datetime-local"
               value={publishedAt}
               onChange={(e) => setPublishedAt(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
-            <p className="mt-1 text-[10px] text-neutral-500">
+            <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400">
               Interné oznamy sa automaticky mažú po 4 dňoch.
             </p>
           </div>
 
-          {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>}
+          {err && (
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
+              {err}
+            </div>
+          )}
 
           <div className="mt-auto flex flex-col gap-2 pt-4">
             <button

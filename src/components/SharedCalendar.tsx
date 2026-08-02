@@ -328,11 +328,11 @@ function EventForm({
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+    <div className="absolute inset-0 z-50 flex flex-col bg-white dark:bg-neutral-950">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
           aria-label="Zavrieť"
         >
           <X className="h-5 w-5" />
@@ -342,7 +342,7 @@ function EventForm({
 
       <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
-          <label className="text-sm font-medium text-neutral-700">Kategória</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategória</label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {(Object.keys(THEME) as EventCategory[]).map((t) => {
               const m = THEME[t];
@@ -354,8 +354,8 @@ function EventForm({
                   onClick={() => setType(t)}
                   className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                     active
-                      ? "border-neutral-900 bg-neutral-900 text-white"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
                   }`}
                 >
                   {m.icon}
@@ -367,50 +367,54 @@ function EventForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Názov</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Názov</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Popis</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Popis</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Miesto</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Miesto</label>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Začiatok</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Začiatok</label>
           <input
             type="datetime-local"
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
             required
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
           />
         </div>
 
-        {err && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{err}</div>}
+        {err && (
+          <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-200">
+            {err}
+          </div>
+        )}
 
         <div className="mt-auto flex flex-col gap-2 pt-4">
           <button

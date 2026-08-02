@@ -620,7 +620,7 @@ export function NastenkaScreen() {
 function CategoryBadge({ category }: { category: string }) {
   const label = CATEGORY_LABEL[category as Category] ?? category;
   return (
-    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-700">
+    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-700 dark:bg-white/10 dark:text-neutral-200">
       {label}
     </span>
   );
@@ -818,11 +818,11 @@ function EditPostModal({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+      <div className="flex h-full w-full flex-col bg-white dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -832,7 +832,7 @@ function EditPostModal({
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Kategória</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategória</label>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {options.map((c) => (
                 <button
@@ -841,8 +841,8 @@ function EditPostModal({
                   onClick={() => setCategory(c)}
                   className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                     category === c
-                      ? "bg-neutral-900 text-white"
-                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/15"
                   }`}
                 >
                   {CATEGORY_LABEL[c]}
@@ -852,22 +852,22 @@ function EditPostModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Nadpis</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Nadpis</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Obsah</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Obsah</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               required
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
 
@@ -886,7 +886,7 @@ function EditPostModal({
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
             >
               Zrušiť
             </button>
@@ -986,11 +986,11 @@ function NewPostModal({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
+      <div className="flex h-full w-full flex-col bg-white dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -1002,7 +1002,7 @@ function NewPostModal({
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Kategória</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategória</label>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {options.map((c) => (
                 <button
@@ -1011,8 +1011,8 @@ function NewPostModal({
                   onClick={() => setCategory(c)}
                   className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                     category === c
-                      ? "bg-neutral-900 text-white"
-                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/15"
                   }`}
                 >
                   {CATEGORY_LABEL[c]}
@@ -1022,22 +1022,22 @@ function NewPostModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700">Nadpis</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Nadpis</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={isOfficial ? "Napr. Odstávka vody" : "Krátky nadpis (voliteľné)"}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Obsah</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Obsah</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               required
               rows={5}
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400"
+              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
             />
           </div>
 
@@ -1062,7 +1062,7 @@ function NewPostModal({
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200 dark:hover:bg-white/10"
             >
               Zrušiť
             </button>

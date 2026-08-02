@@ -1,4 +1,4 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, Download, Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
@@ -10,12 +10,18 @@ export function Header({
   profile,
   hasNotificationDot,
   onBellClick,
+  canInstall = false,
+  installBusy = false,
+  onInstallClick,
   className,
   subtitle = "Komunitná aplikácia",
 }: {
   profile: Profile | null;
   hasNotificationDot: boolean;
   onBellClick: () => void;
+  canInstall?: boolean;
+  installBusy?: boolean;
+  onInstallClick?: () => void;
   className?: string;
   subtitle?: string;
 }) {
@@ -62,6 +68,18 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
+        {canInstall && onInstallClick && (
+          <button
+            type="button"
+            onClick={onInstallClick}
+            disabled={installBusy}
+            className="relative grid h-10 w-10 place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:opacity-60 active:scale-95"
+            aria-label="Nainštalovať aplikáciu"
+            title="Nainštalovať aplikáciu"
+          >
+            {installBusy ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleBellClick}
