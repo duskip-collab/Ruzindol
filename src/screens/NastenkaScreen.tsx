@@ -420,12 +420,12 @@ export function NastenkaScreen() {
       {/* Search */}
       <div className="sticky top-0 z-10 bg-white/80 px-4 pb-2 pt-3 backdrop-blur dark:bg-neutral-950/80 md:px-6">
         <div className="flex items-center gap-2 rounded-full border border-neutral-200/70 bg-white/70 px-3 py-2 backdrop-blur dark:border-white/10 dark:bg-white/5">
-          <Search className="h-4 w-4 text-neutral-400" />
+          <Search className="h-4 w-4 text-neutral-400 dark:text-neutral-200" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Hľadať v príspevkoch…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-neutral-400"
+            className="flex-1 bg-transparent text-sm text-neutral-800 outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-200"
           />
         </div>
       </div>
