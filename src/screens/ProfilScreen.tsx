@@ -189,6 +189,8 @@ export function ProfilScreen() {
   }
 
   const isStarosta = profile.role === "Starosta";
+  const canInviteNeighbors =
+    profile.role === "Sused" && profile.is_active_neighbor && Boolean(profile.invite_code);
   const isWideAdminSection =
     openSection === "admin" || openSection === "moderation" || openSection === "aktuality-admin";
 
@@ -340,16 +342,11 @@ export function ProfilScreen() {
             </AccordionSection>
           )}
 
-          <AccordionSection value="invite-neighbor" title="Pozvať suseda">
-            <NeighborInviteSection
-              userId={profile.id}
-              canUse={
-                profile.is_active_neighbor ||
-                isAdmin ||
-                ["Starosta", "Uradnik", "Farar", "VIP_Firma"].includes(profile.role)
-              }
-            />
-          </AccordionSection>
+          {profile.role === "Sused" && (
+            <AccordionSection value="invite-neighbor" title="Pozvať suseda">
+              <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} />
+            </AccordionSection>
+          )}
 
           <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
             {itemsLoading ? (
@@ -406,50 +403,25 @@ export function ProfilScreen() {
                             {busy ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (
-                              function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boolean }) {
-                                const [codes, setCodes] = useState<InviteCodeRow[]>([]);
-                                const [loading, setLoading] = useState(true);
-                                const [busy, setBusy] = useState(false);
+                              <RefreshCw className="h-3 w-3" />
+                            )}
+                            Zaktivovať
+                          </button>
+                        )}
+                        <button
+                          onClick={() => void deleteItem(item.id)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-transparent"
+                        >
                           {busy ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                                async function loadOwnCodes() {
-                                  setLoading(true);
-                                  setErr(null);
-                                  const { data, error } = await supabase
-                                    .from("invite_codes")
-                                    .select("id, code, created_at, used_by, used_at")
-                                    .eq("created_by", userId)
-                                    .is("used_by", null)
-                                    .order("created_at", { ascending: true })
-                                    .limit(3);
-                                  if (error) {
-                                    setErr(error.message);
-                                    setLoading(false);
-                                    return;
-                                  }
-                                  setCodes((data as InviteCodeRow[] | null) ?? []);
-                                  setLoading(false);
-                                }
-
-                                useEffect(() => {
-                                  void loadOwnCodes();
-                                  // eslint-disable-next-line react-hooks/exhaustive-deps
-                                }, [userId]);
+                            <Trash2 className="h-3 w-3" />
                           )}
-                                async function ensureThreeCodes() {
-                                  if (!canUse) return;
-                                  setBusy(true);
+                          Vymazať
                         </button>
-                                  const { data, error } = await supabase.rpc("get_or_create_neighbor_invite_codes", {
-                                    _count: 3,
-                                  });
-                                  setBusy(false);
-                                  if (error) {
-                                    setErr(error.message);
-                                    return;
-                                  }
-                                  setCodes((data as InviteCodeRow[] | null) ?? []);
+                      </div>
+                    </li>
                   );
                 })}
               </ul>
@@ -459,84 +431,38 @@ export function ProfilScreen() {
           <AccordionSection value="account" title="Účet & odhlásenie">
             <AccountActions userId={profile.id} />
           </AccordionSection>
-                                function inviteMessage(code: string) {
-                                  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-                                  return `Ahoj, pozývam ťa do susedskej aplikácie. Použi pozývací kód: ${code}. Odkaz: ${appUrl}`;
-                                }
-
-                                async function shareNative(code: string) {
-                                  const msg = inviteMessage(code);
-                                  if (!navigator.share) {
-                                    copy(msg);
-                                    return;
-                                  }
-                                  try {
-                                    await navigator.share({
-                                      title: "Pozvať suseda",
-                                      text: msg,
-                                    });
-                                  } catch {
-                                    // User may cancel the native share sheet.
-                                  }
-                                }
-
-                                async function shareAll() {
-                                  const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
-                                  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-                                  const text = `Pozývam ťa do susedskej aplikácie. Vyber si kód:\n${all}\nOdkaz: ${appUrl}`;
-                                  if (navigator.share) {
-                                    try {
-                                      await navigator.share({ title: "Pozvať suseda", text });
-                                      return;
-                                    } catch {
-                                      // User may cancel the native share sheet.
-                                    }
-                                  }
-                                  await navigator.clipboard?.writeText(text);
-                                  setCopied("__all__");
-                                  setTimeout(() => setCopied(null), 1500);
-                                }
+        </Accordion>
+      </div>
     </div>
   );
 }
 
 function SectionLoader() {
-                                        <h3 className="text-sm font-semibold text-foreground">Pozvať suseda</h3>
+  return (
     <div className="flex justify-center py-6 text-neutral-400">
-                                          Vygeneruj alebo načítaj 3 aktívne kódy a pošli ich susedom.
+      <Loader2 className="h-4 w-4 animate-spin" />
+    </div>
+  );
 }
 
-                                      <button
-                                        onClick={() => void loadOwnCodes()}
-                                        className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
-                                      >
-                                        Obnoviť
-                                      </button>
+function AccordionSection({
+  value,
+  title,
   itemClassName,
   contentClassName,
-                                    {!canUse ? (
+  children,
 }: {
-                                        Pozývacie kódy sa odomknú po aktivácii susedského účtu.
+  value: string;
   title: string;
   itemClassName?: string;
   contentClassName?: string;
-                                        <div className="mt-4 flex flex-wrap gap-2">
+  children: React.ReactNode;
 }) {
-                                            onClick={() => void ensureThreeCodes()}
-                                            disabled={busy}
-                                            className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+  return (
+    <AccordionItem
       value={value}
-                                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                                            Získať 3 kódy
+      className={`overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
     >
-                                          {codes.length > 0 && (
-                                            <button
-                                              onClick={() => void shareAll()}
-                                              className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
-                                            >
-                                              <Share2 className="h-3.5 w-3.5" /> Zdieľať všetky
-                                            </button>
-                                          )}
       <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
       <AccordionContent
         className={`border-t border-border px-5 pb-5 pt-4 ${contentClassName ?? ""}`}
@@ -545,13 +471,7 @@ function SectionLoader() {
       </AccordionContent>
     </AccordionItem>
   );
-                                        {loading ? (
-                                          <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Načítavam pozývacie kódy...
-                                          </div>
-                                        ) : codes.length === 0 ? (
-
-                                            Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať 3 kódy".
+}
 
 function ProfileEditForm({
   initialName,
@@ -787,11 +707,6 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     setLoading(false);
   }
 
-  useEffect(() => {
-    void loadOwnCodes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
   async function ensureThreeCodes() {
     if (!canUse) return;
     setBusy(true);
@@ -801,11 +716,20 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
     });
     setBusy(false);
     if (error) {
-      setErr(error.message);
+      setErr(mapInviteError(error.message));
       return;
     }
     setCodes((data as InviteCodeRow[] | null) ?? []);
   }
+
+  useEffect(() => {
+    if (canUse) {
+      void ensureThreeCodes();
+    } else {
+      void loadOwnCodes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, canUse]);
 
   function copy(code: string) {
     navigator.clipboard?.writeText(code).then(() => {
@@ -972,6 +896,16 @@ function NeighborInviteSection({ userId, canUse }: { userId: string; canUse: boo
       )}
     </div>
   );
+}
+
+function mapInviteError(message: string) {
+  if (/get_or_create_neighbor_invite_codes/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+    return "V databáze ešte chýba funkcia pre generovanie kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
+  }
+  if (/forbidden|permission|42501/i.test(message)) {
+    return "Na generovanie pozvánok zatiaľ nemáš oprávnenie. Účet musí byť aktívny sused s aktivovaným invite kódom.";
+  }
+  return message;
 }
 
 // ---------- Account actions ----------
