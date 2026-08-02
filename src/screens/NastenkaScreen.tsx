@@ -620,7 +620,7 @@ export function NastenkaScreen() {
 function CategoryBadge({ category }: { category: string }) {
   const label = CATEGORY_LABEL[category as Category] ?? category;
   return (
-    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-700 dark:bg-white/10 dark:text-neutral-200">
+    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-700 dark:bg-neutral-200 dark:text-neutral-900">
       {label}
     </span>
   );
@@ -699,29 +699,29 @@ function NeighborCard({
   return (
     <article
       onClick={onOpen}
-      className="cursor-pointer rounded-2xl border border-neutral-200/80 bg-white/80 p-3 shadow-sm backdrop-blur transition hover:shadow-md dark:border-white/10 dark:bg-white/5"
+      className="cursor-pointer rounded-2xl border border-neutral-200/80 bg-white/80 p-3 shadow-sm backdrop-blur transition hover:shadow-md dark:border-neutral-300 dark:bg-neutral-200"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-xs font-semibold text-neutral-700 dark:bg-white/10 dark:text-neutral-200">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 text-xs font-semibold text-neutral-700 dark:bg-neutral-300 dark:text-neutral-900">
             {post.userName.charAt(0)}
           </div>
           <div>
-            <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
+            <div className="text-xs font-semibold text-neutral-900 dark:text-neutral-900">
               {post.userName}
             </div>
-            <div className="text-[10px] text-muted-foreground">{timeAgo(post.createdAt)}</div>
+            <div className="text-[10px] text-muted-foreground dark:text-neutral-700">{timeAgo(post.createdAt)}</div>
           </div>
         </div>
         <CategoryBadge category={post.category} />
       </div>
 
       {post.title && (
-        <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <p className="mt-2 text-sm font-semibold text-neutral-900 dark:text-neutral-900">
           {post.title}
         </p>
       )}
-      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-neutral-700 dark:text-neutral-800">
         {post.content}
       </p>
       {post.imageUrl && (
@@ -729,8 +729,8 @@ function NeighborCard({
       )}
 
       {showTrhDisclaimer && (
-        <div className="mt-2 flex gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-[10px] leading-snug text-amber-900">
-          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+        <div className="mt-2 flex gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-2.5 py-1.5 text-[10px] leading-snug text-amber-900 dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-900" />
           <span>{TRH_DISCLAIMER}</span>
         </div>
       )}
@@ -740,18 +740,20 @@ function NeighborCard({
           onClick={stop(onLike)}
           disabled={locked}
           className={`flex items-center gap-1 rounded-full px-2 py-0.5 transition ${
-            liked ? "text-rose-600" : "text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white/10"
+            liked
+              ? "text-rose-600"
+              : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-800 dark:hover:bg-neutral-300"
           } ${locked ? "cursor-not-allowed opacity-40 hover:bg-transparent" : ""}`}
           title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
           <span>{likesCount}</span>
         </button>
-        <span className="text-neutral-500">💬 {replies.length}</span>
+        <span className="text-neutral-500 dark:text-neutral-800">💬 {replies.length}</span>
         <button
           onClick={stop(onReport)}
           disabled={reported || locked}
-          className="ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:hover:bg-white/10"
+          className="ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:text-neutral-800 dark:hover:bg-neutral-300"
           title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Flag className="h-3.5 w-3.5" />
@@ -759,7 +761,7 @@ function NeighborCard({
         </button>
       </div>
 
-      <div className="mt-2 flex items-center justify-end border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 dark:border-white/10">
+      <div className="mt-2 flex items-center justify-end border-t border-neutral-100 pt-2 text-[11px] text-neutral-500 dark:border-neutral-300 dark:text-neutral-800">
         <span className="inline-flex items-center gap-1">
           Rozklikni detail
           <ChevronRight className="h-3.5 w-3.5" />

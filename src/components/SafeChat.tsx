@@ -107,31 +107,31 @@ export function SafeChat({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/25 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur-xl">
+      <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+        <div className="flex items-center gap-3 border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
             aria-label="Zavrieť chat"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-neutral-900">{counterpartyName}</p>
-            <p className="truncate text-xs text-neutral-500">k inzerátu: {listingTitle}</p>
+            <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-900">{counterpartyName}</p>
+            <p className="truncate text-xs text-neutral-500 dark:text-neutral-700">k inzerátu: {listingTitle}</p>
           </div>
           <span
             className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${
               isLocked
                 ? "bg-amber-100 text-amber-800 ring-amber-200"
-                : "bg-neutral-100 text-neutral-700 ring-neutral-200"
+                : "bg-neutral-100 text-neutral-700 ring-neutral-200 dark:bg-neutral-300 dark:text-neutral-900 dark:ring-neutral-400"
             }`}
           >
             {messages.length} / {MAX_MESSAGES}
           </span>
         </div>
 
-        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-neutral-50/60 p-4">
+        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-neutral-50/60 p-4 dark:bg-neutral-200">
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -152,7 +152,7 @@ export function SafeChat({
             e.preventDefault();
             void trySend();
           }}
-          className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl"
+          className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200"
         >
           {!isWriteLocked && !error && (
             <p className="mb-2 text-center text-xs text-neutral-500">
@@ -162,7 +162,7 @@ export function SafeChat({
           )}
 
           {!canSendMessages && (
-            <div className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900">
               Režim čítania: na odoslanie správy potrebuješ platný pozývací kód.
             </div>
           )}
@@ -180,7 +180,7 @@ export function SafeChat({
               disabled={isWriteLocked || sending}
               rows={1}
               placeholder={isWriteLocked ? "Režim čítania" : "Napíš správu…"}
-              className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
+              className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:placeholder:text-neutral-600 dark:disabled:bg-neutral-300 dark:disabled:text-neutral-600"
             />
             <button
               type="submit"
@@ -197,9 +197,9 @@ export function SafeChat({
           </div>
 
           {(isLocked || error || !canSendMessages) && (
-            <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 shadow-sm ring-1 ring-amber-200/50 backdrop-blur-xl">
-              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <p className="text-xs leading-relaxed text-amber-900">
+            <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3 shadow-sm ring-1 ring-amber-200/50 backdrop-blur-xl dark:border-amber-300 dark:bg-amber-100 dark:ring-amber-300/60">
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+              <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-900">
                 <span className="font-semibold">
                   ⚠️ {error ?? (!canSendMessages ? "Režim čítania pre správy." : "Limit správ pre tento chat bol dosiahnutý.")}
                 </span>{" "}

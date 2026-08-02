@@ -80,29 +80,29 @@ export function VipDashboard({
         <TextField label="DIČ" value={dic} onChange={setDic} placeholder="SK1234567890" />
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-neutral-300 dark:bg-neutral-200">
         <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Mini-Web</p>
         <TextField label="Názov" value={companyName} onChange={setCompanyName} />
         <label className="mt-3 block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Popis</span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-800">Popis</span>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900"
           />
         </label>
         <TextField label="Kontakt" value={contact} onChange={setContact} />
 
         <div className="mt-3">
-          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-800">
             Fotky ({photos.length}/3)
           </p>
           <div className="grid grid-cols-3 gap-2">
             {[0, 1, 2].map((i) => (
               <label
                 key={i}
-                className="relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-white/60 text-neutral-400 dark:border-white/15 dark:bg-white/5"
+                className="relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-white/60 text-neutral-400 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-700"
               >
                 {photos[i] ? (
                   <img src={photos[i]} alt="" className="h-full w-full object-cover" />
@@ -182,7 +182,7 @@ export function PanelStarostu({
         <Stat label="Inzeráty" value={itemsCount} />
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-neutral-300 dark:bg-neutral-200">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
           Posledné príspevky ({posts.length})
         </p>
@@ -193,13 +193,13 @@ export function PanelStarostu({
             {posts.map((p) => (
               <li
                 key={p.id}
-                className="flex items-start justify-between gap-2 rounded-xl border border-neutral-200 bg-white p-2 text-xs dark:border-white/10 dark:bg-white/5"
+                className="flex items-start justify-between gap-2 rounded-xl border border-neutral-200 bg-white p-2 text-xs dark:border-neutral-400 dark:bg-neutral-300"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-neutral-900 dark:text-neutral-100">
+                  <p className="truncate font-semibold text-neutral-900 dark:text-neutral-900">
                     {p.title}
                   </p>
-                  <p className="truncate text-neutral-500">{p.userName}</p>
+                  <p className="truncate text-neutral-500 dark:text-neutral-800">{p.userName}</p>
                 </div>
                 <button
                   onClick={() => void deletePost(p.id)}
@@ -218,7 +218,7 @@ export function PanelStarostu({
         )}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="mt-4 rounded-2xl border border-white/50 bg-white/70 p-4 dark:border-neutral-300 dark:bg-neutral-200">
         <p className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-neutral-500">
           <span className="flex items-center gap-1.5">
             <Ticket className="h-3.5 w-3.5" /> Hromadné pozvánky
@@ -241,13 +241,13 @@ export function PanelStarostu({
               <li
                 key={c}
                 onClick={() => copy(c)}
-                className="flex cursor-pointer items-center justify-between gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 font-mono text-[11px] dark:border-white/10 dark:bg-white/5"
+                className="flex cursor-pointer items-center justify-between gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 font-mono text-[11px] dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900"
               >
                 <span className="truncate">{c}</span>
                 {copied === c ? (
                   <Check className="h-3 w-3 text-emerald-600" />
                 ) : (
-                  <Copy className="h-3 w-3 text-neutral-400" />
+                  <Copy className="h-3 w-3 text-neutral-400 dark:text-neutral-700" />
                 )}
               </li>
             ))}
@@ -456,17 +456,17 @@ export function DigitalnyRozhlas({
       <form onSubmit={send} className="mt-4 space-y-3">
         <TextField label="Titulok" value={title} onChange={setTitle} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Obsah</span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-800">Obsah</span>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900"
             required
           />
         </label>
 
-        <div className="rounded-2xl border border-neutral-200/70 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-2xl border border-neutral-200/70 bg-white/80 p-4 dark:border-neutral-300 dark:bg-neutral-200">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -487,7 +487,7 @@ export function DigitalnyRozhlas({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
               Nahrať súbor MP3 / WAV
             </button>
@@ -496,7 +496,7 @@ export function DigitalnyRozhlas({
               <button
                 type="button"
                 onClick={clearAudio}
-                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-500 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300"
+                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-500 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-800 dark:hover:bg-neutral-100"
               >
                 Odstrániť audio
               </button>
@@ -515,11 +515,11 @@ export function DigitalnyRozhlas({
           />
 
           {audioPreviewUrl && audioFile && (
-            <div className="mt-3 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-3 dark:border-white/10 dark:bg-white/5">
-              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-200">
+            <div className="mt-3 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-3 dark:border-neutral-400 dark:bg-neutral-300">
+              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-900">
                 Nahraná zvuková správa
               </p>
-              <p className="mt-0.5 text-[11px] text-neutral-500">{audioFile.name}</p>
+              <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-700">{audioFile.name}</p>
               <audio controls preload="none" className="mt-2 w-full">
                 <source src={audioPreviewUrl} type={audioFile.type || "audio/webm"} />
               </audio>
@@ -530,7 +530,7 @@ export function DigitalnyRozhlas({
                     clearAudio();
                     if (canRecord) void startRecording();
                   }}
-                  className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+                  className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
                 >
                   Nahrať znova
                 </button>
@@ -545,7 +545,7 @@ export function DigitalnyRozhlas({
         </div>
 
         <div>
-          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-800">
             Priorita
           </p>
           <div className="flex gap-1.5">
@@ -557,7 +557,7 @@ export function DigitalnyRozhlas({
                 className={`flex-1 rounded-xl px-2 py-2 text-xs font-semibold transition ${
                   priority === p.key
                     ? p.color
-                    : "bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                    : "bg-neutral-100 text-neutral-600 dark:bg-neutral-300 dark:text-neutral-900"
                 }`}
               >
                 {p.label}
@@ -567,7 +567,7 @@ export function DigitalnyRozhlas({
         </div>
 
         <div>
-          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+          <p className="mb-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-800">
             Platnosť
           </p>
           <div className="grid grid-cols-4 gap-1.5">
@@ -579,7 +579,7 @@ export function DigitalnyRozhlas({
                 className={`rounded-xl px-1 py-2 text-[11px] font-semibold ${
                   expiryH === o.hours
                     ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                    : "bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                    : "bg-neutral-100 text-neutral-600 dark:bg-neutral-300 dark:text-neutral-900"
                 }`}
               >
                 {o.label}
@@ -678,23 +678,23 @@ export function FarskyUrad({
       <form onSubmit={submit} className="mt-4 space-y-3">
         <TextField label="Titulok" value={title} onChange={setTitle} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Obsah</span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-800">Obsah</span>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900"
             required
           />
         </label>
         <TextField label="Miesto" value={location} onChange={setLocation} />
         <label className="block">
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Termín</span>
+          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-800">Termín</span>
           <input
             type="datetime-local"
             value={dt}
             onChange={(e) => setDt(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-neutral-100"
+            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900"
           />
         </label>
         <button
@@ -786,7 +786,7 @@ export function RolePanels({ role }: { role: ProfileRole }) {
             subtitle="Presunuté do záložky Aktuality"
             tone="orange"
           />
-          <p className="mt-3 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">
+          <p className="mt-3 text-xs leading-relaxed text-neutral-600 dark:text-neutral-900">
             Hlásenie teraz otvoríš priamo v Aktualitách cez ikonu megafónu v sekcii Aktuality a
             oznamy.
           </p>
@@ -832,10 +832,10 @@ function PanelHeader({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-900">
           <BarChart3 className="h-3.5 w-3.5 opacity-50" /> {title}
         </p>
-        <p className="text-[11px] text-neutral-500 dark:text-neutral-400">{subtitle}</p>
+        <p className="text-[11px] text-neutral-500 dark:text-neutral-800">{subtitle}</p>
       </div>
     </div>
   );
@@ -843,9 +843,9 @@ function PanelHeader({
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-2xl border border-white/50 bg-white/70 p-3 text-center dark:border-white/10 dark:bg-white/5">
-      <p className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</p>
+    <div className="rounded-2xl border border-white/50 bg-white/70 p-3 text-center dark:border-neutral-300 dark:bg-neutral-200">
+      <p className="text-lg font-bold text-neutral-900 dark:text-neutral-900">{value}</p>
+      <p className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-800">{label}</p>
     </div>
   );
 }
@@ -863,12 +863,12 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">{label}</span>
+      <span className="text-xs font-medium text-neutral-600 dark:text-neutral-800">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 dark:border-white/10 dark:bg-white/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+        className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:placeholder:text-neutral-600"
       />
     </label>
   );

@@ -110,7 +110,7 @@ export function PostLightbox({
               )}
 
               {locked && (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900">
                   Režim čítania: aktivuj pozývací kód, ak chceš odpovedať alebo pridávať reakcie.
                 </div>
               )}
@@ -132,17 +132,17 @@ export function PostLightbox({
                       {list.map((reply) => (
                         <div
                           key={reply.id}
-                          className="rounded-xl bg-neutral-100/80 px-3 py-2 text-xs dark:bg-white/10"
+                          className="rounded-xl bg-neutral-100/80 px-3 py-2 text-xs dark:bg-neutral-200"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+                            <span className="font-semibold text-neutral-800 dark:text-neutral-900">
                               {reply.userName}
                             </span>
-                            <span className="text-[10px] text-neutral-500">
+                            <span className="text-[10px] text-neutral-500 dark:text-neutral-700">
                               {timeAgo(reply.createdAt)}
                             </span>
                           </div>
-                          <p className="mt-1 whitespace-pre-wrap text-neutral-700 dark:text-neutral-300">
+                          <p className="mt-1 whitespace-pre-wrap text-neutral-700 dark:text-neutral-800">
                             {reply.content}
                           </p>
                         </div>
@@ -180,7 +180,7 @@ export function PostLightbox({
             </div>
 
             {(onLike || onReport || canManage) && (
-              <div className="flex items-center gap-2 border-t border-neutral-200 bg-neutral-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <div className="flex items-center gap-2 border-t border-neutral-200 bg-neutral-50/70 px-4 py-3 dark:border-neutral-300 dark:bg-neutral-200">
                 {onLike && (
                   <button
                     onClick={onLike}
@@ -188,7 +188,7 @@ export function PostLightbox({
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       liked
                         ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                        : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-white/10 dark:text-neutral-200"
+                          : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-300 dark:text-neutral-900"
                     } ${locked ? "cursor-not-allowed opacity-40" : ""}`}
                   >
                     <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
@@ -198,7 +198,7 @@ export function PostLightbox({
                 {canManage && onEdit && (
                   <button
                     onClick={onEdit}
-                    className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:bg-white/10 dark:text-neutral-200"
+                    className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-300 dark:text-neutral-900"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Upraviť
                   </button>
@@ -206,7 +206,7 @@ export function PostLightbox({
                 {canManage && onDelete && (
                   <button
                     onClick={onDelete}
-                    className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-200 dark:hover:bg-rose-500/30"
+                    className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200 dark:bg-rose-200 dark:text-rose-900 dark:hover:bg-rose-300"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Zmazať
                   </button>
@@ -215,7 +215,7 @@ export function PostLightbox({
                   <button
                     onClick={onReport}
                     disabled={post.isReported || locked}
-                    className="ml-auto flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 dark:bg-white/10 dark:text-neutral-200"
+                    className="ml-auto flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 dark:bg-neutral-300 dark:text-neutral-900"
                   >
                     <Flag className="h-3.5 w-3.5" />
                     {post.isReported ? "Nahlásené" : "Nahlásiť"}

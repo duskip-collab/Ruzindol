@@ -99,22 +99,22 @@ export function SkladScreen() {
 
   return (
     <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col">
-      <div className="flex items-center gap-2 border-b border-neutral-200/60 bg-white/80 px-4 py-3 backdrop-blur-xl md:px-6">
+      <div className="flex items-center gap-2 border-b border-neutral-200/60 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200 md:px-6">
         <button
           onClick={() => setSection(null)}
-          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100"
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
         >
           <ArrowLeft className="h-4 w-4" />
           Späť do Skladu
         </button>
-        <div className="ml-auto flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+        <div className="ml-auto flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-900">
           {meta.icon}
           <span>{meta.title}</span>
         </div>
       </div>
 
       {isPoz && (
-        <div className="flex gap-1 border-b border-neutral-200/60 bg-white/60 p-1.5 backdrop-blur-xl md:px-4">
+        <div className="flex gap-1 border-b border-neutral-200/60 bg-white/60 p-1.5 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200 md:px-4">
           <TabButton active={pozTab === "ponuka"} onClick={() => setPozTab("ponuka")}>
             <Wrench className="h-4 w-4" /> Ponuka náradia
           </TabButton>
@@ -143,7 +143,7 @@ export function SkladScreen() {
       )}
 
       {meta.canAdd && !isActive && (
-        <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm backdrop-blur dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900">
           <span className="font-semibold">Režim čítania</span>
           <span className="opacity-80">· zadaj pozývací kód v profile a odomkni pridávanie.</span>
         </div>
@@ -173,8 +173,8 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
         active
-          ? "bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200"
-          : "text-neutral-500 hover:text-neutral-800"
+          ? "bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-300 dark:text-neutral-900 dark:ring-neutral-400"
+          : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-800 dark:hover:text-neutral-900"
       }`}
     >
       {children}
@@ -255,7 +255,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
           <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900">
           Zatiaľ tu nič nie je. Pridaj prvý inzerát cez +.
         </div>
       ) : (
@@ -266,17 +266,17 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
               <article
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="cursor-pointer rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl"
+                className="cursor-pointer rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold leading-tight text-neutral-900">{item.title}</h3>
+                  <h3 className="font-semibold leading-tight text-neutral-900 dark:text-neutral-900">{item.title}</h3>
                   <span
                     className={`shrink-0 rounded-full bg-gradient-to-r ${meta.accent} px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
                   >
                     {priceLabel(item.price)}
                   </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-neutral-600">{item.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-sm text-neutral-600 dark:text-neutral-800">{item.description}</p>
                 {item.image_url && (
                   <img
                     src={item.image_url}
@@ -285,7 +285,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                   />
                 )}
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-neutral-500">
+                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-neutral-500 dark:text-neutral-800">
                     <span className="truncate">
                       {item.profiles?.name ?? "Sused"}
                       {item.profiles?.street ? ` · ${item.profiles.street}` : ""}
@@ -299,7 +299,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                         void openChat(item);
                       }}
                       disabled={opening === item.id}
-                      className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
                     >
                       {opening === item.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -311,14 +311,14 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                   )}
                   {!isMine && !isActive && (
                     <span
-                      className="flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800"
+                      className="flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900"
                       title="Aktivuj sa pozývacím kódom"
                     >
                       🔒 Iba čítanie
                     </span>
                   )}
                 </div>
-                <div className="mt-2 border-t border-neutral-100 pt-2 text-right text-[11px] text-neutral-500">
+                <div className="mt-2 border-t border-neutral-100 pt-2 text-right text-[11px] text-neutral-500 dark:border-neutral-300 dark:text-neutral-800">
                   Rozklikni detail
                 </div>
               </article>
