@@ -25,8 +25,10 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { useAppMode } from "@/context/AppModeContext";
+import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   Accordion,
   AccordionContent,
@@ -552,6 +554,13 @@ function ProfileEditForm({
 
 function NotificationSettings() {
   const { muted, setMuted, categories, setCategory } = useNotifications();
+  const { fontScale, setFontScale, fontSizePx } = useFontScale();
+
+  const handleFontScaleChange = (value: number[]) => {
+    const next = Math.min(3, Math.max(1, Math.round(value[0] ?? 1))) as 1 | 2 | 3;
+    setFontScale(next);
+  };
+
   return (
     <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
       <div className="flex items-center gap-3">
@@ -571,6 +580,53 @@ function NotificationSettings() {
           </p>
         </div>
         <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
+      </div>
+
+      <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+              Veľkosť písma
+            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              {fontScale === 1
+                ? "Štandardné písmo"
+                : fontScale === 2
+                  ? `Stredne zväčšené (${fontSizePx}px)`
+                  : `Veľké písmo (${fontSizePx}px)`}
+            </p>
+          </div>
+          <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200">
+            {fontScale}
+          </span>
+        </div>
+
+        <Slider
+          value={[fontScale]}
+          min={1}
+          max={3}
+          step={1}
+          onValueChange={handleFontScaleChange}
+          aria-label="Veľkosť písma"
+          className="py-2"
+        />
+
+        <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
+          {FONT_SCALE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setFontScale(option.value)}
+              className={`rounded-full px-2 py-1 transition ${
+                fontScale === option.value
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300"
+              }`}
+            >
+              {option.label} · {option.description}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
