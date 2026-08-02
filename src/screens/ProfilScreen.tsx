@@ -342,11 +342,9 @@ export function ProfilScreen() {
             </AccordionSection>
           )}
 
-          {profile.role === "Sused" && (
-            <AccordionSection value="invite-neighbor" title="Pozvať suseda">
-              <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} />
-            </AccordionSection>
-          )}
+          <AccordionSection value="invite-neighbor" title="Pozvať suseda">
+            <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} />
+          </AccordionSection>
 
           <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
             {itemsLoading ? (
@@ -475,15 +473,9 @@ function AccordionSection({
 
 function ProfileEditForm({
   initialName,
-                                            {codes.map((row) => {
-                                              const code = row.code;
-                                              const whatsappText = encodeURIComponent(inviteMessage(code));
-                                              const shareUrl =
-                                                typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-                                              const fbQuote = encodeURIComponent(inviteMessage(code));
-                                              return (
+  initialStreet,
   userId,
-                                                key={row.id}
+  onSaved,
 }: {
   initialName: string;
   initialStreet: string;
@@ -495,14 +487,8 @@ function ProfileEditForm({
   const [saving, setSaving] = useState(false);
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-                                                  <button
-                                                    onClick={() => void shareNative(code)}
-                                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
-                                                  >
-                                                    <Share2 className="h-3 w-3" /> Zdieľať
-                                                  </button>
 
-                                                    href={`https://wa.me/?text=${whatsappText}`}
+  const dirty = name.trim() !== initialName.trim() || street.trim() !== initialStreet.trim();
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -510,24 +496,30 @@ function ProfileEditForm({
     setSaving(true);
     setErr(null);
     setOk(false);
-                                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                                                      shareUrl,
-                                                    )}&quote=${fbQuote}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+
+    const payload = {
+      name: name.trim(),
+      street: street.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
     setSaving(false);
-                                                    Facebook
+    if (error) {
       setErr(error.message);
       return;
     }
-                                              );
-                                            })}
+
+    setOk(true);
     setTimeout(() => setOk(false), 1500);
     await onSaved();
-                                        {copied === "__all__" && (
-                                          <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
-                                        )}
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        void save(e);
+      }}
       className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl"
     >
       <h3 className="text-sm font-semibold text-foreground">Úprava profilu</h3>
