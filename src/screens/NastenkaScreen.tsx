@@ -446,11 +446,11 @@ export function NastenkaScreen() {
       )}
 
       {/* Hlásnik */}
-      <section className="border-b border-neutral-200/70 pb-3 dark:border-white/10">
+      <section className="border-b border-neutral-200/70 bg-white pb-3 text-neutral-900 dark:border-neutral-200 dark:bg-white">
         <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
           <div>
-            <h2 className="text-base font-semibold tracking-tight">📢 Obecný hlásnik</h2>
-            <p className="text-[11px] text-muted-foreground">Oficiálne oznamy obce</p>
+            <h2 className="text-base font-semibold tracking-tight text-neutral-900">📢 Obecný hlásnik</h2>
+            <p className="text-[11px] text-neutral-600">Oficiálne oznamy obce</p>
           </div>
           {canCreateOfficialNotice && !isReadonly && (
             <button
@@ -464,7 +464,7 @@ export function NastenkaScreen() {
         <div className="overflow-x-auto md:overflow-visible">
           <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
             {oznamy.length === 0 && (
-              <div className="flex h-32 w-full items-center justify-center text-xs text-neutral-500">
+              <div className="flex h-32 w-full items-center justify-center text-xs text-neutral-600">
                 Zatiaľ žiadne oznamy.
               </div>
             )}

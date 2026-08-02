@@ -159,7 +159,7 @@ function Index() {
               layout="sidebar"
               className="flex-1"
             />
-            <div className="mt-4 rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="mt-4 rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-[11px] text-muted-foreground dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
               Zobrazenie pre desktop. Prepínaj sekcie v ľavom paneli.
             </div>
           </aside>
@@ -218,11 +218,11 @@ function Index() {
           </div>
 
           <aside className="glass-panel hidden h-full w-[300px] shrink-0 flex-col gap-3 rounded-[2rem] p-4 xl:flex">
-            <div className="rounded-2xl border border-border/70 bg-white/70 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 bg-white/70 p-3 dark:border-neutral-300 dark:bg-neutral-200">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground dark:text-neutral-800">
                 Aktívna sekcia
               </p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
+              <p className="mt-1 text-sm font-semibold text-foreground dark:text-neutral-950">
                 {activeTabMeta?.label ?? "Nástenka"}
               </p>
             </div>
@@ -230,7 +230,7 @@ function Index() {
             <button
               type="button"
               onClick={handleBellClick}
-              className="flex items-center justify-between rounded-2xl border border-border/70 bg-white/70 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-white"
+              className="flex items-center justify-between rounded-2xl border border-border/70 bg-white/70 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-white dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-950 dark:hover:bg-neutral-100"
             >
               <span>Notifikácie</span>
               <span className="relative">
@@ -241,7 +241,7 @@ function Index() {
               </span>
             </button>
 
-            <div className="rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-xs text-muted-foreground">
+            <div className="rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-xs text-muted-foreground dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
               Pre mobilné zariadenia je k dispozícii spodná navigácia. Na desktope je nahradená
               bočným panelom.
             </div>
