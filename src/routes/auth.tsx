@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Chrome, Mail, Sparkles, Loader2 } from "lucide-react";
+import { LegalDocumentsDialog, LegalLinkButton, type LegalSection } from "@/components/LegalDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteRedeemSection } from "@/components/InviteRedeemSection";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,9 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalDialogOpen, setLegalDialogOpen] = useState(false);
+  const [legalDialogSection, setLegalDialogSection] = useState<LegalSection>("terms");
 
   useEffect(() => {
     // Načítanie obcí
@@ -55,6 +59,14 @@ function AuthPage() {
     e.preventDefault();
     setError(null);
     setNotice(null);
+
+    if (mode === "signup" && !legalAccepted) {
+      setError(
+        "Pred registráciou musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.",
+      );
+      return;
+    }
+
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -66,7 +78,13 @@ function AuthPage() {
           email,
           password,
           options: {
-            data: { name, street, municipality_id: municipalityId },
+            data: {
+              name,
+              street,
+              municipality_id: municipalityId,
+              legal_accepted_at: new Date().toISOString(),
+              legal_version: "2026-08-03",
+            },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -100,6 +118,11 @@ function AuthPage() {
       setError(error.message);
       setBusy(false);
     }
+  }
+
+  function openLegalDialog(section: LegalSection) {
+    setLegalDialogSection(section);
+    setLegalDialogOpen(true);
   }
 
   return (
@@ -223,6 +246,29 @@ function AuthPage() {
                         </select>
                       )}
                     </div>
+                    <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-sm text-slate-200 sm:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={legalAccepted}
+                        onChange={(e) => setLegalAccepted(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-400 focus:ring-emerald-400"
+                        required
+                      />
+                      <span className="leading-6">
+                        Súhlasím so
+                        {" "}
+                        <LegalLinkButton section="terms" onOpen={openLegalDialog}>
+                          Všeobecnými podmienkami používania
+                        </LegalLinkButton>
+                        {" "}
+                        a
+                        {" "}
+                        <LegalLinkButton section="privacy" onOpen={openLegalDialog}>
+                          Zásadami ochrany osobných údajov
+                        </LegalLinkButton>
+                        .
+                      </span>
+                    </label>
                   </div>
                 )}
 
@@ -240,7 +286,7 @@ function AuthPage() {
 
                 <Button
                   type="submit"
-                  disabled={busy}
+                  disabled={busy || (mode === "signup" && !legalAccepted)}
                   className="h-11 w-full rounded-2xl bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400"
                 >
                   {busy ? (
@@ -311,6 +357,12 @@ function AuthPage() {
           </Card>
         </div>
       </div>
+
+      <LegalDocumentsDialog
+        open={legalDialogOpen}
+        onOpenChange={setLegalDialogOpen}
+        initialSection={legalDialogSection}
+      />
     </div>
   );
 }

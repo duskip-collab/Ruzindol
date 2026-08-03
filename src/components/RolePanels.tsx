@@ -341,7 +341,9 @@ export function DigitalnyRozhlas({
             ? "audio/webm"
             : "";
 
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 48_000 })
+        : new MediaRecorder(stream);
       recorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -386,11 +388,11 @@ export function DigitalnyRozhlas({
     if (!file) return;
     const allowed = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/webm"];
     if (!allowed.includes(file.type)) {
-      setRecordError("Podporované sú len súbory MP3 alebo WAV.");
+      setRecordError("Podporované sú súbory MP3, WAV alebo WEBM.");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setRecordError("Zvukový súbor je príliš veľký. Zvoľ menší než 20 MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setRecordError("Zvukový súbor musí mať najviac 5 MB. Väčšie súbory sa pred uložením skúsia komprimovať.");
       return;
     }
     setRecordError(null);
@@ -489,7 +491,7 @@ export function DigitalnyRozhlas({
               onClick={() => fileInputRef.current?.click()}
               className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
-              Nahrať súbor MP3 / WAV
+              Nahrať súbor MP3 / WAV / WEBM
             </button>
 
             {audioFile && (
@@ -506,7 +508,7 @@ export function DigitalnyRozhlas({
           <input
             ref={fileInputRef}
             type="file"
-            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/webm"
             className="hidden"
             onChange={(e) => {
               handleFileUpload(e.target.files?.[0] ?? null);
@@ -518,6 +520,9 @@ export function DigitalnyRozhlas({
             <div className="mt-3 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-3 dark:border-neutral-400 dark:bg-neutral-300">
               <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-900">
                 Nahraná zvuková správa
+              </p>
+              <p className="mt-1 text-[11px] text-neutral-600 dark:text-neutral-800">
+                Pred uložením sa súbor skomprimuje a musí zostať pod limitom 5 MB.
               </p>
               <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-700">{audioFile.name}</p>
               <audio controls preload="none" className="mt-2 w-full">

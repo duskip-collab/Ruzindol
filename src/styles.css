@@ -204,5 +204,11 @@
     font-family: var(--font-sans);
     line-height: 1.6;
   }
+
+  .dark .dark-readable-surface {
+    background: color-mix(in oklab, white 88%, var(--color-card));
+    color: oklch(0.22 0.025 255);
+    border-color: color-mix(in oklab, var(--color-border) 82%, transparent);
+  }
 }
 

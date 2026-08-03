@@ -11,12 +11,51 @@ type Alert = {
 
 const DISMISS_KEY = "aktuality_alert_dismissed";
 
+function playPriorityFeedback() {
+  navigator.vibrate?.([250, 120, 250, 120, 500]);
+
+  if (typeof window === "undefined") return;
+
+  try {
+    const AudioCtx = window.AudioContext || (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const context = new AudioCtx();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(880, context.currentTime);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.45);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.45);
+    oscillator.onended = () => {
+      void context.close();
+    };
+  } catch {
+    // Ignore audio feedback failures.
+  }
+}
+
 export function FullscreenAlert() {
   const [alert, setAlert] = useState<Alert | null>(null);
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     let mounted = true;
+    const showAlert = (next: Alert | null) => {
+      if (!next || !mounted) return;
+      const dismissed = localStorage.getItem(DISMISS_KEY);
+      if (dismissed === next.id) return;
+      setCountdown(5);
+      setAlert(next);
+      playPriorityFeedback();
+    };
+
     (async () => {
       const { data } = await supabase
         .from("announcements")
@@ -24,14 +63,24 @@ export function FullscreenAlert() {
         .eq("priority", "vystraha")
         .order("published_at", { ascending: false })
         .limit(1);
-      const latest = data?.[0] as Alert | undefined;
-      if (!mounted || !latest) return;
-      const dismissed = localStorage.getItem(DISMISS_KEY);
-      if (dismissed === latest.id) return;
-      setAlert(latest);
+      showAlert((data?.[0] as Alert | undefined) ?? null);
     })();
+
+    const channel = supabase
+      .channel("fullscreen-critical-alerts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "announcements", filter: "priority=eq.vystraha" },
+        (payload) => {
+          const row = payload.new as Alert;
+          showAlert(row);
+        },
+      )
+      .subscribe();
+
     return () => {
       mounted = false;
+      void supabase.removeChannel(channel);
     };
   }, []);
 

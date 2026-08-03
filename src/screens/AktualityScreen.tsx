@@ -279,7 +279,7 @@ function AnnouncementCard({
   const emphasize = item.priority === "vystraha" || item.priority === "urgentne";
   return (
     <article
-      className={`relative rounded-2xl border-2 bg-white/90 p-3 shadow-sm backdrop-blur ${
+      className={`relative rounded-2xl border-2 bg-white/90 p-3 text-neutral-900 shadow-sm backdrop-blur dark:bg-white ${
         emphasize ? meta.ring : "border-neutral-200/70"
       } ${item.priority === "vystraha" ? "ring-2 ring-red-200" : ""}`}
     >
@@ -316,7 +316,7 @@ function AnnouncementCard({
       )}
 
       {item.audio_url && (
-        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2">
+        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100">
           <audio controls preload="none" className="w-full">
             <source src={item.audio_url} />
           </audio>

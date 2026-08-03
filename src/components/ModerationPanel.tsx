@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Ban, ShieldCheck, Trash2, Search, Gavel } from "lucide-react";
+import { Loader2, Ban, ShieldCheck, Trash2, Search, Gavel, Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileRole } from "@/hooks/useCurrentUser";
 
@@ -11,9 +11,25 @@ type Row = {
   ban_reason: string | null;
 };
 
+type InviteRow = {
+  id: string;
+  code: string;
+  created_by: string | null;
+  created_at: string;
+  used_by: string | null;
+  used_at: string | null;
+  shared_at: string | null;
+  shared_via: string | null;
+};
+
+type ProfileNameRow = { id: string; name: string | null };
+
 export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
+  const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [inviteUsers, setInviteUsers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [inviteLoading, setInviteLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -24,14 +40,39 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, name, role, banned_until, ban_reason")
-      .order("name")
-      .limit(200);
+    const [{ data, error }, { data: inviteData, error: inviteError }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, name, role, banned_until, ban_reason")
+        .order("name")
+        .limit(200),
+      supabase
+        .from("invite_codes")
+        .select("id, code, created_by, created_at, used_by, used_at, shared_at, shared_via")
+        .order("created_at", { ascending: false })
+        .limit(80),
+    ]);
+
     if (error) setErr(error.message);
+    if (inviteError) setErr(inviteError.message);
     setRows((data as Row[] | null) ?? []);
+    const inviteRows = (inviteData as InviteRow[] | null) ?? [];
+    setInvites(inviteRows);
+
+    const ids = Array.from(new Set(inviteRows.flatMap((row) => [row.created_by, row.used_by]).filter(Boolean))) as string[];
+    if (ids.length > 0) {
+      const { data: profileNames } = await supabase.from("profiles").select("id, name").in("id", ids);
+      const map: Record<string, string> = {};
+      (profileNames as ProfileNameRow[] | null)?.forEach((profile) => {
+        map[profile.id] = profile.name ?? "Sused";
+      });
+      setInviteUsers(map);
+    } else {
+      setInviteUsers({});
+    }
+
     setLoading(false);
+    setInviteLoading(false);
   };
 
   useEffect(() => {
@@ -51,6 +92,18 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
     if (!q) return rows;
     return rows.filter((r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q));
   }, [rows, query]);
+
+  const inviteSummary = useMemo(() => {
+    return invites.reduce(
+      (acc, invite) => {
+        if (invite.used_by) acc.used += 1;
+        else if (invite.shared_at) acc.shared += 1;
+        else acc.free += 1;
+        return acc;
+      },
+      { free: 0, shared: 0, used: 0 },
+    );
+  }, [invites]);
 
   function flash(text: string) {
     setMsg(text);
@@ -241,6 +294,105 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
           })}
         </ul>
       )}
+
+      <div className="mt-5 border-t border-rose-200/70 pt-4 dark:border-white/10">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
+            <Ticket className="h-4 w-4" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              História pozvánok
+            </h4>
+            <p className="text-[11px] text-neutral-500">
+              Moderácia vidí voľné, zdieľané aj použité kódy na jednom mieste.
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
+            <div className="font-semibold">Voľné</div>
+            <div className="mt-1 text-lg font-bold">{inviteSummary.free}</div>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+            <div className="font-semibold">Zdieľané</div>
+            <div className="mt-1 text-lg font-bold">{inviteSummary.shared}</div>
+          </div>
+          <div className="rounded-xl border border-neutral-200 bg-neutral-100 px-3 py-2 text-[11px] text-neutral-800">
+            <div className="font-semibold">Použité</div>
+            <div className="mt-1 text-lg font-bold">{inviteSummary.used}</div>
+          </div>
+        </div>
+
+        {inviteLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
+          </div>
+        ) : invites.length === 0 ? (
+          <p className="text-xs text-neutral-500">História pozvánok je zatiaľ prázdna.</p>
+        ) : (
+          <div className="max-h-72 overflow-y-auto rounded-xl border border-neutral-200 bg-white dark:border-white/10 dark:bg-white/5">
+            <table className="w-full text-[11px] text-neutral-800 dark:text-neutral-200">
+              <thead className="bg-neutral-50 text-left text-neutral-500 dark:bg-white/5">
+                <tr>
+                  <th className="px-2 py-1.5 font-medium">Kód</th>
+                  <th className="px-2 py-1.5 font-medium">Vytvoril</th>
+                  <th className="px-2 py-1.5 font-medium">Stav</th>
+                  <th className="px-2 py-1.5 font-medium">Použil</th>
+                  <th className="px-2 py-1.5 font-medium">História</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invites.map((invite) => {
+                  const status = invite.used_by ? "used" : invite.shared_at ? "shared" : "free";
+
+                  return (
+                    <tr key={invite.id} className="border-t border-neutral-100 dark:border-white/5">
+                      <td className="px-2 py-1.5 font-mono tracking-wider">
+                        <span className={status !== "free" ? "text-neutral-400 line-through" : ""}>
+                          {invite.code}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-neutral-500">
+                        {invite.created_by ? (inviteUsers[invite.created_by] ?? invite.created_by.slice(0, 6)) : "—"}
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                            status === "used"
+                              ? "bg-neutral-100 text-neutral-500 dark:bg-white/10"
+                              : status === "shared"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                          }`}
+                        >
+                          {status === "used" ? "Použitý" : status === "shared" ? "Zdieľaný" : "Voľný"}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-neutral-500">
+                        {invite.used_by ? (inviteUsers[invite.used_by] ?? invite.used_by.slice(0, 6)) : "—"}
+                      </td>
+                      <td className="px-2 py-1.5 text-neutral-400">
+                        <div>Vytvorený: {new Date(invite.created_at).toLocaleDateString("sk-SK")}</div>
+                        {invite.shared_at && (
+                          <div>
+                            Zdieľaný: {new Date(invite.shared_at).toLocaleDateString("sk-SK")}
+                            {invite.shared_via ? ` (${invite.shared_via})` : ""}
+                          </div>
+                        )}
+                        {invite.used_at && (
+                          <div>Použitý: {new Date(invite.used_at).toLocaleDateString("sk-SK")}</div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
+import { LegalInfoPanel } from "@/components/LegalDocuments";
 import { useTheme } from "@/context/ThemeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
@@ -45,6 +46,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { removeBucketObject } from "@/lib/storage";
+import { formatWarehouseExpiry, getWarehouseLifetimeLabel, resolveWarehouseExpiry, type WarehouseItemType } from "@/lib/warehouse";
 
 type Item = {
   id: string;
@@ -52,6 +55,8 @@ type Item = {
   title: string;
   price: number;
   created_at: string;
+  expires_at: string | null;
+  image_path: string | null;
 };
 
 type InviteCodeRow = {
@@ -123,7 +128,7 @@ export function ProfilScreen() {
     setItemsLoading(true);
     const { data } = await supabase
       .from("warehouse_items")
-      .select("id, type, title, price, created_at")
+      .select("id, type, title, price, created_at, expires_at, image_path")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     setItems((data as Item[] | null) ?? []);
@@ -145,7 +150,15 @@ export function ProfilScreen() {
 
   async function deleteItem(id: string) {
     if (!confirm("Naozaj vymazať tento inzerát?")) return;
+    const item = items.find((entry) => entry.id === id);
     setBusyItemId(id);
+    if (item?.image_path) {
+      try {
+        await removeBucketObject("warehouse", item.image_path);
+      } catch (error) {
+        console.error("Nepodarilo sa zmazať fotku inzerátu zo Storage:", error);
+      }
+    }
     const { error } = await supabase.from("warehouse_items").delete().eq("id", id);
     setBusyItemId(null);
     if (error) {
@@ -318,6 +331,7 @@ export function ProfilScreen() {
           <AccordionSection value="settings" title="Vzhľad & notifikácie">
             <div className="flex flex-col gap-3">
               <NotificationSettings />
+              <LegalInfoPanel />
             </div>
           </AccordionSection>
 
@@ -364,9 +378,12 @@ export function ProfilScreen() {
             ) : (
               <ul className="flex flex-col gap-2">
                 {items.map((item) => {
-                  // Inzerát v Sklade považujeme za expirovaný po 14 dňoch.
-                  const ageMs = nowMs - new Date(item.created_at).getTime();
-                  const isExpired = ageMs > 14 * 24 * 60 * 60 * 1000;
+                  const expiryDate = resolveWarehouseExpiry(
+                    item.type as WarehouseItemType,
+                    item.created_at,
+                    item.expires_at,
+                  );
+                  const isExpired = expiryDate.getTime() <= nowMs;
                   const busy = busyItemId === item.id;
                   return (
                     <li
@@ -386,6 +403,12 @@ export function ProfilScreen() {
                               {CATEGORY_LABEL[item.type] ?? item.type}
                             </span>
                             <span>{timeAgo(item.created_at)}</span>
+                            <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
+                              Platnosť {getWarehouseLifetimeLabel(item.type as WarehouseItemType)}
+                            </span>
+                            <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
+                              Do {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
+                            </span>
                             {isExpired && (
                               <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                                 Expirovaný
@@ -985,15 +1008,18 @@ function AccountActions({ userId }: { userId: string }) {
     window.location.href = "/auth";
   }
 
-  async function deleteProfile() {
+  async function deleteAccount() {
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.from("profiles").delete().eq("id", userId);
+
+    const { error } = await supabase.rpc("delete_my_account");
+
     if (error) {
       setBusy(false);
       setErr(error.message);
       return;
     }
+
     await supabase.auth.signOut();
     window.location.href = "/auth";
   }
@@ -1013,7 +1039,7 @@ function AccountActions({ userId }: { userId: string }) {
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
         >
           <Trash2 className="h-4 w-4" />
-          Natrvalo vymazať profil
+          Zmazať účet
         </button>
         {err && <p className="text-center text-xs text-rose-600">{err}</p>}
       </div>
@@ -1021,10 +1047,10 @@ function AccountActions({ userId }: { userId: string }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Vymazať profil natrvalo?</AlertDialogTitle>
+            <AlertDialogTitle>Zmazať účet natrvalo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Táto akcia je nezvratná. Tvoje meno, ulica a inzeráty budú odstránené a budeš
-              odhlásený.
+              Táto akcia je nezvratná. Odstráni sa tvoj prihlasovací účet aj naviazané profily,
+              inzeráty, správy a ďalšie používateľské dáta, ktoré sú na účet technicky naviazané.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1032,7 +1058,7 @@ function AccountActions({ userId }: { userId: string }) {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                deleteProfile();
+                void deleteAccount();
               }}
               disabled={busy}
               className="bg-rose-600 text-white hover:bg-rose-700"

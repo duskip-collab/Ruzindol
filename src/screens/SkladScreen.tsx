@@ -16,6 +16,14 @@ import { uploadCompressedImage } from "@/lib/upload-image";
 import { SafeChat } from "@/components/SafeChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { removeBucketObject } from "@/lib/storage";
+import {
+  formatWarehouseExpiry,
+  getWarehouseExpiryIso,
+  getWarehouseLifetimeLabel,
+  getWarehouseRemainingLabel,
+  type WarehouseItemType,
+} from "@/lib/warehouse";
 
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 
@@ -31,7 +39,9 @@ type Item = {
   description: string;
   price: number;
   image_url: string | null;
+  image_path: string | null;
   created_at: string;
+  expires_at: string | null;
   profiles?: { name: string; street: string | null; is_active_neighbor?: boolean | null } | null;
 };
 
@@ -192,7 +202,7 @@ function useItems(type: ItemType) {
       setLoading(true);
       const { data } = await supabase
         .from("warehouse_items")
-        .select("*, profiles(name, street, is_active_neighbor)")
+        .select("id, user_id, type, title, description, price, image_url, image_path, created_at, expires_at, profiles(name, street, is_active_neighbor)")
         .eq("type", type)
         .order("created_at", { ascending: false });
       if (!mounted) return;
@@ -211,6 +221,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
   const { items, loading } = useItems(type);
   const { userId, profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
+  const [nowMs] = useState(() => Date.now());
   const [chat, setChat] = useState<{ chatId: string; item: Item } | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
@@ -262,6 +273,13 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           {items.map((item) => {
             const isMine = item.user_id === userId;
+            const validityLabel = getWarehouseLifetimeLabel(item.type as WarehouseItemType);
+            const remainingLabel = getWarehouseRemainingLabel(
+              item.type as WarehouseItemType,
+              item.created_at,
+              nowMs,
+              item.expires_at,
+            );
             return (
               <article
                 key={item.id}
@@ -277,6 +295,14 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                   </span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-sm text-neutral-600 dark:text-neutral-800">{item.description}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="rounded-full bg-neutral-100 px-2 py-1 font-medium text-neutral-700 dark:bg-neutral-300 dark:text-neutral-900">
+                    Platnosť {validityLabel}
+                  </span>
+                  <span className="rounded-full bg-neutral-100 px-2 py-1 font-medium text-neutral-700 dark:bg-neutral-300 dark:text-neutral-900">
+                    {remainingLabel}
+                  </span>
+                </div>
                 {item.image_url && (
                   <img
                     src={item.image_url}
@@ -319,7 +345,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                   )}
                 </div>
                 <div className="mt-2 border-t border-neutral-100 pt-2 text-right text-[11px] text-neutral-500 dark:border-neutral-300 dark:text-neutral-800">
-                  Rozklikni detail
+                  Expiruje {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
                 </div>
               </article>
             );
@@ -419,6 +445,9 @@ function ListingDetailModal({
             </p>
             <p className="mt-0.5 text-neutral-500">
               Pridané: {new Date(item.created_at).toLocaleString("sk-SK")}
+            </p>
+            <p className="mt-0.5 text-neutral-500">
+              Expiruje: {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
             </p>
           </div>
         </div>
@@ -589,9 +618,13 @@ function AddListingModal({
     setBusy(true);
     try {
       let image_url: string | null = null;
-      if (photo) image_url = await uploadCompressedImage(photo, userId);
+      let image_path: string | null = null;
+      if (photo) {
+        const upload = await uploadCompressedImage(photo, userId);
+        image_url = upload.imageUrl;
+        image_path = upload.imagePath;
+      }
       const numericPrice = isDarovanie ? 0 : Number(price) || 0;
-      console.log("Debug: Vkladam inzerat, userId:", userId, "Type:", type);
       const { error } = await supabase.from("warehouse_items").insert({
         user_id: userId,
         type,
@@ -599,6 +632,8 @@ function AddListingModal({
         description: description.trim(),
         price: numericPrice,
         image_url,
+        image_path,
+        expires_at: getWarehouseExpiryIso(type as WarehouseItemType),
       });
       if (error) throw error;
       onClose();
@@ -719,13 +754,13 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       const description = `${text.trim()}\nKontakt: ${contact.trim()}`;
-      console.log("Debug: Vkladam inzerat, userId:", userId, "Type:", "sklad_dopyt");
       const { error } = await supabase.from("warehouse_items").insert({
         user_id: userId,
         type: "sklad_dopyt",
         title: text.trim().slice(0, 80),
         description,
         price: 0,
+        expires_at: getWarehouseExpiryIso("sklad_dopyt"),
       });
       if (error) throw error;
       onClose();

@@ -158,6 +158,39 @@ export type Database = {
           },
         ];
       };
+      event_attendees: {
+        Row: {
+          created_at: string;
+          event_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          event_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          event_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_attendees_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       group_admins: {
         Row: {
           created_at: string;
@@ -615,7 +648,9 @@ export type Database = {
         Row: {
           created_at: string;
           description: string;
+          expires_at: string | null;
           id: string;
+          image_path: string | null;
           image_url: string | null;
           price: number;
           title: string;
@@ -626,7 +661,9 @@ export type Database = {
         Insert: {
           created_at?: string;
           description?: string;
+          expires_at?: string | null;
           id?: string;
+          image_path?: string | null;
           image_url?: string | null;
           price?: number;
           title: string;
@@ -637,7 +674,9 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string;
+          expires_at?: string | null;
           id?: string;
+          image_path?: string | null;
           image_url?: string | null;
           price?: number;
           title?: string;
@@ -667,6 +706,7 @@ export type Database = {
       can_moderate: { Args: { _user_id: string }; Returns: boolean };
       can_manage_group_sections: { Args: { _user_id: string }; Returns: boolean };
       cleanup_expired_announcements: { Args: never; Returns: number };
+      cleanup_expired_warehouse_items: { Args: never; Returns: number };
       cleanup_expired_group_announcements: { Args: never; Returns: number };
       cleanup_old_neighbor_posts: { Args: never; Returns: number };
       cleanup_used_invite_codes: { Args: never; Returns: number };

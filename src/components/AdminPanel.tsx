@@ -178,6 +178,18 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
     [codes, filterRole, filterStatus],
   );
 
+  const summary = useMemo(() => {
+    return codes.reduce(
+      (acc, code) => {
+        if (code.used_by) acc.used += 1;
+        else if (code.shared_at) acc.shared += 1;
+        else acc.free += 1;
+        return acc;
+      },
+      { free: 0, shared: 0, used: 0 },
+    );
+  }, [codes]);
+
   function codeStatus(c: InviteRow) {
     if (c.used_by) return "used" as const;
     if (c.shared_at) return "shared" as const;
@@ -189,6 +201,21 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
       <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
         Generovanie pozvánok
       </h4>
+
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
+          <div className="font-semibold">Voľné</div>
+          <div className="mt-1 text-lg font-bold">{summary.free}</div>
+        </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+          <div className="font-semibold">Zdieľané</div>
+          <div className="mt-1 text-lg font-bold">{summary.shared}</div>
+        </div>
+        <div className="rounded-xl border border-neutral-200 bg-neutral-100 px-3 py-2 text-[11px] text-neutral-800">
+          <div className="font-semibold">Použité</div>
+          <div className="mt-1 text-lg font-bold">{summary.used}</div>
+        </div>
+      </div>
 
       <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-xl border border-neutral-200 bg-white p-2 dark:border-white/10 dark:bg-white/5">
         <label className="col-span-1 text-[11px]">
@@ -363,7 +390,7 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
         </div>
       )}
       <p className="mt-1.5 text-[10px] text-neutral-400">
-        Zdieľané a použité kódy ostávajú v histórii pre administrátorský prehľad.
+        Bežnému používateľovi po zdieľaní alebo použití kód zmizne z profilu, no história ostáva tu.
       </p>
     </div>
   );

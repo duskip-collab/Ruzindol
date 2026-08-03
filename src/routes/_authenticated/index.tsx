@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { Bell } from "lucide-react";
+import { Bell, PlusSquare, Share2, X } from "lucide-react";
 
 import { Header } from "@/components/Header";
 import { BottomNav, NAV_TABS, type Tab } from "@/components/BottomNav";
@@ -79,7 +79,8 @@ function Index() {
     clearMessageUnread,
     clearOfficialUnread,
   } = useNotifications();
-  const { canInstall, isPrompting, promptInstall } = usePwaInstall();
+  const { canInstall, canShowIosHint, isPrompting, promptInstall, dismissIosInstallHint } =
+    usePwaInstall();
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
@@ -170,13 +171,47 @@ function Index() {
                 profile={profile}
                 hasNotificationDot={hasBellDot}
                 onBellClick={handleBellClick}
-                canInstall={canInstall}
+                canInstall={canInstall || canShowIosHint}
                 installBusy={isPrompting}
                 onInstallClick={handleInstallClick}
                 subtitle="Komunitné centrum"
                 className="mx-3 mt-2 md:mx-4 md:mt-3 xl:mx-5 xl:mt-5"
               />
             </div>
+            {canShowIosHint && (
+              <div className="mx-3 mt-2 md:mx-4 xl:mx-5">
+                <div className="airy-panel relative overflow-hidden rounded-[1.75rem] px-4 py-3 text-sm text-foreground">
+                  <button
+                    type="button"
+                    onClick={dismissIosInstallHint}
+                    className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                    aria-label="Zavrieť návod na inštaláciu"
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="flex items-start gap-3 pr-8">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand/15 to-brand-glow/20 text-brand">
+                      <Share2 size={18} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold tracking-tight">Pridajte aplikáciu na plochu</p>
+                      <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+                        Pre inštaláciu aplikácie kliknite na ikonu Zdieľať a vyberte Pridať na plochu.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-brand">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1">
+                          <Share2 size={14} /> Zdieľať
+                        </span>
+                        <span className="text-muted-foreground">potom</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1">
+                          <PlusSquare size={14} /> Pridať na plochu
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {userLoadError && (
               <div className="mx-3 mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 md:mx-4 xl:mx-5">
                 {userLoadError}

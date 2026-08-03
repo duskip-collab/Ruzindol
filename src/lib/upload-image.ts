@@ -8,7 +8,7 @@ const TEN_YEARS_SECONDS = 60 * 60 * 24 * 365 * 10;
 export async function uploadCompressedImage(
   image: CompressedImage,
   userId: string,
-): Promise<string> {
+): Promise<{ imagePath: string; imageUrl: string }> {
   const path = `${userId}/${crypto.randomUUID()}.jpg`;
 
   const { error } = await supabase.storage.from("warehouse").upload(path, image.file, {
@@ -22,5 +22,8 @@ export async function uploadCompressedImage(
     .createSignedUrl(path, TEN_YEARS_SECONDS);
   if (signErr) throw signErr;
 
-  return data.signedUrl;
+  return {
+    imagePath: path,
+    imageUrl: data.signedUrl,
+  };
 }

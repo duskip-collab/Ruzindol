@@ -26,6 +26,11 @@ type DbEvent = {
   type: EventCategory;
 };
 
+type EventAttendance = {
+  event_id: string;
+  user_id: string;
+};
+
 const THEME: Record<
   EventCategory,
   {
@@ -71,6 +76,9 @@ export function SharedCalendar() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
+  const [attendanceCounts, setAttendanceCounts] = useState<Record<string, number>>({});
+  const [attendanceBusyId, setAttendanceBusyId] = useState<string | null>(null);
 
   const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik";
 
@@ -81,8 +89,32 @@ export function SharedCalendar() {
       .gte("starts_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
       .order("starts_at", { ascending: true })
       .limit(50);
-    setEvents((data as DbEvent[]) ?? []);
-  }, []);
+    const eventList = (data as DbEvent[]) ?? [];
+    setEvents(eventList);
+
+    if (eventList.length === 0) {
+      setAttendingIds(new Set());
+      setAttendanceCounts({});
+      return;
+    }
+
+    const eventIds = eventList.map((event) => event.id);
+    const { data: attendanceRows } = await supabase
+      .from("event_attendees")
+      .select("event_id, user_id")
+      .in("event_id", eventIds);
+
+    const counts: Record<string, number> = {};
+    const myIds = new Set<string>();
+
+    (attendanceRows as EventAttendance[] | null)?.forEach((row) => {
+      counts[row.event_id] = (counts[row.event_id] ?? 0) + 1;
+      if (row.user_id === userId) myIds.add(row.event_id);
+    });
+
+    setAttendanceCounts(counts);
+    setAttendingIds(myIds);
+  }, [userId]);
 
   useEffect(() => {
     (async () => {
@@ -98,6 +130,40 @@ export function SharedCalendar() {
     if (!confirm("Naozaj vymazať túto udalosť?")) return;
     await supabase.from("events").delete().eq("id", id);
     setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  async function toggleAttendance(eventId: string) {
+    if (!userId || attendanceBusyId) return;
+
+    const isAttending = attendingIds.has(eventId);
+    setAttendanceBusyId(eventId);
+
+    if (isAttending) {
+      const { error } = await supabase
+        .from("event_attendees")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", userId);
+
+      setAttendanceBusyId(null);
+      if (error) return;
+
+      setAttendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(eventId);
+        return next;
+      });
+      setAttendanceCounts((prev) => ({ ...prev, [eventId]: Math.max((prev[eventId] ?? 1) - 1, 0) }));
+      return;
+    }
+
+    const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: userId });
+
+    setAttendanceBusyId(null);
+    if (error) return;
+
+    setAttendingIds((prev) => new Set(prev).add(eventId));
+    setAttendanceCounts((prev) => ({ ...prev, [eventId]: (prev[eventId] ?? 0) + 1 }));
   }
 
   function toggleExpand() {
@@ -170,7 +236,12 @@ export function SharedCalendar() {
               <EventRow
                 key={e.id}
                 event={e}
+                attendanceCount={attendanceCounts[e.id] ?? 0}
+                attending={attendingIds.has(e.id)}
+                attendanceBusy={attendanceBusyId === e.id}
                 canDelete={canManage || e.author_id === userId}
+                canAttend={Boolean(userId)}
+                onToggleAttendance={() => void toggleAttendance(e.id)}
                 onDelete={() => handleDelete(e.id)}
               />
             ))}
@@ -232,11 +303,21 @@ export function SharedCalendar() {
 
 function EventRow({
   event,
+  attendanceCount,
+  attending,
+  attendanceBusy,
+  canAttend,
   canDelete,
+  onToggleAttendance,
   onDelete,
 }: {
   event: DbEvent;
+  attendanceCount: number;
+  attending: boolean;
+  attendanceBusy: boolean;
+  canAttend: boolean;
   canDelete: boolean;
+  onToggleAttendance: () => void;
   onDelete: () => void;
 }) {
   const theme = THEME[event.type ?? "Samosprava"];
@@ -270,6 +351,25 @@ function EventRow({
             {event.location}
           </p>
         )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium text-neutral-700 shadow-sm">
+            Záujemcovia: {attendanceCount}
+          </span>
+          {canAttend && (
+            <button
+              type="button"
+              onClick={onToggleAttendance}
+              disabled={attendanceBusy}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                attending
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-neutral-900 text-white hover:bg-neutral-800"
+              } disabled:opacity-60`}
+            >
+              {attendanceBusy ? "Ukladám..." : attending ? "Zúčastním sa" : "Prídem"}
+            </button>
+          )}
+        </div>
       </div>
       {canDelete && (
         <button

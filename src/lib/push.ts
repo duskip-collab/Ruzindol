@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isIosDevice, isStandaloneMode } from "@/lib/pwa";
 
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
 
@@ -29,6 +30,16 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
 
   if (!PUBLIC_VAPID_KEY) {
     console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
+    return;
+  }
+
+  if (typeof Notification === "undefined") {
+    console.warn("Notification API nie je podporované v tomto prehliadači.");
+    return;
+  }
+
+  if (requestPermission && isIosDevice() && !isStandaloneMode()) {
+    console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
     return;
   }
 
