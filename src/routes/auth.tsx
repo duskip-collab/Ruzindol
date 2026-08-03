@@ -107,6 +107,16 @@ function AuthPage() {
   }
 
   async function handleGoogle() {
+    setError(null);
+    setNotice(null);
+
+    if (!legalAccepted) {
+      setError(
+        "Pred pokračovaním cez Google musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.",
+      );
+      return;
+    }
+
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -246,29 +256,13 @@ function AuthPage() {
                         </select>
                       )}
                     </div>
-                    <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-sm text-slate-200 sm:col-span-2">
-                      <input
-                        type="checkbox"
+                    <div className="sm:col-span-2">
+                      <ConsentCheckbox
                         checked={legalAccepted}
-                        onChange={(e) => setLegalAccepted(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-400 focus:ring-emerald-400"
-                        required
+                        onChange={setLegalAccepted}
+                        onOpenLegal={openLegalDialog}
                       />
-                      <span className="leading-6">
-                        Súhlasím so
-                        {" "}
-                        <LegalLinkButton section="terms" onOpen={openLegalDialog}>
-                          Všeobecnými podmienkami používania
-                        </LegalLinkButton>
-                        {" "}
-                        a
-                        {" "}
-                        <LegalLinkButton section="privacy" onOpen={openLegalDialog}>
-                          Zásadami ochrany osobných údajov
-                        </LegalLinkButton>
-                        .
-                      </span>
-                    </label>
+                    </div>
                   </div>
                 )}
 
@@ -330,13 +324,21 @@ function AuthPage() {
             <CardContent className="pt-6">
               <Button
                 onClick={handleGoogle}
-                disabled={busy}
+                disabled={busy || !legalAccepted}
                 variant="outline"
                 className="h-11 w-full rounded-2xl border-slate-300 bg-white text-slate-900 shadow-sm hover:bg-slate-50"
               >
                 <Chrome className="h-4 w-4" />
                 Pokračovať cez Google
               </Button>
+              <div className="mt-3">
+                <ConsentCheckbox
+                  checked={legalAccepted}
+                  onChange={setLegalAccepted}
+                  onOpenLegal={openLegalDialog}
+                  darkText
+                />
+              </div>
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 Po povolení providera v Supabase sa tu otvorí štandardný Google flow a po úspešnom
                 prihlásení sa vrátiš späť do aplikácie.
@@ -364,5 +366,48 @@ function AuthPage() {
         initialSection={legalDialogSection}
       />
     </div>
+  );
+}
+
+function ConsentCheckbox({
+  checked,
+  onChange,
+  onOpenLegal,
+  darkText = false,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  onOpenLegal: (section: LegalSection) => void;
+  darkText?: boolean;
+}) {
+  const textTone = darkText ? "text-slate-700" : "text-slate-200";
+  const linkTone = darkText
+    ? "font-semibold text-emerald-700 underline underline-offset-4 hover:text-emerald-600"
+    : "font-semibold text-emerald-300 underline underline-offset-4 hover:text-emerald-200";
+
+  return (
+    <label className={`flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-sm ${textTone}`}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-400 focus:ring-emerald-400"
+      />
+      <span className="max-h-24 overflow-y-auto pr-1 leading-6">
+        Súhlasím so
+        {" "}
+        <LegalLinkButton section="terms" onOpen={onOpenLegal} className={linkTone}>
+          Všeobecnými podmienkami používania
+        </LegalLinkButton>
+        {" "}
+        a
+        {" "}
+        <LegalLinkButton section="privacy" onOpen={onOpenLegal} className={linkTone}>
+          Zásadami ochrany osobných údajov
+        </LegalLinkButton>
+        . Beriem na vedomie, že moje údaje (e-mail, meno/prezývka) budú spracúvané na účely
+        fungovania komunitnej aplikácie.
+      </span>
+    </label>
   );
 }

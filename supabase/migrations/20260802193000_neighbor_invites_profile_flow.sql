@@ -54,6 +54,10 @@ BEGIN
 END;
 $$;
 
+-- Recreate to avoid return-type conflict on environments where this function
+-- already exists with a different OUT signature.
+DROP FUNCTION IF EXISTS public.get_or_create_neighbor_invite_codes(integer);
+
 CREATE OR REPLACE FUNCTION public.get_or_create_neighbor_invite_codes(_count integer DEFAULT 3)
 RETURNS TABLE(
   id uuid,
