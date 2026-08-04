@@ -1,4 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   MapPin,
   Shield,
@@ -18,6 +20,7 @@ import {
   Bell,
   UserCog,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
@@ -32,7 +35,6 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
   Accordion,
-  AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
@@ -273,14 +275,16 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto scroll-smooth pr-1"
+          className="flex flex-col gap-2 pb-1"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="admin"
               title="Admin panel"
+              isActive={openSection === "admin"}
+              onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
-              contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
               {openSection === "admin" && (
                 <Suspense fallback={<SectionLoader />}>
@@ -294,8 +298,10 @@ export function ProfilScreen() {
             <AccordionSection
               value="moderation"
               title="Moderácia"
+              isActive={openSection === "moderation"}
+              onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
-              contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
               {openSection === "moderation" && (
                 <Suspense fallback={<SectionLoader />}>
@@ -309,8 +315,10 @@ export function ProfilScreen() {
             <AccordionSection
               value="aktuality-admin"
               title="Administrácia aktualít sekcií"
+              isActive={openSection === "aktuality-admin"}
+              onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
-              contentClassName={isWideAdminSection ? "px-3 pb-3 pt-3 md:px-4" : undefined}
+              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
               {openSection === "aktuality-admin" && (
                 <Suspense fallback={<SectionLoader />}>
@@ -320,7 +328,12 @@ export function ProfilScreen() {
             </AccordionSection>
           )}
 
-          <AccordionSection value="edit" title="Úprava profilu">
+          <AccordionSection
+            value="edit"
+            title="Úprava profilu"
+            isActive={openSection === "edit"}
+            onClose={() => setOpenSection("")}
+          >
             <ProfileEditForm
               initialName={profile.name}
               initialStreet={profile.street ?? ""}
@@ -329,7 +342,12 @@ export function ProfilScreen() {
             />
           </AccordionSection>
 
-          <AccordionSection value="settings" title="Vzhľad & notifikácie">
+          <AccordionSection
+            value="settings"
+            title="Vzhľad & notifikácie"
+            isActive={openSection === "settings"}
+            onClose={() => setOpenSection("")}
+          >
             <div className="flex flex-col gap-3">
               <NotificationSettings userId={profile.id} />
               <LegalInfoPanel />
@@ -337,12 +355,22 @@ export function ProfilScreen() {
           </AccordionSection>
 
           {isAdmin && (
-            <AccordionSection value="role" title="Prepnúť moju rolu (admin)">
+            <AccordionSection
+              value="role"
+              title="Prepnúť moju rolu (admin)"
+              isActive={openSection === "role"}
+              onClose={() => setOpenSection("")}
+            >
               <RoleSwitcher role={profile.role} onChange={refresh} userId={profile.id} />
             </AccordionSection>
           )}
 
-          <AccordionSection value="panels" title="Panely rolí">
+          <AccordionSection
+            value="panels"
+            title="Panely rolí"
+            isActive={openSection === "panels"}
+            onClose={() => setOpenSection("")}
+          >
             {openSection === "panels" && (
               <Suspense fallback={<SectionLoader />}>
                 <div className="flex flex-col gap-3">
@@ -354,7 +382,12 @@ export function ProfilScreen() {
           </AccordionSection>
 
           {!profile.is_active_neighbor && (
-            <AccordionSection value="activate" title="🔑 Máš invite kód od suseda?">
+            <AccordionSection
+              value="activate"
+              title="🔑 Máš invite kód od suseda?"
+              isActive={openSection === "activate"}
+              onClose={() => setOpenSection("")}
+            >
               {openSection === "activate" && (
                 <Suspense fallback={<SectionLoader />}>
                   <InviteRedeemSection onActivated={refresh} />
@@ -363,11 +396,21 @@ export function ProfilScreen() {
             </AccordionSection>
           )}
 
-          <AccordionSection value="invite-neighbor" title="Pozvať suseda">
+          <AccordionSection
+            value="invite-neighbor"
+            title="Pozvať suseda"
+            isActive={openSection === "invite-neighbor"}
+            onClose={() => setOpenSection("")}
+          >
             <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} maxCodes={inviteLimit} />
           </AccordionSection>
 
-          <AccordionSection value="items" title={`Moje inzeráty (${items.length})`}>
+          <AccordionSection
+            value="items"
+            title={`Moje inzeráty (${items.length})`}
+            isActive={openSection === "items"}
+            onClose={() => setOpenSection("")}
+          >
             {itemsLoading ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -456,7 +499,12 @@ export function ProfilScreen() {
             )}
           </AccordionSection>
 
-          <AccordionSection value="account" title="Účet & odhlásenie">
+          <AccordionSection
+            value="account"
+            title="Účet & odhlásenie"
+            isActive={openSection === "account"}
+            onClose={() => setOpenSection("")}
+          >
             <AccountActions userId={profile.id} />
           </AccordionSection>
         </Accordion>
@@ -476,30 +524,63 @@ function SectionLoader() {
 function AccordionSection({
   value,
   title,
+  isActive,
+  onClose,
   itemClassName,
   contentClassName,
   children,
 }: {
   value: string;
   title: string;
+  isActive: boolean;
+  onClose: () => void;
   itemClassName?: string;
   contentClassName?: string;
   children: React.ReactNode;
 }) {
+  const canUseDom = typeof document !== "undefined";
+
   return (
-    <AccordionItem
-      value={value}
-      className={`flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
-    >
-      <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
-      <AccordionContent
-        className={`border-t border-border px-5 pb-5 pt-4 ${contentClassName ?? ""}`}
+    <>
+      <AccordionItem
+        value={value}
+        className={`flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <div className="max-h-[calc(100dvh-15rem)] overflow-y-auto pr-1 md:max-h-[calc(100dvh-17rem)]">
-          {children}
-        </div>
-      </AccordionContent>
-    </AccordionItem>
+        <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
+      </AccordionItem>
+
+      {canUseDom &&
+        createPortal(
+          <AnimatePresence>
+            {isActive && (
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 18 }}
+                transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+                className="fixed inset-0 z-[160] flex h-[100dvh] w-screen flex-col bg-white/95 backdrop-blur-xl dark:bg-neutral-950/95"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
+                  <h3 className="truncate text-sm font-semibold text-foreground md:text-base">{title}</h3>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20"
+                    aria-label="Zavrieť panel"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 ${contentClassName ?? ""}`}>
+                  {children}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
+    </>
   );
 }
 
