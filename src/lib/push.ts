@@ -21,72 +21,82 @@ type SubscribeToPushOptions = {
 };
 
 export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
-  const { requestPermission = true } = options;
+  try {
+    const { requestPermission = true } = options;
 
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
-    return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
+      return;
+    }
+
+    if (!PUBLIC_VAPID_KEY) {
+      console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
+      return;
+    }
+
+    if (typeof Notification === "undefined") {
+      console.warn("Notification API nie je podporované v tomto prehliadači.");
+      return;
+    }
+
+    if (requestPermission && isIosDevice() && !isStandaloneMode()) {
+      console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
+      return;
+    }
+
+    const permission = requestPermission
+      ? await Notification.requestPermission()
+      : Notification.permission;
+
+    if (permission !== "granted") {
+      console.warn("Používateľ nepovolil notifikácie.");
+      return;
+    }
+
+    const registration = await getPushServiceWorkerRegistration();
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
+      });
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) {
+      console.warn("Používateľ nie je prihlásený, subskripcia sa neuloží.");
+      return;
+    }
+
+    const serializedSubscription = subscription.toJSON();
+    if (!serializedSubscription.endpoint) {
+      console.error("Neplatná push subskripcia: chýba endpoint.");
+      return;
+    }
+
+    const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
+      {
+        user_id: session.user.id,
+        subscription: serializedSubscription,
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) {
+      console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
+    } else {
+      console.log("Push notifikácie úspešne aktivované a uložené!");
+    }
+  } catch (error) {
+    console.error("Neočakávaná chyba pri subscribeToPush:", error);
   }
+}
 
-  if (!PUBLIC_VAPID_KEY) {
-    console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
-    return;
-  }
-
-  if (typeof Notification === "undefined") {
-    console.warn("Notification API nie je podporované v tomto prehliadači.");
-    return;
-  }
-
-  if (requestPermission && isIosDevice() && !isStandaloneMode()) {
-    console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
-    return;
-  }
-
-  const permission = requestPermission
-    ? await Notification.requestPermission()
-    : Notification.permission;
-
-  if (permission !== "granted") {
-    console.warn("Používateľ nepovolil notifikácie.");
-    return;
-  }
-
-  const registration = await getPushServiceWorkerRegistration();
-  await navigator.serviceWorker.ready;
-
-  let subscription = await registration.pushManager.getSubscription();
-
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
-    });
-  }
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    console.warn("Používateľ nie je prihlásený, subskripcia sa neuloží.");
-    return;
-  }
-
-  const serializedSubscription = subscription.toJSON();
-  if (!serializedSubscription.endpoint) {
-    console.error("Neplatná push subskripcia: chýba endpoint.");
-    return;
-  }
-
-  const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
-    {
-      user_id: session.user.id,
-      subscription: serializedSubscription,
-    },
-    { onConflict: "user_id" }
-  );
-
-  if (error) {
-    console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-  } else {
-    console.log("Push notifikácie úspešne aktivované a uložené!");
-  }
+export async function syncPushSubscriptionSilently() {
+  await subscribeToPush({ requestPermission: false });
 }

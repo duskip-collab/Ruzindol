@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { evaluatePushDecision, parseWebhookRecord } from "./logic.ts";
 
 const PUBLIC_VAPID_KEY = Deno.env.get("VITE_PUBLIC_VAPID_KEY") || Deno.env.get("PUBLIC_VAPID_KEY") || "";
 const PRIVATE_VAPID_KEY = Deno.env.get("PRIVATE_VAPID_KEY") || "";
@@ -10,65 +11,131 @@ if (PUBLIC_VAPID_KEY && PRIVATE_VAPID_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY);
 }
 
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function isMissingRelationOrColumnError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  const msg = String(e?.message ?? "").toLowerCase();
+  return e?.code === "42703" || e?.code === "42P01" || msg.includes("column") || msg.includes("relation");
+}
+
+async function shouldSendOptionalNotification(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  // Prefer explicit per-user settings table if present.
+  const settingsResult = await supabase
+    .from("user_settings")
+    .select("notifications_enabled")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!settingsResult.error && settingsResult.data) {
+    return settingsResult.data.notifications_enabled !== false;
+  }
+
+  if (settingsResult.error && !isMissingRelationOrColumnError(settingsResult.error)) {
+    console.error("Chyba pri čítaní user_settings.notifications_enabled:", settingsResult.error);
+  }
+
+  // Fallback to profiles.notifications_enabled if the column exists.
+  const profileResult = await supabase
+    .from("profiles")
+    .select("notifications_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profileResult.error && profileResult.data) {
+    return profileResult.data.notifications_enabled !== false;
+  }
+
+  if (profileResult.error && !isMissingRelationOrColumnError(profileResult.error)) {
+    console.error("Chyba pri čítaní profiles.notifications_enabled:", profileResult.error);
+  }
+
+  // If settings storage is not available, default to send instead of silently dropping alerts.
+  return true;
+}
+
 serve(async (req) => {
   try {
-    if (!PUBLIC_VAPID_KEY || !PRIVATE_VAPID_KEY) {
-      return new Response(
-        JSON.stringify({
+    if (!PUBLIC_VAPID_KEY || !PRIVATE_VAPID_KEY || !VAPID_SUBJECT) {
+      return json(
+        {
           success: false,
-          error: "Missing VAPID keys. Set PUBLIC_VAPID_KEY/VITE_PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY secrets.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
+          error:
+            "Missing VAPID secrets. Set PUBLIC_VAPID_KEY (or VITE_PUBLIC_VAPID_KEY), PRIVATE_VAPID_KEY and VAPID_SUBJECT.",
+        },
+        500,
       );
     }
 
     const payloadData = await req.json();
-    const record = payloadData.record;
+    const record = parseWebhookRecord(payloadData);
+    const decision = evaluatePushDecision(record);
 
-    if (!record) {
-      return new Response(
-        JSON.stringify({ message: "Chýba record" }), 
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+    if (!record || decision.reason === "missing_record") {
+      return json({ success: false, message: "Chýba record" }, 400);
     }
+
+    if (decision.reason === "missing_user_id") {
+      // Graceful no-op: malformed payload must not crash function.
+      console.warn("send-push: record neobsahuje user_id, push sa preskakuje.");
+      return json({ success: true, skipped: true, reason: "missing_user_id" });
+    }
+
+    const userId = decision.userId as string;
+    const critical = decision.critical;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 3. Získanie subskripcií: Ak record.user_id existuje, vybereme len jeho. Ak nie, vyberieme VŠETKY subskripcie v databáze!
-    let query = supabase.from("user_push_subscriptions").select("subscription, user_id");
-    
-    if (record.user_id) {
-      query = query.eq("user_id", record.user_id);
+    if (!critical) {
+      const enabled = await shouldSendOptionalNotification(supabase, userId);
+      const optionalDecision = evaluatePushDecision(record, enabled);
+      if (!optionalDecision.shouldSend) {
+        return json({ success: true, skipped: true, reason: optionalDecision.reason });
+      }
     }
 
-    const { data: subscriptions, error } = await query;
+    const { data: subscriptions, error } = await supabase
+      .from("user_push_subscriptions")
+      .select("subscription, user_id")
+      .eq("user_id", userId);
 
-    if (error || !subscriptions || subscriptions.length === 0) {
-      console.log(`Žiadne push subskripcie pre ciel`);
-      return new Response(
-        JSON.stringify({ message: "Nenašli sa žiadne subskripcie" }), 
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+    if (error) {
+      console.error("Chyba pri načítaní user_push_subscriptions:", error);
+      return json({ success: false, error: "subscription_query_failed" }, 500);
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`Žiadne push subskripcie pre user_id: ${userId}`);
+      return json({ success: true, message: "Žiadna subskripcia nenájdená", skipped: true });
     }
 
     const pushPayload = JSON.stringify({
       title: record.title || "Moji Susedia",
       body: record.body || "Máte novú správu v aplikácii.",
       url: record.ref_id ? `/chat/${record.ref_id}` : "/",
-      priority: "high",
-      renotify: true,
-      requireInteraction: true,
-      vibrate: [300, 120, 300, 120, 500],
+      priority: critical ? "high" : "normal",
+      renotify: critical,
+      requireInteraction: critical,
+      vibrate: critical ? [300, 120, 300, 120, 500] : [120, 80, 120],
       sound: "default",
       tag: record.type ? `komunita-${record.type}` : "komunita-system",
+      isCritical: critical,
     });
 
     const pushOptions = {
-      TTL: 3600,
+      TTL: critical ? 3600 : 86400,
       headers: {
-        "Urgency": "high",
+        "Urgency": critical ? "high" : "normal",
         "Topic": record.type || "system",
       },
     };
@@ -94,20 +161,15 @@ serve(async (req) => {
 
     await Promise.all(sendPromises);
 
-    return new Response(
-      JSON.stringify({
+    return json({
         success: failedCount === 0,
         attempted: subscriptions.length,
         sent: sentCount,
         failed: failedCount,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+        critical,
+      });
   } catch (err: any) {
     console.error("Chyba v send-push Edge Funkcii:", err);
-    return new Response(
-      JSON.stringify({ error: err.message }), 
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return json({ error: err.message }, 500);
   }
 });

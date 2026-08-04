@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { removeBucketObject } from "@/lib/storage";
 import { formatWarehouseExpiry, getWarehouseLifetimeLabel, resolveWarehouseExpiry, type WarehouseItemType } from "@/lib/warehouse";
+import { syncPushSubscriptionSilently } from "@/lib/push";
 
 type Item = {
   id: string;
@@ -330,7 +331,7 @@ export function ProfilScreen() {
 
           <AccordionSection value="settings" title="Vzhľad & notifikácie">
             <div className="flex flex-col gap-3">
-              <NotificationSettings />
+              <NotificationSettings userId={profile.id} />
               <LegalInfoPanel />
             </div>
           </AccordionSection>
@@ -593,15 +594,75 @@ function ProfileEditForm({
 
 // ---------- Notification settings ----------
 
-function NotificationSettings() {
+function NotificationSettings({ userId }: { userId: string }) {
   const { theme, setTheme } = useTheme();
   const { muted, setMuted, categories, setCategory } = useNotifications();
   const { fontScale, setFontScale, fontSizePx } = useFontScale();
   const darkMode = theme === "dark";
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [pushLoading, setPushLoading] = useState(true);
+  const [pushSaving, setPushSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("user_settings")
+        .select("notifications_enabled")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Chyba pri načítaní user_settings.notifications_enabled:", error);
+      }
+
+      if (!cancelled) {
+        setPushEnabled(data?.notifications_enabled !== false);
+        setPushLoading(false);
+      }
+    })().catch((error) => {
+      console.error("Chyba pri načítaní push nastavení:", error);
+      if (!cancelled) setPushLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const handleFontScaleChange = (value: number[]) => {
     const next = Math.min(3, Math.max(1, Math.round(value[0] ?? 1))) as 1 | 2 | 3;
     setFontScale(next);
+  };
+
+  const handlePushEnabledChange = async (nextValue: boolean) => {
+    const prevValue = pushEnabled;
+    setPushEnabled(nextValue);
+    setPushSaving(true);
+
+    const { error } = await (supabase as any).from("user_settings").upsert(
+      {
+        user_id: userId,
+        notifications_enabled: nextValue,
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) {
+      console.error("Chyba pri ukladaní user_settings.notifications_enabled:", error);
+      setPushEnabled(prevValue);
+      setPushSaving(false);
+      return;
+    }
+
+    if (nextValue && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      syncPushSubscriptionSilently().catch((syncError) => {
+        console.error("Chyba pri tichej synchronizácii push subskripcie:", syncError);
+      });
+    }
+
+    setPushSaving(false);
   };
 
   return (
@@ -644,6 +705,30 @@ function NotificationSettings() {
           </p>
         </div>
         <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
+          {pushEnabled ? (
+            <Bell className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
+          ) : (
+            <BellOff className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            Push notifikácie do zariadenia
+          </p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            Bežné push správy budú rešpektovať toto nastavenie, kritické zostanú povolené.
+          </p>
+        </div>
+        <Switch
+          checked={pushEnabled}
+          onCheckedChange={(v) => void handlePushEnabledChange(v)}
+          disabled={pushLoading || pushSaving}
+          aria-label="Push notifications toggle"
+        />
       </div>
 
       <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">

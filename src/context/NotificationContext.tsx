@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeToPush } from "@/lib/push";
+import { syncPushSubscriptionSilently } from "@/lib/push";
 
 const MUTE_KEY = "komunita.notifications.muted.v1";
 const CATS_KEY = "komunita.notifications.categories.v1";
@@ -206,6 +206,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
         setNotifications([]);
+        return;
+      }
+
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        syncPushSubscriptionSilently().catch((error) => {
+          console.error("Chyba pri synchronizácii push subskripcie:", error);
+        });
       }
     });
 
@@ -412,7 +419,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (typeof Notification === "undefined") return;
     if (Notification.permission !== "granted") return;
 
-    subscribeToPush({ requestPermission: false }).catch((error) => {
+    syncPushSubscriptionSilently().catch((error) => {
       console.error("Chyba pri synchronizácii push subskripcie:", error);
     });
   }, [currentUserId]);
