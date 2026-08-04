@@ -394,7 +394,7 @@ export function AktualityGroupsPanel() {
       {openedGroup &&
         canUseDom &&
         createPortal(
-          <div className="fixed inset-0 z-[120] flex h-screen min-h-screen w-screen flex-col bg-white/95 p-4 backdrop-blur-xl md:inset-y-6 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-6xl md:rounded-3xl md:border md:border-neutral-200 md:bg-white md:shadow-2xl">
+          <div className="fixed inset-0 z-[120] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white/95 p-4 backdrop-blur-xl md:bg-white">
             <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-200 pb-3">
               <div>
                 <p className="text-sm font-semibold text-neutral-900">{activeMeta.title}</p>
@@ -489,7 +489,7 @@ export function AktualityGroupsPanel() {
                   V tejto sekcii zatiaľ nie sú žiadne oznamy.
                 </p>
               ) : (
-                <div className="max-h-[70vh] space-y-3 overflow-y-auto scroll-smooth pr-1 md:max-h-[74vh]">
+                <div className="space-y-3">
                   <div className="flex flex-col gap-2.5">
                     {displayPosts.map((p) => {
                     const canDelete = canManageGroups || p.author_id === userId;
@@ -739,7 +739,7 @@ function GroupPostForm({
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex h-dvh flex-col bg-white dark:bg-neutral-200 md:inset-y-8 md:mx-auto md:h-auto md:max-h-[90vh] md:w-full md:max-w-3xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-neutral-300">
+    <div className="fixed inset-0 z-[140] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white dark:bg-neutral-200">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-300">
         <button
           onClick={onClose}
@@ -989,7 +989,7 @@ function GroupAdminModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex h-screen min-h-screen w-screen max-w-none flex-col overflow-hidden bg-white dark:bg-neutral-200 md:inset-y-8 md:mx-auto md:h-auto md:min-h-0 md:w-full md:max-w-4xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-neutral-300">
+    <div className="fixed inset-0 z-[300] flex h-[100dvh] w-screen max-w-none flex-col overflow-hidden bg-white dark:bg-neutral-200">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-300">
         <button
           onClick={onClose}

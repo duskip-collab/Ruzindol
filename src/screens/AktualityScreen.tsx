@@ -19,6 +19,7 @@ import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
 type Source = "rss" | "internal";
+const RSS_ITEMS_LIMIT = 8;
 
 type Announcement = {
   id: string;
@@ -86,12 +87,32 @@ export function AktualityScreen() {
   const isUradnik = profile?.role === "Uradnik";
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("announcements")
-      .select("*")
-      .order("published_at", { ascending: false })
-      .limit(100);
-    setItems(((data as Announcement[]) ?? []).filter((item) => !isExpired(item)));
+    const [rssRes, internalRes] = await Promise.all([
+      supabase
+        .from("announcements")
+        .select("*")
+        .eq("source", "rss")
+        .order("published_at", { ascending: false })
+        .limit(RSS_ITEMS_LIMIT),
+      supabase
+        .from("announcements")
+        .select("*")
+        .eq("source", "internal")
+        .order("published_at", { ascending: false })
+        .limit(120),
+    ]);
+
+    if (rssRes.error) console.error("RSS announcements load failed", rssRes.error);
+    if (internalRes.error) console.error("Internal announcements load failed", internalRes.error);
+
+    const rssItems = (rssRes.data as Announcement[] | null) ?? [];
+    const internalItems = (internalRes.data as Announcement[] | null) ?? [];
+
+    const merged = [...rssItems, ...internalItems]
+      .filter((item) => !isExpired(item))
+      .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
+
+    setItems(merged);
   }, []);
 
   useEffect(() => {

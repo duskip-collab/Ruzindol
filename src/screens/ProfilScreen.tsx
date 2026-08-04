@@ -215,9 +215,9 @@ export function ProfilScreen() {
     openSection === "admin" || openSection === "moderation" || openSection === "aktuality-admin";
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-4 overflow-y-auto px-4 py-5 md:px-6">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-4 overflow-hidden px-4 py-5 md:px-6">
       <div
-        className={`grid gap-4 ${isWideAdminSection ? "xl:grid-cols-1" : "xl:grid-cols-[320px_minmax(0,1fr)]"}`}
+        className={`grid min-h-0 flex-1 gap-4 ${isWideAdminSection ? "xl:grid-cols-1" : "xl:grid-cols-[320px_minmax(0,1fr)]"}`}
       >
         <div
           className={`flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start ${isWideAdminSection ? "xl:hidden" : ""}`}
@@ -273,7 +273,7 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex max-h-[78vh] flex-col gap-2 overflow-y-auto scroll-smooth pr-1"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto scroll-smooth pr-1"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
@@ -489,13 +489,15 @@ function AccordionSection({
   return (
     <AccordionItem
       value={value}
-      className={`overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
+      className={`flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
     >
       <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
       <AccordionContent
         className={`border-t border-border px-5 pb-5 pt-4 ${contentClassName ?? ""}`}
       >
-        {children}
+        <div className="max-h-[calc(100dvh-15rem)] overflow-y-auto pr-1 md:max-h-[calc(100dvh-17rem)]">
+          {children}
+        </div>
       </AccordionContent>
     </AccordionItem>
   );

@@ -7,6 +7,7 @@ const LAST_SYNC_KEY = "aktuality_rss_last_sync";
 const LAST_SYNC_DAY_KEY = "aktuality_rss_last_sync_day";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
+const RSS_LIMIT = 8;
 
 export type RssItem = {
   external_id: string;
@@ -123,11 +124,15 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
     );
     if (!res.ok) throw new Error("RSS fetch failed");
     const xml = await res.text();
-    const items = parseRss(xml);
+    const items = parseRss(xml).sort(
+      (a, b) => +new Date(b.published_at) - +new Date(a.published_at),
+    );
 
     // Only keep fresh items (<3 days)
     const cutoff = Date.now() - 3 * DAY_MS;
-    const fresh = items.filter((i) => new Date(i.published_at).getTime() >= cutoff);
+    const fresh = items
+      .filter((i) => new Date(i.published_at).getTime() >= cutoff)
+      .slice(0, RSS_LIMIT);
 
     await cleanupExpiredAnnouncements();
 
