@@ -217,7 +217,7 @@ export function ProfilScreen() {
     openSection === "admin" || openSection === "moderation" || openSection === "aktuality-admin";
 
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-4 overflow-hidden px-4 py-5 md:px-6">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-4 px-4 py-5 md:px-6">
       <div
         className={`grid min-h-0 flex-1 gap-4 ${isWideAdminSection ? "xl:grid-cols-1" : "xl:grid-cols-[320px_minmax(0,1fr)]"}`}
       >
@@ -275,7 +275,7 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex flex-col gap-2 pb-1"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-24 pr-1 md:pb-28 xl:pb-4"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
@@ -544,9 +544,11 @@ function AccordionSection({
     <>
       <AccordionItem
         value={value}
-        className={`flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
+        className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <AccordionTrigger className="px-5 py-4">{title}</AccordionTrigger>
+        <AccordionTrigger className="px-5 py-4 text-base leading-6 text-neutral-900 dark:text-neutral-100">
+          {title}
+        </AccordionTrigger>
       </AccordionItem>
 
       {canUseDom &&
@@ -559,20 +561,22 @@ function AccordionSection({
                 exit={{ opacity: 0, y: 18 }}
                 transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
                 className="fixed inset-0 z-[160] flex h-[100dvh] w-screen flex-col bg-white/95 backdrop-blur-xl dark:bg-neutral-950/95"
+                role="dialog"
+                aria-modal="true"
               >
-                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
-                  <h3 className="truncate text-sm font-semibold text-foreground md:text-base">{title}</h3>
+                <div className="pt-safe flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
+                  <h3 className="truncate text-base font-semibold text-foreground md:text-lg">{title}</h3>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20"
                     aria-label="Zavrieť panel"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 ${contentClassName ?? ""}`}>
+                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 md:px-6 md:pb-10 ${contentClassName ?? ""}`}>
                   {children}
                 </div>
               </motion.div>
