@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeToPush } from "@/lib/push";
 
@@ -34,6 +35,16 @@ export interface LiveNotification {
   createdAt: string;
 }
 
+export interface DbNotification {
+  id: string;
+  user_id: string;
+  created_at: string;
+  type: string;
+  title?: string | null;
+  body?: string | null;
+  is_read: boolean;
+}
+
 interface NotificationCtx {
   muted: boolean;
   setMuted: (v: boolean) => void;
@@ -46,6 +57,9 @@ interface NotificationCtx {
   hasBellDot: boolean;
   clearOfficialUnread: () => void;
   clearMessageUnread: () => void;
+  notifications: DbNotification[];
+  unreadCount: number;
+  markAsRead: (id: string) => Promise<void>;
 }
 
 const DEFAULT_CATS: Record<NotifCategory, boolean> = {
@@ -78,6 +92,36 @@ function getInitialCategories() {
 
 const Ctx = createContext<NotificationCtx | null>(null);
 
+function extractRecord(payload: unknown, kind: "new" | "old"): Record<string, unknown> | null {
+  const p = payload as any;
+  return (
+    p?.payload?.[kind] ??
+    p?.[kind] ??
+    p?.record?.[kind] ??
+    p?.payload?.record?.[kind] ??
+    p?.payload?.data?.[kind] ??
+    null
+  );
+}
+
+function toDbNotification(record: unknown): DbNotification | null {
+  const r = record as any;
+  if (!r?.id || !r?.user_id || !r?.created_at || !r?.type) return null;
+  return {
+    id: String(r.id),
+    user_id: String(r.user_id),
+    created_at: String(r.created_at),
+    type: String(r.type),
+    title: r.title ?? null,
+    body: r.body ?? null,
+    is_read: Boolean(r.is_read),
+  };
+}
+
+function byCreatedAtDesc(a: DbNotification, b: DbNotification): number {
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+}
+
 function classify(type: string, category: string | null): NotifCategory {
   const t = (type ?? "").toLowerCase();
   const c = (category ?? "").toLowerCase();
@@ -104,10 +148,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [hasOfficialUnread, setHasOfficialUnread] = useState(false);
   const [hasMessageUnread, setHasMessageUnread] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<DbNotification[]>([]);
 
   const mutedRef = useRef(false);
   const catsRef = useRef(categories);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -159,6 +205,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (!session?.user) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
+        setNotifications([]);
       }
     });
 
@@ -256,6 +303,112 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!currentUserId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("notifications")
+        .select("id, user_id, created_at, type, title, body, is_read")
+        .eq("user_id", currentUserId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      if (!cancelled) {
+        setNotifications(((data ?? []) as DbNotification[]).sort(byCreatedAtDesc));
+      }
+    })().catch((error) => {
+      console.error("Chyba pri načítaní notifications:", error);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) {
+      if (notificationChannelRef.current) {
+        supabase.removeChannel(notificationChannelRef.current);
+        notificationChannelRef.current = null;
+      }
+      return;
+    }
+
+    const topic = `user:${currentUserId}:notifications`;
+
+    if (notificationChannelRef.current) {
+      supabase.removeChannel(notificationChannelRef.current);
+      notificationChannelRef.current = null;
+    }
+
+    let isMounted = true;
+
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await supabase.realtime.setAuth(session?.access_token ?? "");
+
+      const channel = supabase.channel(topic, {
+        config: { private: true },
+      });
+
+      channel
+        .on("broadcast", { event: "INSERT" }, (payload: unknown) => {
+          if (!isMounted) return;
+
+          const record = extractRecord(payload, "new") ?? ((payload as any)?.payload ?? null);
+          const nextItem = toDbNotification(record);
+          if (!nextItem || nextItem.user_id !== currentUserId) return;
+
+          setNotifications((prev) => {
+            const exists = prev.some((item) => item.id === nextItem.id);
+            if (exists) return prev;
+            return [nextItem, ...prev].sort(byCreatedAtDesc);
+          });
+        })
+        .on("broadcast", { event: "UPDATE" }, (payload: unknown) => {
+          if (!isMounted) return;
+
+          const updated = toDbNotification(extractRecord(payload, "new"));
+          if (!updated || updated.user_id !== currentUserId) return;
+
+          setNotifications((prev) => {
+            const idx = prev.findIndex((item) => item.id === updated.id);
+            if (idx === -1) return [updated, ...prev].sort(byCreatedAtDesc);
+            const next = prev.slice();
+            next[idx] = updated;
+            return next.sort(byCreatedAtDesc);
+          });
+        })
+        .on("broadcast", { event: "DELETE" }, (payload: unknown) => {
+          if (!isMounted) return;
+
+          const oldRec = extractRecord(payload, "old");
+          if (!oldRec?.id) return;
+
+          const deletedId = String(oldRec.id);
+          setNotifications((prev) => prev.filter((item) => item.id !== deletedId));
+        })
+        .subscribe();
+
+      notificationChannelRef.current = channel;
+    })().catch((error) => {
+      console.error("Chyba pri subscribe notifications channel:", error);
+    });
+
+    return () => {
+      isMounted = false;
+      if (notificationChannelRef.current) {
+        supabase.removeChannel(notificationChannelRef.current);
+        notificationChannelRef.current = null;
+      }
+    };
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
     if (typeof Notification === "undefined") return;
     if (Notification.permission !== "granted") return;
 
@@ -264,7 +417,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
   }, [currentUserId]);
 
-  const hasBellDot = hasOfficialUnread || hasMessageUnread;
+  const unreadCount = useMemo(
+    () => notifications.reduce((acc, n) => acc + (n.is_read ? 0 : 1), 0),
+    [notifications],
+  );
+
+  const markAsRead = useCallback(
+    async (id: string) => {
+      if (!currentUserId) return;
+
+      const { error } = await (supabase as any)
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", id)
+        .eq("user_id", currentUserId);
+
+      if (error) throw error;
+
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, is_read: true } : item)),
+      );
+    },
+    [currentUserId],
+  );
+
+  const hasBellDot = hasOfficialUnread || hasMessageUnread || unreadCount > 0;
 
   const value = useMemo<NotificationCtx>(
     () => ({
@@ -279,6 +456,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       hasBellDot,
       clearOfficialUnread,
       clearMessageUnread,
+      notifications,
+      unreadCount,
+      markAsRead,
     }),
     [
       muted,
@@ -292,6 +472,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       hasBellDot,
       clearOfficialUnread,
       clearMessageUnread,
+      notifications,
+      unreadCount,
+      markAsRead,
     ],
   );
 
