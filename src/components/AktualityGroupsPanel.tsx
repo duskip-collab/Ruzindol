@@ -172,6 +172,7 @@ export function AktualityGroupsPanel() {
   const [vipProfiles, setVipProfiles] = useState<BasicProfile[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showAdmins, setShowAdmins] = useState(false);
+  const [showAllPosts, setShowAllPosts] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const canManageGroups = !!isAdmin || profile?.role === "Starosta";
@@ -346,16 +347,21 @@ export function AktualityGroupsPanel() {
   function openGroup(groupKey: GroupKey) {
     setActive(groupKey);
     setOpenedGroup(groupKey);
+    setShowAllPosts(false);
   }
 
   function closeGroup() {
     setOpenedGroup(null);
     setShowPostForm(false);
     setShowAdmins(false);
+    setShowAllPosts(false);
   }
 
   const activeMeta = GROUPS.find((g) => g.key === active)!;
   const visiblePosts = posts.filter((p) => p.group_key === active);
+  const previewCount = 5;
+  const displayPosts = showAllPosts ? visiblePosts : visiblePosts.slice(0, previewCount);
+  const hasMorePosts = visiblePosts.length > previewCount;
   const activeManagerName =
     activeAdmins.length > 0 ? (people[activeAdmins[0].user_id]?.name ?? "Sused") : null;
 
@@ -468,7 +474,7 @@ export function AktualityGroupsPanel() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto scroll-smooth pr-1">
               {loadError && (
                 <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
                   {loadError}
@@ -483,8 +489,9 @@ export function AktualityGroupsPanel() {
                   V tejto sekcii zatiaľ nie sú žiadne oznamy.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2.5">
-                  {visiblePosts.map((p) => {
+                <div className="max-h-[70vh] space-y-3 overflow-y-auto scroll-smooth pr-1 md:max-h-[74vh]">
+                  <div className="flex flex-col gap-2.5">
+                    {displayPosts.map((p) => {
                     const canDelete = canManageGroups || p.author_id === userId;
                     return (
                       <article
@@ -535,6 +542,21 @@ export function AktualityGroupsPanel() {
                       </article>
                     );
                   })}
+                  </div>
+
+                  {hasMorePosts && (
+                    <div className="sticky bottom-0 flex justify-center bg-gradient-to-t from-white via-white to-transparent py-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAllPosts((prev) => !prev)}
+                        className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50"
+                      >
+                        {showAllPosts
+                          ? "Zobraziť menej"
+                          : `Zobraziť ďalšie (${visiblePosts.length - previewCount})`}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

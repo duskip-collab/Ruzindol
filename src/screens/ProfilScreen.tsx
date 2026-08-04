@@ -273,7 +273,7 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex flex-col gap-2"
+          className="flex max-h-[78vh] flex-col gap-2 overflow-y-auto scroll-smooth pr-1"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
