@@ -21,6 +21,7 @@ import {
   UserCog,
   RefreshCw,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
@@ -35,12 +36,6 @@ import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -263,19 +258,14 @@ export function ProfilScreen() {
         </div>
 
         {/* Collapsible sections — iba jedna otvorená naraz */}
-        <Accordion
-          type="single"
-          collapsible
-          value={openSection}
-          onValueChange={setOpenSection}
-          className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4"
-        >
+        <div className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4">
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="admin"
               title="Admin panel"
               description="Správa používateľov, rolí, obsahu a nastavení obce."
               isActive={openSection === "admin"}
+              onToggle={() => setOpenSection((prev) => (prev === "admin" ? "" : "admin"))}
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
@@ -290,6 +280,7 @@ export function ProfilScreen() {
               title="Moderácia"
               description="Rýchle schvaľovanie, kontrola hlásení a zásahy moderátora."
               isActive={openSection === "moderation"}
+              onToggle={() => setOpenSection((prev) => (prev === "moderation" ? "" : "moderation"))}
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
@@ -308,6 +299,9 @@ export function ProfilScreen() {
               title="Administrácia aktualít sekcií"
               description="Správa sekcií DHZ, OŠK, Dôchodcovia, Farnosť a Služby."
               isActive={openSection === "aktuality-admin"}
+              onToggle={() =>
+                setOpenSection((prev) => (prev === "aktuality-admin" ? "" : "aktuality-admin"))
+              }
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
@@ -321,6 +315,7 @@ export function ProfilScreen() {
             title="Úprava profilu"
             description="Meno, ulica a základné profilové údaje."
             isActive={openSection === "edit"}
+            onToggle={() => setOpenSection((prev) => (prev === "edit" ? "" : "edit"))}
             onClose={() => setOpenSection("")}
           >
             <ProfileEditForm
@@ -336,6 +331,7 @@ export function ProfilScreen() {
             title="Vzhľad & notifikácie"
             description="Téma, veľkosť písma, upozornenia a právne informácie."
             isActive={openSection === "settings"}
+            onToggle={() => setOpenSection((prev) => (prev === "settings" ? "" : "settings"))}
             onClose={() => setOpenSection("")}
           >
             <div className="flex flex-col gap-3">
@@ -350,6 +346,7 @@ export function ProfilScreen() {
               title="Prepnúť moju rolu (admin)"
               description="Testovanie oprávnení a panelov podľa roly používateľa."
               isActive={openSection === "role"}
+              onToggle={() => setOpenSection((prev) => (prev === "role" ? "" : "role"))}
               onClose={() => setOpenSection("")}
             >
               <RoleSwitcher role={profile.role} onChange={refresh} userId={profile.id} />
@@ -361,6 +358,7 @@ export function ProfilScreen() {
             title="Panely rolí"
             description="Prehľad dostupných panelov a komunitných nástrojov."
             isActive={openSection === "panels"}
+            onToggle={() => setOpenSection((prev) => (prev === "panels" ? "" : "panels"))}
             onClose={() => setOpenSection("")}
           >
             {openSection === "panels" && (
@@ -379,6 +377,7 @@ export function ProfilScreen() {
               title="🔑 Máš invite kód od suseda?"
               description="Aktivuj susedské funkcie pomocou pozývacieho kódu."
               isActive={openSection === "activate"}
+              onToggle={() => setOpenSection((prev) => (prev === "activate" ? "" : "activate"))}
               onClose={() => setOpenSection("")}
             >
               {openSection === "activate" && (
@@ -394,6 +393,9 @@ export function ProfilScreen() {
             title="Pozvať suseda"
             description="Generovanie a zdieľanie pozývacích kódov pre nových susedov."
             isActive={openSection === "invite-neighbor"}
+            onToggle={() =>
+              setOpenSection((prev) => (prev === "invite-neighbor" ? "" : "invite-neighbor"))
+            }
             onClose={() => setOpenSection("")}
           >
             <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} maxCodes={inviteLimit} />
@@ -404,6 +406,7 @@ export function ProfilScreen() {
             title={`Moje inzeráty (${items.length})`}
             description="Správa tvojich aktívnych inzerátov, expirácie a zmazanie."
             isActive={openSection === "items"}
+            onToggle={() => setOpenSection((prev) => (prev === "items" ? "" : "items"))}
             onClose={() => setOpenSection("")}
           >
             {itemsLoading ? (
@@ -499,11 +502,12 @@ export function ProfilScreen() {
             title="Účet & odhlásenie"
             description="Odhlásenie, správa účtu a trvalé zmazanie účtu."
             isActive={openSection === "account"}
+            onToggle={() => setOpenSection((prev) => (prev === "account" ? "" : "account"))}
             onClose={() => setOpenSection("")}
           >
             <AccountActions userId={profile.id} />
           </AccordionSection>
-        </Accordion>
+        </div>
       </div>
     </div>
   );
@@ -522,6 +526,7 @@ function AccordionSection({
   title,
   description,
   isActive,
+  onToggle,
   onClose,
   itemClassName,
   contentClassName,
@@ -531,6 +536,7 @@ function AccordionSection({
   title: string;
   description?: string;
   isActive: boolean;
+  onToggle: () => void;
   onClose: () => void;
   itemClassName?: string;
   contentClassName?: string;
@@ -540,11 +546,16 @@ function AccordionSection({
 
   return (
     <>
-      <AccordionItem
-        value={value}
+      <div
+        data-section={value}
         className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <AccordionTrigger className="items-start gap-2 px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:py-4 md:text-base [&>svg]:mt-1 [&>svg]:shrink-0 [&>svg]:text-neutral-700 dark:[&>svg]:text-neutral-200">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isActive}
+          className="flex w-full items-start justify-between gap-2 rounded-2xl px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 transition-colors hover:bg-accent/60 focus-visible:bg-accent/60 dark:text-neutral-100 md:px-5 md:py-4 md:text-base"
+        >
           <div className="min-w-0 pr-3">
             <p className="font-semibold leading-5">{title}</p>
             {description && (
@@ -553,12 +564,13 @@ function AccordionSection({
               </p>
             )}
           </div>
-        </AccordionTrigger>
-
-        <AccordionContent className="hidden">
-          <div className={`px-4 pb-4 pt-1 md:px-5 ${contentClassName ?? ""}`}>{children}</div>
-        </AccordionContent>
-      </AccordionItem>
+          <ChevronDown
+            className={`mt-1 h-4 w-4 shrink-0 text-neutral-700 transition-transform duration-200 dark:text-neutral-200 ${
+              isActive ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      </div>
 
       {canUseDom &&
         createPortal(
