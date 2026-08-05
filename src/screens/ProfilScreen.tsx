@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
@@ -276,7 +277,7 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-24 pr-1 md:pb-28 xl:pb-4"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-24 pr-1 md:pb-28 xl:min-h-[28rem] xl:pb-4"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
@@ -553,6 +554,7 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   const canUseDom = typeof document !== "undefined";
+  const isMobile = useIsMobile();
 
   return (
     <>
@@ -562,7 +564,7 @@ function AccordionSection({
       >
         <AccordionTrigger className="px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:py-4 md:text-base [&>svg]:shrink-0 [&>svg]:text-neutral-700 dark:[&>svg]:text-neutral-200">
           <div className="min-w-0 pr-3">
-            <p className="truncate font-semibold">{title}</p>
+            <p className="font-semibold leading-5">{title}</p>
             {description && (
               <p className="mt-0.5 line-clamp-2 text-xs font-normal leading-4 text-neutral-500 dark:text-neutral-400">
                 {description}
@@ -576,7 +578,7 @@ function AccordionSection({
         </AccordionContent>
       </AccordionItem>
 
-      {canUseDom &&
+      {canUseDom && isMobile &&
         createPortal(
           <AnimatePresence>
             {isActive && (
