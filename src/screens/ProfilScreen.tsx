@@ -946,7 +946,6 @@ function NeighborInviteSection({
       .select("id, code, created_at, used_by, used_at, shared_at, shared_via")
       .eq("created_by", userId)
       .is("used_by", null)
-      .is("shared_at", null)
       .order("created_at", { ascending: true })
       .limit(maxCodes);
     if (error) {
@@ -971,6 +970,7 @@ function NeighborInviteSection({
       return;
     }
     setCodes((data as InviteCodeRow[] | null) ?? []);
+    await loadOwnCodes();
   }
 
   async function markCodeAsShared(inviteId: string, via: string) {
@@ -983,7 +983,18 @@ function NeighborInviteSection({
       return false;
     }
     if (!data) return false;
-    setCodes((prev) => prev.filter((c) => c.id !== inviteId));
+    const sharedAt = new Date().toISOString();
+    setCodes((prev) =>
+      prev.map((c) =>
+        c.id === inviteId
+          ? {
+              ...c,
+              shared_at: sharedAt,
+              shared_via: via,
+            }
+          : c,
+      ),
+    );
     return true;
   }
 
@@ -1135,15 +1146,21 @@ function NeighborInviteSection({
             <ul className="mt-3 flex flex-col gap-2">
               {codes.map((row) => {
                 const code = row.code;
+                const isShared = Boolean(row.shared_at);
                 const whatsappText = encodeURIComponent(inviteMessage(code));
                 return (
                 <li
                   key={row.id}
                   className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
                 >
-                  <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
+                  <span className={`flex-1 font-mono text-sm tracking-wider ${isShared ? "text-neutral-400 line-through" : "text-foreground"}`}>
                     {code}
                   </span>
+                  {isShared && (
+                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800">
+                      Kód odoslaný
+                    </span>
+                  )}
                   <button
                     onClick={() => copy(code)}
                     className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -1157,29 +1174,43 @@ function NeighborInviteSection({
                   </button>
                     <button
                       onClick={() => void shareNative(code)}
+                      disabled={isShared}
                       className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
                     >
-                      <Share2 className="h-3 w-3" /> Zdieľať
+                      <Share2 className="h-3 w-3" /> {isShared ? "Odoslaný" : "Zdieľať"}
                     </button>
-                  <a
-                      href={`https://wa.me/?text=${whatsappText}`}
-                    onClick={() => {
-                      void markCodeAsShared(row.id, "whatsapp");
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
-                  >
-                    WhatsApp
-                  </a>
+                  {isShared ? (
+                    <span className="rounded-full bg-emerald-300 px-2.5 py-1 text-[11px] font-semibold text-white/90">
+                      WhatsApp
+                    </span>
+                  ) : (
+                    <a
+                        href={`https://wa.me/?text=${whatsappText}`}
+                      onClick={() => {
+                        void markCodeAsShared(row.id, "whatsapp");
+                      }}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    >
+                      WhatsApp
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => void shareMessenger(code, row.id)}
-                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    disabled={isShared}
+                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                     title="Otvorí Messenger. Ak natívne zdieľanie nie je dostupné, text sa skopíruje do schránky."
                   >
-                    Messenger
+                    {isShared ? "Messenger · odoslaný" : "Messenger"}
                   </button>
+                  {row.shared_at && (
+                    <span className="text-[10px] text-neutral-500">
+                      {row.shared_via ? `${row.shared_via} · ` : ""}
+                      {new Date(row.shared_at).toLocaleDateString("sk-SK")}
+                    </span>
+                  )}
                 </li>
                 );
               })}
