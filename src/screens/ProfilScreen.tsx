@@ -276,12 +276,13 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-24 pr-1 md:pb-28 xl:pb-4"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-24 pr-1 md:pb-28 xl:pb-4"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="admin"
               title="Admin panel"
+              description="Správa používateľov, rolí, obsahu a nastavení obce."
               isActive={openSection === "admin"}
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
@@ -299,6 +300,7 @@ export function ProfilScreen() {
             <AccordionSection
               value="moderation"
               title="Moderácia"
+              description="Rýchle schvaľovanie, kontrola hlásení a zásahy moderátora."
               isActive={openSection === "moderation"}
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
@@ -316,6 +318,7 @@ export function ProfilScreen() {
             <AccordionSection
               value="aktuality-admin"
               title="Administrácia aktualít sekcií"
+              description="Správa sekcií DHZ, OŠK, Dôchodcovia, Farnosť a Služby."
               isActive={openSection === "aktuality-admin"}
               onClose={() => setOpenSection("")}
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
@@ -332,6 +335,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="edit"
             title="Úprava profilu"
+            description="Meno, ulica a základné profilové údaje."
             isActive={openSection === "edit"}
             onClose={() => setOpenSection("")}
           >
@@ -346,6 +350,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="settings"
             title="Vzhľad & notifikácie"
+            description="Téma, veľkosť písma, upozornenia a právne informácie."
             isActive={openSection === "settings"}
             onClose={() => setOpenSection("")}
           >
@@ -359,6 +364,7 @@ export function ProfilScreen() {
             <AccordionSection
               value="role"
               title="Prepnúť moju rolu (admin)"
+              description="Testovanie oprávnení a panelov podľa roly používateľa."
               isActive={openSection === "role"}
               onClose={() => setOpenSection("")}
             >
@@ -369,6 +375,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="panels"
             title="Panely rolí"
+            description="Prehľad dostupných panelov a komunitných nástrojov."
             isActive={openSection === "panels"}
             onClose={() => setOpenSection("")}
           >
@@ -386,6 +393,7 @@ export function ProfilScreen() {
             <AccordionSection
               value="activate"
               title="🔑 Máš invite kód od suseda?"
+              description="Aktivuj susedské funkcie pomocou pozývacieho kódu."
               isActive={openSection === "activate"}
               onClose={() => setOpenSection("")}
             >
@@ -400,6 +408,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="invite-neighbor"
             title="Pozvať suseda"
+            description="Generovanie a zdieľanie pozývacích kódov pre nových susedov."
             isActive={openSection === "invite-neighbor"}
             onClose={() => setOpenSection("")}
           >
@@ -409,6 +418,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="items"
             title={`Moje inzeráty (${items.length})`}
+            description="Správa tvojich aktívnych inzerátov, expirácie a zmazanie."
             isActive={openSection === "items"}
             onClose={() => setOpenSection("")}
           >
@@ -503,6 +513,7 @@ export function ProfilScreen() {
           <AccordionSection
             value="account"
             title="Účet & odhlásenie"
+            description="Odhlásenie, správa účtu a trvalé zmazanie účtu."
             isActive={openSection === "account"}
             onClose={() => setOpenSection("")}
           >
@@ -525,6 +536,7 @@ function SectionLoader() {
 function AccordionSection({
   value,
   title,
+  description,
   isActive,
   onClose,
   itemClassName,
@@ -533,6 +545,7 @@ function AccordionSection({
 }: {
   value: string;
   title: string;
+  description?: string;
   isActive: boolean;
   onClose: () => void;
   itemClassName?: string;
@@ -547,8 +560,15 @@ function AccordionSection({
         value={value}
         className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <AccordionTrigger className="px-4 py-4 text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:text-base">
-          {title}
+        <AccordionTrigger className="px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:py-4 md:text-base [&>svg]:shrink-0 [&>svg]:text-neutral-700 dark:[&>svg]:text-neutral-200">
+          <div className="min-w-0 pr-3">
+            <p className="truncate font-semibold">{title}</p>
+            {description && (
+              <p className="mt-0.5 line-clamp-2 text-xs font-normal leading-4 text-neutral-500 dark:text-neutral-400">
+                {description}
+              </p>
+            )}
+          </div>
         </AccordionTrigger>
 
         <AccordionContent className="hidden md:block">
@@ -570,7 +590,12 @@ function AccordionSection({
                 aria-modal="true"
               >
                 <div className="pt-safe flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
-                  <h3 className="truncate text-base font-semibold text-foreground md:text-lg">{title}</h3>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-semibold text-foreground md:text-lg">{title}</h3>
+                    {description && (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={onClose}
