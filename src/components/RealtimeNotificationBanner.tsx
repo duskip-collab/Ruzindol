@@ -5,6 +5,8 @@ export function RealtimeNotificationBanner() {
   const { current, dismiss } = useNotifications();
   if (!current) return null;
 
+  const heading = current.source === "aktuality" ? "Nová aktualita" : "Obecný hlásnik";
+
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-3 pt-3">
       <button
@@ -22,7 +24,7 @@ export function RealtimeNotificationBanner() {
           <div className="min-w-0 flex-1 text-white">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide opacity-90">
-                Obecný hlásnik
+                {heading}
               </span>
               <span className="text-[11px] opacity-75">· {current.authorName}</span>
             </div>

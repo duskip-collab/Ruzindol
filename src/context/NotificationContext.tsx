@@ -32,6 +32,7 @@ export interface LiveNotification {
   body: string;
   authorName: string;
   category: NotifCategory;
+  source?: "hlasnik" | "aktuality";
   createdAt: string;
 }
 
@@ -138,6 +139,12 @@ function classify(type: string, category: string | null): NotifCategory {
   if (c.includes("farsk") || c.includes("kostol") || t === "farsky_oznam") return "farske";
   if (t === "hlasnik" || t === "official_alert" || c.includes("obec")) return "obecne";
   return "ostatne";
+}
+
+function classifyAnnouncementPriority(priority: string | null): NotifCategory {
+  const p = (priority ?? "").toLowerCase();
+  if (p === "vystraha" || p === "urgentne" || p === "urgent" || p === "high") return "havarie";
+  return "obecne";
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -269,7 +276,55 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             body: row.content,
             authorName: prof.name ?? "Starosta",
             category: bucket,
+            source: "hlasnik",
             createdAt: row.created_at,
+          });
+          if (timerRef.current) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => setCurrent(null), 12000);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "announcements" },
+        async (payload) => {
+          if (mutedRef.current) return;
+          const row = payload.new as {
+            id: string;
+            source: string;
+            priority: string | null;
+            title: string;
+            content: string;
+            published_at: string;
+            author_id: string | null;
+          };
+
+          if ((row.source ?? "").toLowerCase() !== "internal") return;
+          if (row.author_id && row.author_id === currentUserId) return;
+
+          const bucket = classifyAnnouncementPriority(row.priority);
+          if (!catsRef.current[bucket]) return;
+
+          let authorName = "Obec";
+          if (row.author_id) {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("name")
+              .eq("id", row.author_id)
+              .maybeSingle();
+            authorName = prof?.name ?? authorName;
+          }
+
+          setHasOfficialUnread(true);
+
+          setCurrent({
+            id: `ann-${row.id}-${Date.now()}`,
+            postId: row.id,
+            title: "Nová aktualita",
+            body: row.title || row.content,
+            authorName,
+            category: bucket,
+            source: "aktuality",
+            createdAt: row.published_at ?? new Date().toISOString(),
           });
           if (timerRef.current) clearTimeout(timerRef.current);
           timerRef.current = setTimeout(() => setCurrent(null), 12000);
