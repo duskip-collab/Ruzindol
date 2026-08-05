@@ -6,6 +6,7 @@ const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024;
 function extensionFor(file: File) {
   if (file.type === "audio/mpeg" || file.type === "audio/mp3") return "mp3";
   if (file.type === "audio/wav" || file.type === "audio/x-wav") return "wav";
+  if (file.type === "audio/mp4" || file.type === "audio/m4a") return "m4a";
   if (file.type === "audio/webm") return "webm";
   return "audio";
 }

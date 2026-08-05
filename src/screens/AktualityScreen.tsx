@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ExternalLink,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
+import { isIosDevice } from "@/lib/pwa";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
@@ -260,16 +261,16 @@ export function AktualityScreen() {
 
       {showRozhlas && isUradnik && userId && (
         <div className="absolute inset-0 z-50 flex items-end bg-black/35 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-          <div className="relative h-full w-full bg-white md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:bg-neutral-950 dark:md:border-white/15">
+          <div className="relative h-full w-full bg-white pt-safe md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:bg-neutral-950 dark:md:border-white/15">
             <button
               type="button"
               onClick={() => setShowRozhlas(false)}
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+              className="absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 md:top-3"
               aria-label="Zavrieť digitálny rozhlas"
             >
               <X className="h-4 w-4" />
             </button>
-            <div className="max-h-[92vh] overflow-y-auto p-4 md:p-5">
+            <div className="max-h-[92vh] overflow-y-auto p-4 pt-14 md:p-5 md:pt-5">
               <DigitalnyRozhlas
                 userId={userId}
                 onPosted={() => {
@@ -296,8 +297,23 @@ function AnnouncementCard({
   canDelete: boolean;
   onDelete: () => void;
 }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioPlayHint, setAudioPlayHint] = useState(false);
+  const enableTapToPlay = Boolean(item.audio_url) && isIosDevice();
   const meta = PRIORITY_META[item.priority];
   const emphasize = item.priority === "vystraha" || item.priority === "urgentne";
+
+  async function handleAudioTapToPlay() {
+    if (!enableTapToPlay || !audioRef.current) return;
+    try {
+      await audioRef.current.play();
+      setAudioPlayHint(false);
+    } catch {
+      // Safari/iOS may still block autoplay in some contexts; keep native controls visible.
+      setAudioPlayHint(true);
+    }
+  }
+
   return (
     <article
       className={`relative rounded-2xl border-2 bg-white/90 p-3 text-neutral-900 shadow-sm backdrop-blur dark:bg-white ${
@@ -337,10 +353,21 @@ function AnnouncementCard({
       )}
 
       {item.audio_url && (
-        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100">
-          <audio controls preload="none" className="w-full">
+        <div
+          className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100"
+          onClick={() => {
+            void handleAudioTapToPlay();
+          }}
+        >
+          {enableTapToPlay && (
+            <p className="mb-1 text-[11px] font-medium text-neutral-600">Ťukni na panel pre prehratie na iPhone.</p>
+          )}
+          <audio ref={audioRef} controls preload="none" className="w-full" playsInline>
             <source src={item.audio_url} />
           </audio>
+          {audioPlayHint && (
+            <p className="mt-1 text-[11px] text-neutral-500">Ak sa prehratie nespustilo, použite tlačidlo Play v prehrávači.</p>
+          )}
         </div>
       )}
 

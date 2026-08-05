@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAppMode } from "@/context/AppModeContext";
 import { uploadAnnouncementAudio } from "@/lib/upload-announcement-audio";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
+import { isIosDevice } from "@/lib/pwa";
 import type { PostPriority } from "@/types";
 
 type ReviewPost = {
@@ -335,11 +336,17 @@ export function DigitalnyRozhlas({
       chunksRef.current = [];
 
       const mimeType =
-        MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        (isIosDevice() && MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "") ||
+        (isIosDevice() && MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")
+          ? "audio/mp4;codecs=mp4a.40.2"
+          : "") ||
+        (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
           ? "audio/webm;codecs=opus"
           : MediaRecorder.isTypeSupported("audio/webm")
             ? "audio/webm"
-            : "";
+            : "");
 
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 48_000 })
@@ -358,7 +365,8 @@ export function DigitalnyRozhlas({
           type: recorder.mimeType || "audio/webm",
         });
         if (blob.size > 0) {
-          setAudioFromBlob(blob, `rozhlas-${Date.now()}.webm`);
+          const ext = blob.type.includes("mp4") || blob.type.includes("m4a") ? "m4a" : "webm";
+          setAudioFromBlob(blob, `rozhlas-${Date.now()}.${ext}`);
         }
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -386,9 +394,17 @@ export function DigitalnyRozhlas({
 
   function handleFileUpload(file: File | null) {
     if (!file) return;
-    const allowed = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/webm"];
+    const allowed = [
+      "audio/mpeg",
+      "audio/mp3",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/webm",
+      "audio/mp4",
+      "audio/m4a",
+    ];
     if (!allowed.includes(file.type)) {
-      setRecordError("Podporované sú súbory MP3, WAV alebo WEBM.");
+      setRecordError("Podporované sú súbory MP3, WAV, M4A alebo WEBM.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -491,7 +507,7 @@ export function DigitalnyRozhlas({
               onClick={() => fileInputRef.current?.click()}
               className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
-              Nahrať súbor MP3 / WAV / WEBM
+              Nahrať súbor MP3 / WAV / M4A / WEBM
             </button>
 
             {audioFile && (
@@ -508,7 +524,7 @@ export function DigitalnyRozhlas({
           <input
             ref={fileInputRef}
             type="file"
-            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/webm"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/webm,audio/mp4,audio/m4a"
             className="hidden"
             onChange={(e) => {
               handleFileUpload(e.target.files?.[0] ?? null);
