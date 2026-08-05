@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   AlertTriangle,
   ExternalLink,
   Megaphone,
@@ -265,12 +266,12 @@ export function AktualityScreen() {
             <button
               type="button"
               onClick={() => setShowRozhlas(false)}
-              className="absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 md:top-3"
+              className="absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 hidden h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 md:flex md:top-3"
               aria-label="Zavrieť digitálny rozhlas"
             >
               <X className="h-4 w-4" />
             </button>
-            <div className="max-h-[92vh] overflow-y-auto p-4 pt-14 md:p-5 md:pt-5">
+            <div className="max-h-[92vh] overflow-y-auto p-4 pb-24 md:p-5 md:pb-5 md:pt-5">
               <DigitalnyRozhlas
                 userId={userId}
                 onPosted={() => {
@@ -278,6 +279,17 @@ export function AktualityScreen() {
                   void load().finally(() => setSyncing(false));
                 }}
               />
+            </div>
+            <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+              <button
+                type="button"
+                onClick={() => setShowRozhlas(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                aria-label="Späť"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Späť
+              </button>
             </div>
           </div>
         </div>
@@ -356,6 +368,9 @@ function AnnouncementCard({
         <div
           className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100"
           onClick={() => {
+            void handleAudioTapToPlay();
+          }}
+          onTouchStart={() => {
             void handleAudioTapToPlay();
           }}
         >

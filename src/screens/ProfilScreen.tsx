@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowLeft,
   MapPin,
   Shield,
   Package,
@@ -49,6 +50,7 @@ import {
 import { removeBucketObject } from "@/lib/storage";
 import { formatWarehouseExpiry, getWarehouseLifetimeLabel, resolveWarehouseExpiry, type WarehouseItemType } from "@/lib/warehouse";
 import { syncPushSubscriptionSilently } from "@/lib/push";
+import { isIosDevice } from "@/lib/pwa";
 
 type Item = {
   id: string;
@@ -543,6 +545,7 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   const canUseDom = typeof document !== "undefined";
+  const useIosBackNav = isIosDevice();
 
   return (
     <>
@@ -595,16 +598,30 @@ function AccordionSection({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20"
+                    className={`h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
                     aria-label="Zavrieť panel"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 ${contentClassName ?? ""}`}>
+                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 ${useIosBackNav ? "pb-24" : "pb-8"} ${contentClassName ?? ""}`}>
                   {children}
                 </div>
+
+                {useIosBackNav && (
+                  <div className="border-t border-border bg-white/95 px-4 py-3 pb-safe dark:bg-neutral-950/95 md:hidden">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                      aria-label="Späť"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Späť
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>,
