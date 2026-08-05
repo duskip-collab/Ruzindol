@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -312,26 +312,12 @@ function AnnouncementCard({
   canDelete: boolean;
   onDelete: () => void;
 }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioPlayHint, setAudioPlayHint] = useState(false);
-  const enableTapToPlay = Boolean(item.audio_url) && isIosDevice();
   const isLegacyWebmOnIos =
     Boolean(item.audio_url) &&
     isIosDevice() &&
     (/\.webm(\?|$)/i.test(item.audio_url ?? "") || /format=webm/i.test(item.audio_url ?? ""));
   const meta = PRIORITY_META[item.priority];
   const emphasize = item.priority === "vystraha" || item.priority === "urgentne";
-
-  async function handleAudioTapToPlay() {
-    if (!enableTapToPlay || !audioRef.current) return;
-    try {
-      await audioRef.current.play();
-      setAudioPlayHint(false);
-    } catch {
-      // Safari/iOS may still block autoplay in some contexts; keep native controls visible.
-      setAudioPlayHint(true);
-    }
-  }
 
   return (
     <article
@@ -372,24 +358,10 @@ function AnnouncementCard({
       )}
 
       {item.audio_url && (
-        <div
-          className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100"
-          onClick={() => {
-            void handleAudioTapToPlay();
-          }}
-          onTouchStart={() => {
-            void handleAudioTapToPlay();
-          }}
-        >
-          {enableTapToPlay && (
-            <p className="mb-1 text-[11px] font-medium text-neutral-600">Ťukni na panel pre prehratie na iPhone.</p>
-          )}
-          <audio ref={audioRef} controls preload="none" className="w-full" playsInline>
+        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100">
+          <audio controls preload="none" className="w-full" playsInline>
             <source src={item.audio_url} />
           </audio>
-          {audioPlayHint && (
-            <p className="mt-1 text-[11px] text-neutral-500">Ak sa prehratie nespustilo, použite tlačidlo Play v prehrávači.</p>
-          )}
           {isLegacyWebmOnIos && (
             <p className="mt-1 text-[11px] text-amber-700">
               Staršia nahrávka WEBM môže mať na iPhone problém s prehratím. Pri nových nahrávkach už ukladáme iOS kompatibilný formát.
@@ -439,6 +411,7 @@ function AdminForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [priority, setPriority] = useState<Priority>("oznam");
@@ -473,11 +446,11 @@ function AdminForm({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
+      <div className="flex h-full w-full flex-col bg-white pt-safe dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
         <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -485,7 +458,7 @@ function AdminForm({
           <h2 className="font-semibold">📝 Nový oznam (admin)</h2>
         </div>
 
-        <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <form onSubmit={submit} className={`flex flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
           <div>
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Typ / Priorita</label>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
@@ -568,6 +541,20 @@ function AdminForm({
             </button>
           </div>
         </form>
+
+        {useIosBackNav && (
+          <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+              aria-label="Späť"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Späť
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

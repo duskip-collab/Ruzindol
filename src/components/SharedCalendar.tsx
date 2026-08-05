@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import imageCompression from "browser-image-compression";
 import {
+  ArrowLeft,
   Landmark,
   Church,
   CalendarDays,
@@ -17,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { syncMunicipalEventsIfNeeded } from "@/lib/municipal-events-sync";
+import { isIosDevice } from "@/lib/pwa";
 
 type EventCategory = "Samosprava" | "Kostol";
 
@@ -131,6 +133,7 @@ export function SharedCalendar() {
 
   const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik" || profile?.role === "Farar";
   const canUseDom = typeof document !== "undefined";
+  const useIosBackNav = isIosDevice();
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -263,7 +266,7 @@ export function SharedCalendar() {
                 e.stopPropagation();
                 closeExpanded();
               }}
-              className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+              className={`ml-1 h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
               aria-label="Zavriet"
             >
               <X className="h-4 w-4" />
@@ -317,8 +320,23 @@ export function SharedCalendar() {
 
       {expanded && canUseDom &&
         createPortal(
-          <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 p-4 backdrop-blur-xl">
-            <div className="flex h-full min-h-0 flex-col">{renderCalendarContent({ fullscreen: true })}</div>
+          <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 p-4 pt-safe backdrop-blur-xl">
+            <div className={`flex h-full min-h-0 flex-col ${useIosBackNav ? "pb-20" : ""}`}>
+              {renderCalendarContent({ fullscreen: true })}
+            </div>
+            {useIosBackNav && (
+              <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+                <button
+                  type="button"
+                  onClick={closeExpanded}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                  aria-label="Späť"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Späť
+                </button>
+              </div>
+            )}
           </div>,
           document.body,
         )}
@@ -472,17 +490,18 @@ function EventDetailModal({
   onClose: () => void;
   onToggleAttendance: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   const theme = THEME[event.type ?? "Samosprava"];
   const start = new Date(event.starts_at);
   const end = event.ends_at ? new Date(event.ends_at) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white dark:bg-neutral-950">
+    <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white pt-safe dark:bg-neutral-950">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           type="button"
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavriet detail"
         >
           <X className="h-5 w-5" />
@@ -490,7 +509,7 @@ function EventDetailModal({
         <h2 className="line-clamp-1 text-sm font-semibold md:text-base">{event.title}</h2>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+      <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${useIosBackNav ? "pb-24" : ""} md:p-6 md:pb-6`}>
         <div className={`rounded-2xl border ${theme.ring} ${theme.bg} p-4`}>
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${theme.chip}`}>
@@ -552,6 +571,20 @@ function EventDetailModal({
           </div>
         </div>
       </div>
+
+      {useIosBackNav && (
+        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            aria-label="Späť"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Späť
+          </button>
+        </div>
+      )}
     </div>,
     document.body,
   );
@@ -566,6 +599,7 @@ function EventForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -633,11 +667,11 @@ function EventForm({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white dark:bg-neutral-950">
+    <div className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white pt-safe dark:bg-neutral-950">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavriet"
         >
           <X className="h-5 w-5" />
@@ -645,7 +679,7 @@ function EventForm({
         <h2 className="font-semibold">Nova udalost</h2>
       </div>
 
-      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <form onSubmit={submit} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
         <div>
           <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategoria</label>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -761,6 +795,20 @@ function EventForm({
           </button>
         </div>
       </form>
+
+      {useIosBackNav && (
+        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            aria-label="Späť"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Späť
+          </button>
+        </div>
+      )}
     </div>,
     document.body,
   );

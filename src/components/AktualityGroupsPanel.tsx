@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  ArrowLeft,
   CalendarPlus,
   Church,
   Flame,
@@ -22,6 +23,7 @@ import { retryAsync, withTimeout } from "@/lib/async-guard";
 import { uploadCompressedImage } from "@/lib/upload-image";
 import { ImageInput } from "@/components/ImageInput";
 import type { CompressedImage } from "@/lib/compress-image";
+import { isIosDevice } from "@/lib/pwa";
 
 type GroupKey = "osk_ruzindol" | "dochodcovia" | "dhz" | "farnost" | "sluzby";
 
@@ -192,6 +194,7 @@ export function AktualityGroupsPanel() {
   const hasAutomaticAccess = hasAutomaticSectionAccess(profile?.role, active);
   const automaticAccessLabel = getAutomaticAccessLabel(active);
   const canUseDom = typeof document !== "undefined";
+  const useIosBackNav = isIosDevice();
 
   const canCreateInGroup = canManageGroups || isGroupAdmin || hasAutomaticAccess;
 
@@ -396,7 +399,7 @@ export function AktualityGroupsPanel() {
       {openedGroup &&
         canUseDom &&
         createPortal(
-          <div className="fixed inset-0 z-[120] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white/95 p-4 backdrop-blur-xl md:bg-white">
+          <div className="fixed inset-0 z-[120] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white/95 p-4 pt-safe backdrop-blur-xl md:bg-white">
             <div className="mb-3 flex items-center justify-between gap-2 border-b border-neutral-200 pb-3">
               <div>
                 <p className="text-sm font-semibold text-neutral-900">{activeMeta.title}</p>
@@ -468,7 +471,7 @@ export function AktualityGroupsPanel() {
                 <button
                   type="button"
                   onClick={closeGroup}
-                  className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                  className={`h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 ${useIosBackNav ? "hidden md:grid" : "grid"}`}
                   aria-label="Zavrieť sekciu"
                 >
                   <X className="h-4 w-4" />
@@ -476,7 +479,7 @@ export function AktualityGroupsPanel() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scroll-smooth pr-1">
+            <div className={`flex-1 overflow-y-auto scroll-smooth pr-1 ${useIosBackNav ? "pb-24" : ""}`}>
               {loadError && (
                 <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
                   {loadError}
@@ -597,6 +600,20 @@ export function AktualityGroupsPanel() {
                 </div>
               )}
             </div>
+
+            {useIosBackNav && (
+              <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+                <button
+                  type="button"
+                  onClick={closeGroup}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                  aria-label="Späť"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Späť
+                </button>
+              </div>
+            )}
           </div>,
           document.body,
         )}
@@ -660,8 +677,9 @@ function GroupPostDetailModal({
   authorName: string;
   onClose: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   return (
-    <div className="fixed inset-0 z-[180] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white/95 backdrop-blur-xl md:bg-black/30 md:p-6">
+    <div className="fixed inset-0 z-[180] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white/95 pt-safe backdrop-blur-xl md:bg-black/30 md:p-6">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white md:mx-auto md:w-full md:max-w-4xl md:rounded-3xl md:shadow-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 md:px-5">
           <div className="min-w-0">
@@ -671,14 +689,14 @@ function GroupPostDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+            className={`h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 ${useIosBackNav ? "hidden md:grid" : "grid"}`}
             aria-label="Zavrieť detail"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+        <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5 ${useIosBackNav ? "pb-24" : ""}`}>
           {post.post_kind === "parte" && (
             <p className="mb-3 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
               Parte {post.deceased_name ? `· ${post.deceased_name}` : ""}
@@ -699,6 +717,20 @@ function GroupPostDetailModal({
             </p>
           )}
         </div>
+
+        {useIosBackNav && (
+          <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+              aria-label="Späť"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Späť
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -721,6 +753,7 @@ function GroupPostForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<CompressedImage | null>(null);
@@ -816,11 +849,11 @@ function GroupPostForm({
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white dark:bg-neutral-200">
+    <div className="fixed inset-0 z-[140] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white pt-safe dark:bg-neutral-200">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-300">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavrieť"
         >
           <X className="h-5 w-5" />
@@ -828,7 +861,7 @@ function GroupPostForm({
         <h2 className="font-semibold dark:text-neutral-900">Nový oznam sekcie</h2>
       </div>
 
-      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <form onSubmit={submit} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
         {canCreateParte && (
           <div className="rounded-xl border border-violet-200 bg-violet-50 p-2 dark:border-violet-300 dark:bg-violet-100">
             <button
@@ -937,6 +970,20 @@ function GroupPostForm({
           </button>
         </div>
       </form>
+
+      {useIosBackNav && (
+        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            aria-label="Späť"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Späť
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -956,6 +1003,7 @@ function GroupAdminModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const useIosBackNav = isIosDevice();
   const [selectedUserId, setSelectedUserId] = useState("");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -1066,11 +1114,11 @@ function GroupAdminModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex h-[100dvh] w-screen max-w-none flex-col overflow-hidden bg-white dark:bg-neutral-200">
+    <div className="fixed inset-0 z-[300] flex h-[100dvh] w-screen max-w-none flex-col overflow-hidden bg-white pt-safe dark:bg-neutral-200">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-300">
         <button
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavrieť"
         >
           <X className="h-5 w-5" />
@@ -1078,7 +1126,7 @@ function GroupAdminModal({
         <h2 className="font-semibold dark:text-neutral-900">Správcovia sekcie</h2>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <div className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
         <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-300 dark:bg-neutral-300">
           <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-900">
             Vyber registrovaného suseda pre túto sekciu
@@ -1215,6 +1263,20 @@ function GroupAdminModal({
           </p>
         )}
       </div>
+
+      {useIosBackNav && (
+        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            aria-label="Späť"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Späť
+          </button>
+        </div>
+      )}
     </div>
   );
 }
