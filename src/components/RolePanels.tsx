@@ -402,9 +402,11 @@ export function DigitalnyRozhlas({
       "audio/webm",
       "audio/mp4",
       "audio/m4a",
+      "audio/x-m4a",
+      "audio/aac",
     ];
     if (!allowed.includes(file.type)) {
-      setRecordError("Podporované sú súbory MP3, WAV, M4A alebo WEBM.");
+      setRecordError("Podporované sú súbory MP3, WAV, M4A, AAC alebo WEBM.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -507,7 +509,7 @@ export function DigitalnyRozhlas({
               onClick={() => fileInputRef.current?.click()}
               className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
             >
-              Nahrať súbor MP3 / WAV / M4A / WEBM
+              Nahrať súbor MP3 / WAV / M4A / AAC / WEBM
             </button>
 
             {audioFile && (
@@ -524,7 +526,7 @@ export function DigitalnyRozhlas({
           <input
             ref={fileInputRef}
             type="file"
-            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/webm,audio/mp4,audio/m4a"
+            accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/webm,audio/mp4,audio/m4a,audio/x-m4a,audio/aac"
             className="hidden"
             onChange={(e) => {
               handleFileUpload(e.target.files?.[0] ?? null);
