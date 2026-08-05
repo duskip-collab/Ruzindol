@@ -1053,6 +1053,27 @@ function NeighborInviteSection({
     setTimeout(() => setCopied(null), 1500);
   }
 
+  async function shareMessenger(code: string, inviteId: string) {
+    const msg = inviteMessage(code);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Pozvať suseda",
+          text: msg,
+        });
+        await markCodeAsShared(inviteId, "messenger-native");
+        return;
+      } catch {
+        // User may cancel native share sheet.
+      }
+    }
+
+    await navigator.clipboard?.writeText(msg);
+    window.open("https://www.messenger.com/", "_blank", "noopener,noreferrer");
+    await markCodeAsShared(inviteId, "messenger");
+  }
+
   return (
     <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
@@ -1115,9 +1136,6 @@ function NeighborInviteSection({
               {codes.map((row) => {
                 const code = row.code;
                 const whatsappText = encodeURIComponent(inviteMessage(code));
-                const shareUrl =
-                  typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-                const fbQuote = encodeURIComponent(inviteMessage(code));
                 return (
                 <li
                   key={row.id}
@@ -1154,24 +1172,23 @@ function NeighborInviteSection({
                   >
                     WhatsApp
                   </a>
-                  <a
-                      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                        shareUrl,
-                      )}&quote=${fbQuote}`}
-                      onClick={() => {
-                        void markCodeAsShared(row.id, "facebook");
-                      }}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                  <button
+                    type="button"
+                    onClick={() => void shareMessenger(code, row.id)}
+                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    title="Otvorí Messenger. Ak natívne zdieľanie nie je dostupné, text sa skopíruje do schránky."
                   >
-                      Facebook
-                  </a>
+                    Messenger
+                  </button>
                 </li>
                 );
               })}
             </ul>
           )}
+          <p className="mt-2 text-[11px] text-neutral-500">
+            Pri zdieľaní cez Messenger sa pri nepodporovanom natívnom zdieľaní text automaticky
+            skopíruje do schránky.
+          </p>
           {copied === "__all__" && (
             <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
           )}
