@@ -186,7 +186,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_author_muni UUID;
   v_priority TEXT;
   v_title TEXT;
   v_body TEXT;
@@ -195,10 +194,6 @@ BEGIN
   IF NEW.source <> 'internal' THEN
     RETURN NEW;
   END IF;
-
-  SELECT p.municipality_id INTO v_author_muni
-  FROM public.profiles p
-  WHERE p.id = NEW.author_id;
 
   v_priority := lower(COALESCE(NEW.priority, 'oznam'));
   v_title := COALESCE(NULLIF(btrim(NEW.title), ''), 'Aktuality');
@@ -216,9 +211,7 @@ BEGIN
     v_priority,
     v_is_critical
   FROM public.profiles p
-  WHERE p.id <> COALESCE(NEW.author_id, p.id)
-    AND COALESCE(p.is_active_neighbor, true) = true
-    AND (v_author_muni IS NULL OR p.municipality_id = v_author_muni);
+  WHERE p.id <> COALESCE(NEW.author_id, p.id);
 
   RETURN NEW;
 END;
@@ -237,17 +230,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_author_muni UUID;
   v_priority TEXT;
   v_is_critical BOOLEAN;
 BEGIN
   IF lower(COALESCE(NEW.type, '')) <> 'hlasnik' AND lower(COALESCE(NEW.type, '')) <> 'official_alert' THEN
     RETURN NEW;
   END IF;
-
-  SELECT p.municipality_id INTO v_author_muni
-  FROM public.profiles p
-  WHERE p.id = NEW.user_id;
 
   v_priority := CASE
     WHEN lower(COALESCE(NEW.category, '')) IN ('vysoka', 'výstraha', 'vystraha') THEN 'vystraha'
@@ -271,9 +259,7 @@ BEGIN
     v_priority,
     v_is_critical
   FROM public.profiles p
-  WHERE p.id <> NEW.user_id
-    AND COALESCE(p.is_active_neighbor, true) = true
-    AND (v_author_muni IS NULL OR p.municipality_id = v_author_muni);
+  WHERE p.id <> NEW.user_id;
 
   RETURN NEW;
 END;
@@ -291,13 +277,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_author_muni UUID;
 BEGIN
-  SELECT p.municipality_id INTO v_author_muni
-  FROM public.profiles p
-  WHERE p.id = NEW.author_id;
-
   INSERT INTO public.notifications (user_id, type, title, body, ref_id, url, priority, is_critical)
   SELECT
     p.id,
@@ -309,9 +289,7 @@ BEGIN
     'oznam',
     false
   FROM public.profiles p
-  WHERE p.id <> NEW.author_id
-    AND COALESCE(p.is_active_neighbor, true) = true
-    AND (v_author_muni IS NULL OR p.municipality_id = v_author_muni);
+  WHERE p.id <> NEW.author_id;
 
   RETURN NEW;
 END;

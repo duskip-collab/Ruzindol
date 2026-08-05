@@ -38,6 +38,11 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
   return "/";
 }
 
+function isCommunityBroadcastNotification(record: Record<string, unknown>) {
+  const type = String(record.type ?? "").toLowerCase();
+  return type === "announcement" || type === "official_alert" || type === "group_announcement";
+}
+
 async function loadSubscriptions(supabase: ReturnType<typeof createClient>, userId: string) {
   const withEndpoint = await supabase
     .from("user_push_subscriptions")
@@ -120,12 +125,13 @@ serve(async (req) => {
 
     const userId = decision.userId as string;
     const critical = decision.critical;
+    const forceSend = isCommunityBroadcastNotification(record);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!critical) {
+    if (!critical && !forceSend) {
       const enabled = await shouldSendOptionalNotification(supabase, userId);
       const optionalDecision = evaluatePushDecision(record, enabled);
       if (!optionalDecision.shouldSend) {
@@ -151,7 +157,7 @@ serve(async (req) => {
       url: resolveTargetUrl(record, critical),
       priority: critical ? "high" : "normal",
       renotify: critical,
-      requireInteraction: critical,
+      requireInteraction: critical || forceSend,
       vibrate: critical ? [300, 120, 300, 120, 500] : [120, 80, 120],
       sound: "default",
       tag: record.type ? `komunita-${record.type}` : "komunita-system",
@@ -161,7 +167,7 @@ serve(async (req) => {
     const pushOptions = {
       TTL: critical ? 3600 : 86400,
       headers: {
-        "Urgency": critical ? "high" : "normal",
+        "Urgency": critical || forceSend ? "high" : "normal",
         "Topic": record.type || "system",
       },
     };
@@ -200,6 +206,7 @@ serve(async (req) => {
         sent: sentCount,
         failed: failedCount,
         critical,
+        forceSend,
       });
   } catch (err: any) {
     console.error("Chyba v send-push Edge Funkcii:", err);
