@@ -110,39 +110,51 @@ export type Database = {
       };
       events: {
         Row: {
-          author_id: string;
+          author_id: string | null;
           created_at: string;
           description: string;
+          end_date: string | null;
+          end_time: string | null;
           ends_at: string | null;
           id: string;
+          image_url: string | null;
           location: string;
           municipality_id: string | null;
+          source_url: string | null;
           starts_at: string;
           title: string;
           type: string;
           updated_at: string;
         };
         Insert: {
-          author_id: string;
+          author_id?: string | null;
           created_at?: string;
           description?: string;
+          end_date?: string | null;
+          end_time?: string | null;
           ends_at?: string | null;
           id?: string;
+          image_url?: string | null;
           location?: string;
           municipality_id?: string | null;
+          source_url?: string | null;
           starts_at: string;
           title: string;
           type?: string;
           updated_at?: string;
         };
         Update: {
-          author_id?: string;
+          author_id?: string | null;
           created_at?: string;
           description?: string;
+          end_date?: string | null;
+          end_time?: string | null;
           ends_at?: string | null;
           id?: string;
+          image_url?: string | null;
           location?: string;
           municipality_id?: string | null;
+          source_url?: string | null;
           starts_at?: string;
           title?: string;
           type?: string;

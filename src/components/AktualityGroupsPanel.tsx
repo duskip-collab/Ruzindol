@@ -173,6 +173,7 @@ export function AktualityGroupsPanel() {
   const [showPostForm, setShowPostForm] = useState(false);
   const [showAdmins, setShowAdmins] = useState(false);
   const [showAllPosts, setShowAllPosts] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<GroupAnnouncement | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const canManageGroups = !!isAdmin || profile?.role === "Starosta";
@@ -355,6 +356,7 @@ export function AktualityGroupsPanel() {
     setShowPostForm(false);
     setShowAdmins(false);
     setShowAllPosts(false);
+    setSelectedPost(null);
   }
 
   const activeMeta = GROUPS.find((g) => g.key === active)!;
@@ -496,7 +498,16 @@ export function AktualityGroupsPanel() {
                     return (
                       <article
                         key={p.id}
-                        className="rounded-2xl border border-neutral-200/80 bg-white/90 p-3 shadow-sm"
+                        className="cursor-pointer rounded-2xl border border-neutral-200/80 bg-white/90 p-3 shadow-sm transition hover:shadow-md"
+                        onClick={() => setSelectedPost(p)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedPost(p);
+                          }
+                        }}
                       >
                         <div className="flex items-center justify-between text-[10px] text-neutral-500">
                           <span>{timeAgo(p.created_at)}</span>
@@ -530,7 +541,8 @@ export function AktualityGroupsPanel() {
                           {canDelete && (
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 void deletePost(p.id);
                               }}
                               className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-100"
@@ -624,7 +636,71 @@ export function AktualityGroupsPanel() {
           />,
           document.body,
         )}
+
+      {selectedPost &&
+        canUseDom &&
+        createPortal(
+          <GroupPostDetailModal
+            post={selectedPost}
+            authorName={people[selectedPost.author_id]?.name ?? "Používateľ"}
+            onClose={() => setSelectedPost(null)}
+          />,
+          document.body,
+        )}
     </>
+  );
+}
+
+function GroupPostDetailModal({
+  post,
+  authorName,
+  onClose,
+}: {
+  post: GroupAnnouncement;
+  authorName: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[180] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white/95 backdrop-blur-xl md:bg-black/30 md:p-6">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white md:mx-auto md:w-full md:max-w-4xl md:rounded-3xl md:shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 md:px-5">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-neutral-900 md:text-base">{post.title}</h3>
+            <p className="text-[11px] text-neutral-500">{timeAgo(post.created_at)} · Autor: {authorName}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+            aria-label="Zavrieť detail"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+          {post.post_kind === "parte" && (
+            <p className="mb-3 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Parte {post.deceased_name ? `· ${post.deceased_name}` : ""}
+            </p>
+          )}
+
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-700">{post.content}</p>
+
+          {post.image_url && (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              <img src={post.image_url} alt={post.title} className="h-auto w-full object-contain" />
+            </div>
+          )}
+
+          {post.linked_event_id && (
+            <p className="mt-4 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-700">
+              <CalendarPlus className="h-3.5 w-3.5" /> Zápis v kalendári
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -674,7 +750,8 @@ function GroupPostForm({
     try {
       let imageUrl: string | null = null;
       if (image) {
-        imageUrl = await uploadCompressedImage(image, userId);
+        const upload = await uploadCompressedImage(image, userId);
+        imageUrl = upload.imageUrl;
       }
 
       const computedTitle = isParte ? `Parte: ${cleanDeceasedName}` : cleanTitle;

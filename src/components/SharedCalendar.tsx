@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import imageCompression from "browser-image-compression";
 import {
   Landmark,
   Church,
@@ -9,20 +11,27 @@ import {
   X,
   Trash2,
   Maximize2,
+  ExternalLink,
+  Image as ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { syncMunicipalEventsIfNeeded } from "@/lib/municipal-events-sync";
 
 type EventCategory = "Samosprava" | "Kostol";
 
 type DbEvent = {
   id: string;
-  author_id: string;
+  author_id: string | null;
   title: string;
   description: string;
   location: string;
   starts_at: string;
   ends_at: string | null;
+  end_date: string | null;
+  end_time: string | null;
+  source_url: string | null;
+  image_url: string | null;
   type: EventCategory;
 };
 
@@ -43,7 +52,7 @@ const THEME: Record<
   }
 > = {
   Samosprava: {
-    label: "Samospráva",
+    label: "Samosprava",
     icon: <Landmark className="h-3.5 w-3.5" />,
     ring: "border-blue-300",
     bg: "bg-blue-50/70",
@@ -70,25 +79,69 @@ function formatDate(iso: string) {
   };
 }
 
+function toLocalDatetimeInput(date: Date) {
+  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return adjusted.toISOString().slice(0, 16);
+}
+
+function toDatePart(iso: string | null) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function toTimePart(iso: string | null) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(11, 16);
+}
+
+async function uploadEventImage(input: File, userId: string) {
+  const compressed = await imageCompression(input, {
+    maxSizeMB: 1,
+    maxWidthOrHeight: 1280,
+    useWebWorker: true,
+    fileType: "image/jpeg",
+    initialQuality: 0.78,
+  });
+
+  const filename = `${userId}/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from("events_images").upload(filename, compressed, {
+    contentType: "image/jpeg",
+    upsert: false,
+  });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("events_images").getPublicUrl(filename);
+  return data.publicUrl;
+}
+
 export function SharedCalendar() {
   const { profile, userId } = useCurrentUser();
   const [events, setEvents] = useState<DbEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<DbEvent | null>(null);
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [attendanceCounts, setAttendanceCounts] = useState<Record<string, number>>({});
   const [attendanceBusyId, setAttendanceBusyId] = useState<string | null>(null);
 
-  const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik" || profile?.role === "Farar";
+  const canUseDom = typeof document !== "undefined";
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("events")
-      .select("id, author_id, title, description, location, starts_at, ends_at, type")
+      .select(
+        "id, author_id, title, description, location, starts_at, ends_at, end_date, end_time, source_url, image_url, type",
+      )
       .gte("starts_at", new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString())
       .order("starts_at", { ascending: true })
-      .limit(50);
+      .limit(80);
+
     const eventList = (data as DbEvent[]) ?? [];
     setEvents(eventList);
 
@@ -120,6 +173,8 @@ export function SharedCalendar() {
     (async () => {
       setLoading(true);
       await load();
+      await syncMunicipalEventsIfNeeded();
+      await load();
       setLoading(false);
     })();
   }, [load]);
@@ -127,9 +182,10 @@ export function SharedCalendar() {
   const upcoming = useMemo(() => events, [events]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Naozaj vymazať túto udalosť?")) return;
+    if (!confirm("Naozaj vymazat tuto udalost?")) return;
     await supabase.from("events").delete().eq("id", id);
     setEvents((prev) => prev.filter((e) => e.id !== id));
+    if (selectedEvent?.id === id) setSelectedEvent(null);
   }
 
   async function toggleAttendance(eventId: string) {
@@ -166,27 +222,25 @@ export function SharedCalendar() {
     setAttendanceCounts((prev) => ({ ...prev, [eventId]: (prev[eventId] ?? 0) + 1 }));
   }
 
-  function toggleExpand() {
-    if (showForm) return; // neexpanuj ak je otvorený formulár
-    setExpanded((v) => !v);
+  function openExpanded() {
+    if (showForm) return;
+    setExpanded(true);
   }
 
-  function handleClose() {
+  function closeExpanded() {
     setExpanded(false);
   }
 
-  const renderCalendarContent = () => (
+  const renderCalendarContent = ({ fullscreen }: { fullscreen: boolean }) => (
     <>
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-neutral-700" />
-          <h3 className="text-sm font-semibold tracking-tight text-neutral-900">
-            Zdieľaný kalendár obce
-          </h3>
+          <h3 className="text-sm font-semibold tracking-tight text-neutral-900">Zdielany kalendar obce</h3>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-700">
-            <Landmark className="h-3 w-3" /> Samospráva
+            <Landmark className="h-3 w-3" /> Samosprava
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-100 to-amber-100 px-2 py-0.5 font-medium text-purple-700">
             <Church className="h-3 w-3" /> Kostol
@@ -195,41 +249,36 @@ export function SharedCalendar() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setExpanded(true);
                 setShowForm(true);
               }}
               className="ml-1 flex items-center gap-1 rounded-full bg-neutral-900 px-2 py-1 text-[10px] font-semibold text-white hover:bg-neutral-800"
-              title="Pridať udalosť"
+              title="Pridat udalost"
             >
-              <Plus className="h-3 w-3" /> Pridať
+              <Plus className="h-3 w-3" /> Pridat
             </button>
           )}
-          {expanded && (
+          {fullscreen && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleClose();
+                closeExpanded();
               }}
-              className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
-              aria-label="Zatvoriť"
+              className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+              aria-label="Zavriet"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </header>
 
-      <div
-        className={`${expanded ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}
-      >
+      <div className={`${fullscreen ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}>
         {loading ? (
           <div className="flex items-center justify-center py-6 text-neutral-400">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : upcoming.length === 0 ? (
-          <p className="py-6 text-center text-xs text-neutral-500">
-            Momentálne nie sú naplánované žiadne udalosti.
-          </p>
+          <p className="py-6 text-center text-xs text-neutral-500">Momentalne nie su naplanovane ziadne udalosti.</p>
         ) : (
           <ol className="flex flex-col gap-2">
             {upcoming.map((e) => (
@@ -241,8 +290,9 @@ export function SharedCalendar() {
                 attendanceBusy={attendanceBusyId === e.id}
                 canDelete={canManage || e.author_id === userId}
                 canAttend={Boolean(userId)}
+                onOpen={() => setSelectedEvent(e)}
                 onToggleAttendance={() => void toggleAttendance(e.id)}
-                onDelete={() => handleDelete(e.id)}
+                onDelete={() => void handleDelete(e.id)}
               />
             ))}
           </ol>
@@ -251,41 +301,27 @@ export function SharedCalendar() {
     </>
   );
 
-  if (expanded) {
-    return (
-      <div
-        className="absolute inset-0 z-[60] flex flex-col bg-white/95 backdrop-blur-xl p-4 animate-in fade-in zoom-in-95 duration-200"
-        onClick={handleClose}
-      >
-        <div className="flex flex-col h-full" onClick={(e) => e.stopPropagation()}>
-          {renderCalendarContent()}
-
-          {showForm && canManage && userId && (
-            <EventForm
-              userId={userId}
-              onClose={() => setShowForm(false)}
-              onCreated={async () => {
-                setShowForm(false);
-                await load();
-              }}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <section
-      className="rounded-3xl border border-neutral-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-xl cursor-pointer transition hover:shadow-md hover:bg-white/90"
-      onClick={toggleExpand}
-      title="Kliknite pre zobrazenie na celú obrazovku"
-    >
-      <div onClick={(e) => e.stopPropagation()}>{renderCalendarContent()}</div>
-      <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-400">
-        <Maximize2 className="h-3 w-3" />
-        <span>Kliknite pre rozšírenie</span>
-      </div>
+    <>
+      <section
+        className="rounded-3xl border border-neutral-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-xl transition hover:bg-white/90 hover:shadow-md"
+        onClick={openExpanded}
+        title="Kliknite pre rozsirenie"
+      >
+        <div onClick={(e) => e.stopPropagation()}>{renderCalendarContent({ fullscreen: false })}</div>
+        <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-400">
+          <Maximize2 className="h-3 w-3" />
+          <span>Kliknite pre rozsirenie</span>
+        </div>
+      </section>
+
+      {expanded && canUseDom &&
+        createPortal(
+          <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 p-4 backdrop-blur-xl">
+            <div className="flex h-full min-h-0 flex-col">{renderCalendarContent({ fullscreen: true })}</div>
+          </div>,
+          document.body,
+        )}
 
       {showForm && canManage && userId && (
         <EventForm
@@ -297,7 +333,19 @@ export function SharedCalendar() {
           }}
         />
       )}
-    </section>
+
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          attendanceCount={attendanceCounts[selectedEvent.id] ?? 0}
+          attending={attendingIds.has(selectedEvent.id)}
+          attendanceBusy={attendanceBusyId === selectedEvent.id}
+          canAttend={Boolean(userId)}
+          onClose={() => setSelectedEvent(null)}
+          onToggleAttendance={() => void toggleAttendance(selectedEvent.id)}
+        />
+      )}
+    </>
   );
 }
 
@@ -308,6 +356,7 @@ function EventRow({
   attendanceBusy,
   canAttend,
   canDelete,
+  onOpen,
   onToggleAttendance,
   onDelete,
 }: {
@@ -317,6 +366,7 @@ function EventRow({
   attendanceBusy: boolean;
   canAttend: boolean;
   canDelete: boolean;
+  onOpen: () => void;
   onToggleAttendance: () => void;
   onDelete: () => void;
 }) {
@@ -324,63 +374,186 @@ function EventRow({
   const d = formatDate(event.starts_at);
 
   return (
-    <li className={`flex gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5`}>
-      <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/80 py-1 text-center shadow-sm">
-        <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
-        <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">
-          {d.month}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${theme.chip}`}
-          >
-            {theme.icon}
-            {theme.label}
-          </span>
-          <span className="text-[10px] text-neutral-500">
-            {d.weekday} · {d.time}
-          </span>
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`flex w-full gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5 text-left transition hover:shadow-sm`}
+      >
+        <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/80 py-1 text-center shadow-sm">
+          <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">{d.month}</span>
         </div>
-        <p className="mt-1 truncate text-sm font-semibold text-neutral-900">{event.title}</p>
-        <p className="line-clamp-1 text-[11px] text-neutral-600">{event.description}</p>
-        {event.location && (
-          <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500">
-            <MapPin className="h-3 w-3" />
-            {event.location}
-          </p>
-        )}
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium text-neutral-700 shadow-sm">
-            Záujemcovia: {attendanceCount}
-          </span>
-          {canAttend && (
-            <button
-              type="button"
-              onClick={onToggleAttendance}
-              disabled={attendanceBusy}
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
-                attending
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "bg-neutral-900 text-white hover:bg-neutral-800"
-              } disabled:opacity-60`}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${theme.chip}`}
             >
-              {attendanceBusy ? "Ukladám..." : attending ? "Zúčastním sa" : "Prídem"}
-            </button>
+              {theme.icon}
+              {theme.label}
+            </span>
+            <span className="text-[10px] text-neutral-500">
+              {d.weekday} · {d.time}
+            </span>
+            {event.image_url && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-600">
+                <ImageIcon className="h-3 w-3" /> Foto
+              </span>
+            )}
+          </div>
+          <p className="mt-1 truncate text-sm font-semibold text-neutral-900">{event.title}</p>
+          <p className="line-clamp-1 text-[11px] text-neutral-600">{event.description}</p>
+          {event.location && (
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500">
+              <MapPin className="h-3 w-3" />
+              {event.location}
+            </p>
           )}
+          {event.source_url && (
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-blue-700">
+              <ExternalLink className="h-3 w-3" /> Zdroj dostupny
+            </span>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium text-neutral-700 shadow-sm">
+              Zaujemcovia: {attendanceCount}
+            </span>
+            {canAttend && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleAttendance();
+                }}
+                disabled={attendanceBusy}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                  attending
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800"
+                } disabled:opacity-60`}
+              >
+                {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
+              </button>
+            )}
+          </div>
+        </div>
+        {canDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="self-start rounded-full p-1 text-neutral-400 hover:bg-white/60 hover:text-red-600"
+            title="Zmazat"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </button>
+    </li>
+  );
+}
+
+function EventDetailModal({
+  event,
+  attendanceCount,
+  attending,
+  attendanceBusy,
+  canAttend,
+  onClose,
+  onToggleAttendance,
+}: {
+  event: DbEvent;
+  attendanceCount: number;
+  attending: boolean;
+  attendanceBusy: boolean;
+  canAttend: boolean;
+  onClose: () => void;
+  onToggleAttendance: () => void;
+}) {
+  const theme = THEME[event.type ?? "Samosprava"];
+  const start = new Date(event.starts_at);
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white dark:bg-neutral-950">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+          aria-label="Zavriet detail"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <h2 className="line-clamp-1 text-sm font-semibold md:text-base">{event.title}</h2>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className={`rounded-2xl border ${theme.ring} ${theme.bg} p-4`}>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${theme.chip}`}>
+              {theme.icon}
+              {theme.label}
+            </span>
+            <span className="rounded-full bg-white/80 px-2 py-1 text-neutral-700">
+              {start.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
+            </span>
+            {end && (
+              <span className="rounded-full bg-white/80 px-2 py-1 text-neutral-700">
+                Koniec: {end.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
+              </span>
+            )}
+          </div>
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-800 dark:text-neutral-100">{event.description}</p>
+
+          {event.location && (
+            <p className="mt-3 flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-300">
+              <MapPin className="h-3.5 w-3.5" /> {event.location}
+            </p>
+          )}
+
+          {event.image_url && (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-white/10 dark:bg-neutral-900">
+              <img src={event.image_url} alt={event.title} className="h-auto w-full object-contain" />
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-neutral-700">
+              Zaujemcovia: {attendanceCount}
+            </span>
+            {canAttend && (
+              <button
+                type="button"
+                onClick={onToggleAttendance}
+                disabled={attendanceBusy}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  attending
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800"
+                } disabled:opacity-60`}
+              >
+                {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
+              </button>
+            )}
+            {event.source_url && (
+              <a
+                href={event.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Zdroj podujatia
+              </a>
+            )}
+          </div>
         </div>
       </div>
-      {canDelete && (
-        <button
-          onClick={onDelete}
-          className="self-start rounded-full p-1 text-neutral-400 hover:bg-white/60 hover:text-red-600"
-          title="Zmazať"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </li>
+    </div>,
+    document.body,
   );
 }
 
@@ -401,48 +574,80 @@ function EventForm({
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    return toLocalDatetimeInput(d);
   });
+  const [endsAt, setEndsAt] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoName, setPhotoName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !location.trim()) return;
-    setSaving(true);
-    setErr(null);
-    const { error } = await supabase.from("events").insert({
-      author_id: userId,
-      title: title.trim(),
-      description: description.trim(),
-      location: location.trim(),
-      type,
-      starts_at: new Date(startsAt).toISOString(),
-    });
-    setSaving(false);
-    if (error) {
-      setErr(error.message);
+
+    const startsIso = new Date(startsAt).toISOString();
+    const endsIso = endsAt ? new Date(endsAt).toISOString() : null;
+
+    if (endsIso && new Date(endsIso).getTime() <= new Date(startsIso).getTime()) {
+      setErr("Koniec podujatia musi byt neskor ako zaciatok.");
       return;
     }
-    onCreated();
+
+    setSaving(true);
+    setErr(null);
+
+    try {
+      let imageUrl: string | null = null;
+      if (photo) {
+        imageUrl = await uploadEventImage(photo, userId);
+      }
+
+      const { error } = await supabase.from("events").insert({
+        author_id: userId,
+        title: title.trim(),
+        description: description.trim(),
+        location: location.trim(),
+        type,
+        starts_at: startsIso,
+        ends_at: endsIso,
+        end_date: toDatePart(endsIso),
+        end_time: toTimePart(endsIso),
+        source_url: null,
+        image_url: imageUrl,
+      });
+
+      if (error) {
+        setErr(error.message);
+        setSaving(false);
+        return;
+      }
+
+      onCreated();
+    } catch (error) {
+      console.error("Nepodarilo sa ulozit udalost", error);
+      setErr("Nepodarilo sa ulozit udalost. Skus to znova.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-white dark:bg-neutral-950">
+  return createPortal(
+    <div className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white dark:bg-neutral-950">
       <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
         <button
           onClick={onClose}
           className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
-          aria-label="Zavrieť"
+          aria-label="Zavriet"
         >
           <X className="h-5 w-5" />
         </button>
-        <h2 className="font-semibold">📅 Nová udalosť</h2>
+        <h2 className="font-semibold">Nova udalost</h2>
       </div>
 
-      <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategória</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategoria</label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {(Object.keys(THEME) as EventCategory[]).map((t) => {
               const m = THEME[t];
@@ -467,7 +672,7 @@ function EventForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Názov</label>
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Nazov</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -499,15 +704,44 @@ function EventForm({
           />
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Začiatok</label>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Zaciatok</label>
+            <input
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+              required
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Koniec</label>
+            <input
+              type="datetime-local"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-300 dark:bg-neutral-900">
+          <label className="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Fotografia</label>
           <input
-            type="datetime-local"
-            value={startsAt}
-            onChange={(e) => setStartsAt(e.target.value)}
-            required
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null;
+              setPhoto(file);
+              setPhotoName(file?.name ?? null);
+            }}
+            className="w-full text-xs text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
           />
+          <p className="mt-2 text-[11px] text-neutral-500">
+            Obrazok sa pred uploadom automaticky komprimuje v prehliadaci.
+          </p>
+          {photoName && <p className="mt-1 text-[11px] font-medium text-neutral-700 dark:text-neutral-300">{photoName}</p>}
         </div>
 
         {err && (
@@ -523,10 +757,11 @@ function EventForm({
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Uložiť udalosť
+            Ulozit udalost
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

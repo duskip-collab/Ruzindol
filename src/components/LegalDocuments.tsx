@@ -34,17 +34,17 @@ export function LegalDocumentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden rounded-[1.5rem] border-border bg-background p-0 text-foreground">
-        <DialogHeader className="border-b border-border px-6 pb-4 pt-6 text-left">
+      <DialogContent className="z-[220] flex h-[min(92dvh,860px)] w-[calc(100vw-1.25rem)] max-w-3xl flex-col overflow-hidden rounded-[1.5rem] border-border bg-background p-0 text-foreground sm:w-full">
+        <DialogHeader className="z-10 border-b border-border bg-background px-4 pb-3 pt-5 text-left sm:px-6 sm:pb-4 sm:pt-6">
           <DialogTitle className="text-xl">
             {showingTerms ? "Podmienky používania" : "Ochrana osobných údajov (GDPR)"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="pr-10 sm:pr-12">
             Prehľad pravidiel komunity, používania služby a spracúvania osobných údajov.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap gap-2 border-b border-border px-6 py-4">
+        <div className="z-10 flex flex-wrap gap-2 border-b border-border bg-background px-4 py-3 sm:px-6 sm:py-4">
           <button
             type="button"
             onClick={() => setSection("terms")}
@@ -69,11 +69,11 @@ export function LegalDocumentsDialog({
           </button>
         </div>
 
-        <div className="max-h-[58vh] overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 sm:pb-8">
           {showingTerms ? <TermsContent /> : <PrivacyContent />}
         </div>
 
-        <DialogFooter className="border-t border-border px-6 py-4">
+        <DialogFooter className="z-10 border-t border-border bg-background px-4 py-3 sm:px-6 sm:py-4">
           <div className="mr-auto flex flex-wrap gap-2">
             <button
               type="button"

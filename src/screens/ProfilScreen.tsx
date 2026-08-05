@@ -35,6 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
   Accordion,
+  AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
@@ -546,9 +547,13 @@ function AccordionSection({
         value={value}
         className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <AccordionTrigger className="px-5 py-4 text-base leading-6 text-neutral-900 dark:text-neutral-100">
+        <AccordionTrigger className="px-4 py-4 text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:text-base">
           {title}
         </AccordionTrigger>
+
+        <AccordionContent className="hidden md:block">
+          <div className={`px-4 pb-4 pt-1 md:px-5 ${contentClassName ?? ""}`}>{children}</div>
+        </AccordionContent>
       </AccordionItem>
 
       {canUseDom &&
@@ -560,7 +565,7 @@ function AccordionSection({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 18 }}
                 transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-                className="fixed inset-0 z-[160] flex h-[100dvh] w-screen flex-col bg-white/95 backdrop-blur-xl dark:bg-neutral-950/95"
+                className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 backdrop-blur-xl md:hidden dark:bg-neutral-950/95"
                 role="dialog"
                 aria-modal="true"
               >
@@ -576,7 +581,7 @@ function AccordionSection({
                   </button>
                 </div>
 
-                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 md:px-6 md:pb-10 ${contentClassName ?? ""}`}>
+                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 ${contentClassName ?? ""}`}>
                   {children}
                 </div>
               </motion.div>

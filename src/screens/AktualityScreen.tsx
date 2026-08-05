@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { SharedCalendar } from "@/components/SharedCalendar";
+import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
 
@@ -186,7 +186,7 @@ export function AktualityScreen() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 overscroll-y-contain md:px-6">
         {isUradnik && (
           <div className="mb-4 rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-4 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
             <button
@@ -209,11 +209,11 @@ export function AktualityScreen() {
           </div>
         )}
 
-        <div className="mb-4">
+        <div>
           <AktualityGroupsPanel />
         </div>
 
-        <div className="mb-4">
+        <div>
           <SharedCalendar />
         </div>
 

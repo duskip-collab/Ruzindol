@@ -934,7 +934,8 @@ function NewPostModal({
 
       let imageUrl: string | null = null;
       if (canAttachImage && image) {
-        imageUrl = await uploadCompressedImage(image, userId);
+        const upload = await uploadCompressedImage(image, userId);
+        imageUrl = upload.imageUrl;
       }
 
       const postData = {

@@ -11,6 +11,7 @@ import { FullscreenAlert } from "@/components/FullscreenAlert";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useNotifications } from "@/context/NotificationContext";
+import { runStartupContentSync } from "@/lib/startup-sync";
 
 const NastenkaScreen = lazy(async () => {
   const module = await import("@/screens/NastenkaScreen");
@@ -138,6 +139,10 @@ function Index() {
     if (activeTab === "spravy") clearMessageUnread();
     if (activeTab === "nastenka") clearOfficialUnread();
   }, [activeTab, clearMessageUnread, clearOfficialUnread]);
+
+  useEffect(() => {
+    runStartupContentSync();
+  }, []);
 
   const activeTabMeta = useMemo(() => NAV_TABS.find((tab) => tab.id === activeTab), [activeTab]);
 
