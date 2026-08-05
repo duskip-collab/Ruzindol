@@ -24,6 +24,35 @@ function isMissingRelationOrColumnError(error: unknown): boolean {
   return e?.code === "42703" || e?.code === "42P01" || msg.includes("column") || msg.includes("relation");
 }
 
+function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): string {
+  const recordUrl = typeof record.url === "string" ? record.url : null;
+  if (recordUrl && recordUrl.startsWith("/")) return recordUrl;
+
+  const type = String(record.type ?? "").toLowerCase();
+  const refId = typeof record.ref_id === "string" ? record.ref_id : null;
+
+  if (type === "message" && refId) return `/chat/${refId}`;
+  if (type === "official_alert" || type === "hlasnik") return "/nastenka";
+  if (type === "announcement" || type === "group_announcement") return "/aktuality";
+  if (critical) return "/aktuality";
+  return "/";
+}
+
+async function loadSubscriptions(supabase: ReturnType<typeof createClient>, userId: string) {
+  const withEndpoint = await supabase
+    .from("user_push_subscriptions")
+    .select("id, subscription, user_id, endpoint")
+    .eq("user_id", userId);
+
+  if (!withEndpoint.error) return withEndpoint;
+  if (!isMissingRelationOrColumnError(withEndpoint.error)) return withEndpoint;
+
+  return supabase
+    .from("user_push_subscriptions")
+    .select("subscription, user_id")
+    .eq("user_id", userId);
+}
+
 async function shouldSendOptionalNotification(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -104,10 +133,7 @@ serve(async (req) => {
       }
     }
 
-    const { data: subscriptions, error } = await supabase
-      .from("user_push_subscriptions")
-      .select("subscription, user_id")
-      .eq("user_id", userId);
+    const { data: subscriptions, error } = await loadSubscriptions(supabase, userId);
 
     if (error) {
       console.error("Chyba pri načítaní user_push_subscriptions:", error);
@@ -122,7 +148,7 @@ serve(async (req) => {
     const pushPayload = JSON.stringify({
       title: record.title || "Moji Susedia",
       body: record.body || "Máte novú správu v aplikácii.",
-      url: record.ref_id ? `/chat/${record.ref_id}` : "/",
+      url: resolveTargetUrl(record, critical),
       priority: critical ? "high" : "normal",
       renotify: critical,
       requireInteraction: critical,
@@ -145,15 +171,22 @@ serve(async (req) => {
 
     const sendPromises = subscriptions.map(async (subRow) => {
       try {
-        await webpush.sendNotification(subRow.subscription, pushPayload, pushOptions);
+        await webpush.sendNotification((subRow as any).subscription, pushPayload, pushOptions);
         sentCount += 1;
       } catch (err: any) {
         failedCount += 1;
         if (err.statusCode === 410 || err.statusCode === 404) {
-          await supabase
-            .from("user_push_subscriptions")
-            .delete()
-            .eq("subscription", subRow.subscription);
+          const endpoint =
+            (subRow as any).endpoint ||
+            ((subRow as any).subscription && typeof (subRow as any).subscription === "object"
+              ? (subRow as any).subscription.endpoint
+              : null);
+
+          if ((subRow as any).id) {
+            await supabase.from("user_push_subscriptions").delete().eq("id", (subRow as any).id);
+          } else if (endpoint) {
+            await supabase.from("user_push_subscriptions").delete().eq("endpoint", endpoint);
+          }
         }
         console.error("Chyba pri odosielaní push notifikácie:", err);
       }

@@ -16,6 +16,17 @@ async function getPushServiceWorkerRegistration() {
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
+function isMissingEndpointColumnOrConstraint(error: unknown) {
+  const err = error as { message?: string; code?: string } | null;
+  const message = String(err?.message ?? "").toLowerCase();
+  return (
+    err?.code === "42703" ||
+    err?.code === "42P10" ||
+    message.includes("endpoint") ||
+    message.includes("constraint")
+  );
+}
+
 type SubscribeToPushOptions = {
   requestPermission?: boolean;
 };
@@ -79,6 +90,31 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       return;
     }
 
+    const endpoint = serializedSubscription.endpoint;
+
+    // Prefer endpoint-based upsert so one user can have multiple active devices.
+    const { error: endpointError } = await (supabase as any).from("user_push_subscriptions").upsert(
+      {
+        user_id: session.user.id,
+        endpoint,
+        subscription: serializedSubscription,
+        user_agent: navigator.userAgent,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: "endpoint" },
+    );
+
+    if (!endpointError) {
+      console.log("Push notifikácie úspešne aktivované a uložené!");
+      return;
+    }
+
+    if (!isMissingEndpointColumnOrConstraint(endpointError)) {
+      console.error("Chyba pri ukladaní subskripcie do Supabase:", endpointError);
+      return;
+    }
+
+    // Backward-compatible fallback for older schema (single subscription per user).
     const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
       {
         user_id: session.user.id,
