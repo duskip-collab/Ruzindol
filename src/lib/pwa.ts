@@ -5,6 +5,8 @@ export function isIosDevice() {
   const platform = window.navigator.platform;
   const touchPoints = window.navigator.maxTouchPoints ?? 0;
 
+  if (/Android/i.test(userAgent)) return false;
+
   return /iPad|iPhone|iPod/i.test(userAgent) ||
     (/Mac/i.test(platform) && touchPoints > 1);
 }

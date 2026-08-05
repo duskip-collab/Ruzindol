@@ -13,6 +13,71 @@ function extensionFor(file: File) {
   return "audio";
 }
 
+function audioBufferToWavBlob(buffer: AudioBuffer) {
+  const numChannels = Math.min(2, buffer.numberOfChannels);
+  const sampleRate = buffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const sampleCount = buffer.length;
+  const dataSize = sampleCount * blockAlign;
+
+  const arrayBuffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(arrayBuffer);
+
+  function writeString(offset: number, text: string) {
+    for (let i = 0; i < text.length; i += 1) {
+      view.setUint8(offset + i, text.charCodeAt(i));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, format, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  const channels = Array.from({ length: numChannels }, (_, idx) => buffer.getChannelData(idx));
+  let offset = 44;
+
+  for (let i = 0; i < sampleCount; i += 1) {
+    for (let channel = 0; channel < numChannels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channels[channel][i] ?? 0));
+      const value = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+      view.setInt16(offset, value, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: "audio/wav" });
+}
+
+async function transcodeWebmToWav(file: File) {
+  const context = new AudioContext();
+
+  try {
+    const input = await file.arrayBuffer();
+    const decoded = await context.decodeAudioData(input.slice(0));
+    const wavBlob = audioBufferToWavBlob(decoded);
+
+    return new File([wavBlob], `${file.name.replace(/\.[^.]+$/, "") || "audio"}.wav`, {
+      type: "audio/wav",
+    });
+  } finally {
+    await context.close();
+  }
+}
+
 function preferredCompressionMimeType() {
   const preferred = isIosDevice()
     ? ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"]
@@ -78,6 +143,16 @@ async function compressAudioToSupportedFormat(file: File) {
 
 export async function prepareAnnouncementAudio(file: File) {
   let prepared = file;
+
+  const looksLikeWebm = prepared.type === "audio/webm" || /\.webm$/i.test(prepared.name);
+
+  // Convert WEBM uploads to WAV so announcements remain playable on iOS devices.
+  if (looksLikeWebm) {
+    if (typeof AudioContext === "undefined") {
+      throw new Error("WEBM audio sa na tomto zariadení nedá previesť. Nahrajte MP3, WAV alebo M4A.");
+    }
+    prepared = await transcodeWebmToWav(prepared);
+  }
 
   if (prepared.size > MAX_AUDIO_SIZE_BYTES) {
     if (typeof AudioContext === "undefined" || typeof MediaRecorder === "undefined") {
