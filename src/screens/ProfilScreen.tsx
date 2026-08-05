@@ -277,7 +277,7 @@ export function ProfilScreen() {
           collapsible
           value={openSection}
           onValueChange={setOpenSection}
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain pb-24 pr-1 md:pb-28 xl:min-h-[28rem] xl:pb-4"
+          className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4"
         >
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
@@ -562,7 +562,7 @@ function AccordionSection({
         value={value}
         className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
-        <AccordionTrigger className="px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:py-4 md:text-base [&>svg]:shrink-0 [&>svg]:text-neutral-700 dark:[&>svg]:text-neutral-200">
+        <AccordionTrigger className="items-start gap-2 px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 dark:text-neutral-100 md:px-5 md:py-4 md:text-base [&>svg]:mt-1 [&>svg]:shrink-0 [&>svg]:text-neutral-700 dark:[&>svg]:text-neutral-200">
           <div className="min-w-0 pr-3">
             <p className="font-semibold leading-5">{title}</p>
             {description && (
