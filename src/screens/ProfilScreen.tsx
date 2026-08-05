@@ -25,10 +25,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
+import { AdminPanel } from "@/components/AdminPanel";
+import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { useTheme } from "@/context/ThemeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
@@ -84,11 +85,6 @@ const NeighborhoodPulse = lazy(async () => {
   return { default: module.NeighborhoodPulse };
 });
 
-const AdminPanel = lazy(async () => {
-  const module = await import("@/components/AdminPanel");
-  return { default: module.AdminPanel };
-});
-
 const ModerationPanel = lazy(async () => {
   const module = await import("@/components/ModerationPanel");
   return { default: module.ModerationPanel };
@@ -97,11 +93,6 @@ const ModerationPanel = lazy(async () => {
 const InviteRedeemSection = lazy(async () => {
   const module = await import("@/components/InviteRedeemSection");
   return { default: module.InviteRedeemSection };
-});
-
-const AktualityGroupsPanel = lazy(async () => {
-  const module = await import("@/components/AktualityGroupsPanel");
-  return { default: module.AktualityGroupsPanel };
 });
 
 function timeAgo(iso: string) {
@@ -289,11 +280,7 @@ export function ProfilScreen() {
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
-              {openSection === "admin" && (
-                <Suspense fallback={<SectionLoader />}>
-                  <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />
-                </Suspense>
-              )}
+              {openSection === "admin" && <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />}
             </AccordionSection>
           )}
 
@@ -325,11 +312,7 @@ export function ProfilScreen() {
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
-              {openSection === "aktuality-admin" && (
-                <Suspense fallback={<SectionLoader />}>
-                  <AktualityGroupsPanel />
-                </Suspense>
-              )}
+              {openSection === "aktuality-admin" && <AktualityGroupsPanel />}
             </AccordionSection>
           )}
 
@@ -554,7 +537,6 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   const canUseDom = typeof document !== "undefined";
-  const isMobile = useIsMobile();
 
   return (
     <>
@@ -573,12 +555,12 @@ function AccordionSection({
           </div>
         </AccordionTrigger>
 
-        <AccordionContent className="hidden md:block">
+        <AccordionContent className="hidden">
           <div className={`px-4 pb-4 pt-1 md:px-5 ${contentClassName ?? ""}`}>{children}</div>
         </AccordionContent>
       </AccordionItem>
 
-      {canUseDom && isMobile &&
+      {canUseDom &&
         createPortal(
           <AnimatePresence>
             {isActive && (
@@ -587,7 +569,7 @@ function AccordionSection({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 18 }}
                 transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-                className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 backdrop-blur-xl md:hidden dark:bg-neutral-950/95"
+                className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 backdrop-blur-xl dark:bg-neutral-950/95"
                 role="dialog"
                 aria-modal="true"
               >
