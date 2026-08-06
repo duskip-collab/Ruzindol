@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { Bell, PlusSquare, Share2, X } from "lucide-react";
+import { Bell, Download, PlusSquare, Share2, X } from "lucide-react";
 
 import { Header } from "@/components/Header";
 import { BottomNav, NAV_TABS, type Tab } from "@/components/BottomNav";
@@ -50,6 +50,7 @@ export const Route = createFileRoute("/_authenticated/")({
 const TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil"];
 const SWIPE_THRESHOLD = 60;
 const SWIPE_VELOCITY = 300;
+const FIRST_INSTALL_BANNER_KEY = "komunita.pwa.install.firstLaunchBannerDismissed.v1";
 
 function ScreenFallback() {
   return (
@@ -71,6 +72,7 @@ function Index() {
 
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [showFirstInstallBanner, setShowFirstInstallBanner] = useState(false);
 
   const { profile, error: userLoadError } = useCurrentUser();
   const {
@@ -80,8 +82,14 @@ function Index() {
     clearMessageUnread,
     clearOfficialUnread,
   } = useNotifications();
-  const { canInstall, canShowIosHint, isPrompting, promptInstall, dismissIosInstallHint } =
-    usePwaInstall();
+  const {
+    canInstall,
+    canShowIosHint,
+    isInstalled,
+    isPrompting,
+    promptInstall,
+    dismissIosInstallHint,
+  } = usePwaInstall();
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
@@ -135,6 +143,11 @@ function Index() {
     void promptInstall();
   }
 
+  function dismissFirstInstallBanner() {
+    window.localStorage.setItem(FIRST_INSTALL_BANNER_KEY, "1");
+    setShowFirstInstallBanner(false);
+  }
+
   useEffect(() => {
     if (activeTab === "spravy") clearMessageUnread();
     if (activeTab === "nastenka") clearOfficialUnread();
@@ -143,6 +156,16 @@ function Index() {
   useEffect(() => {
     runStartupContentSync();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isInstalled) {
+      setShowFirstInstallBanner(false);
+      return;
+    }
+
+    setShowFirstInstallBanner(window.localStorage.getItem(FIRST_INSTALL_BANNER_KEY) !== "1");
+  }, [isInstalled]);
 
   const activeTabMeta = useMemo(() => NAV_TABS.find((tab) => tab.id === activeTab), [activeTab]);
 
@@ -183,7 +206,63 @@ function Index() {
                 className="mx-3 mt-2 md:mx-4 md:mt-3 xl:mx-5 xl:mt-5"
               />
             </div>
-            {canShowIosHint && (
+            {showFirstInstallBanner && (
+              <div className="mx-3 mt-2 md:mx-4 xl:mx-5">
+                <div className="airy-panel relative overflow-hidden rounded-[1.75rem] px-4 py-3 text-sm text-foreground">
+                  <button
+                    type="button"
+                    onClick={dismissFirstInstallBanner}
+                    className="header-action-button absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition hover:text-foreground"
+                    aria-label="Zavrieť upozornenie na inštaláciu"
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="flex items-start gap-3 pr-8">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand/15 to-brand-glow/20 text-brand">
+                      <Download size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold tracking-tight">Nainštalujte si aplikáciu</p>
+                      <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+                        Pri prvom spustení si môžete pridať komunitu na plochu a otvárať ju ako
+                        samostatnú aplikáciu.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {canInstall && (
+                          <button
+                            type="button"
+                            onClick={handleInstallClick}
+                            disabled={isPrompting}
+                            className="btn-primary-glow inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                          >
+                            <Download size={15} />
+                            {isPrompting ? "Spúšťam inštaláciu..." : "Pridať na plochu"}
+                          </button>
+                        )}
+                        {canShowIosHint && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-3 py-2 text-[12px] font-medium text-brand">
+                            <Share2 size={14} /> Zdieľať → Pridať na plochu
+                          </span>
+                        )}
+                        {!canInstall && !canShowIosHint && (
+                          <span className="rounded-full bg-[color:var(--bg-muted)] px-3 py-2 text-[12px] font-medium text-muted-foreground">
+                            Tlačidlo sa zobrazí, keď ho prehliadač sprístupní.
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={dismissFirstInstallBanner}
+                          className="rounded-full border border-[color:var(--border-card)] px-4 py-2 text-[12px] font-medium text-muted-foreground transition hover:text-foreground"
+                        >
+                          Nabudúce
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {canShowIosHint && !showFirstInstallBanner && (
               <div className="mx-3 mt-2 md:mx-4 xl:mx-5">
                 <div className="airy-panel relative overflow-hidden rounded-[1.75rem] px-4 py-3 text-sm text-foreground">
                   <button

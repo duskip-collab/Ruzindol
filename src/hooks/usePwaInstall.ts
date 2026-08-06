@@ -7,7 +7,6 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_UNTIL_KEY = "komunita.pwa.install.dismissUntil.v1";
-const AUTO_PROMPTED_SESSION_KEY = "komunita.pwa.install.autoPrompted.v1";
 const IOS_HINT_DISMISS_UNTIL_KEY = "komunita.pwa.install.iosHintDismissUntil.v1";
 
 function getDismissUntil() {
@@ -97,15 +96,6 @@ export function usePwaInstall() {
 
       deferredRef.current = bipEvent;
       setCanInstall(true);
-
-      const dismissedUntil = getDismissUntil();
-      const autoPromptedThisSession = window.sessionStorage.getItem(AUTO_PROMPTED_SESSION_KEY) === "1";
-      if (Date.now() >= dismissedUntil && !autoPromptedThisSession) {
-        window.sessionStorage.setItem(AUTO_PROMPTED_SESSION_KEY, "1");
-        window.setTimeout(() => {
-          void runInstallPrompt();
-        }, 1600);
-      }
     };
 
     const onInstalled = () => {

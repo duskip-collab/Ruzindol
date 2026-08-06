@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
+  Download,
   MapPin,
   Shield,
   Package,
@@ -27,6 +28,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
@@ -1265,6 +1267,7 @@ function AccountActions({ userId }: { userId: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const { canInstall, canShowIosHint, isPrompting, promptInstall } = usePwaInstall();
 
   async function logout() {
     await supabase.auth.signOut();
@@ -1289,6 +1292,40 @@ function AccountActions({ userId }: { userId: string }) {
 
   return (
     <>
+      <div className="mb-4 rounded-3xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand/15 to-brand-glow/20 text-brand shadow-sm">
+            <Download className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">Pridať aplikáciu na plochu</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Na Androide sa inštalácia spustí priamo odtiaľto. Ak sa tlačidlo ešte nezobrazuje,
+              otvor aplikáciu v Chrome a chvíľu počkaj, kým sa pripraví inštalácia.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => void promptInstall()}
+          disabled={!canInstall || isPrompting}
+          className="btn-primary-glow mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold disabled:opacity-50"
+        >
+          {isPrompting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Pridať na plochu
+        </button>
+        {canShowIosHint && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Na iPhone/iPad pridaj aplikáciu cez Zdieľať → Pridať na plochu.
+          </p>
+        )}
+        {!canInstall && !canShowIosHint && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Tlačidlo sa aktivuje, keď prehliadač sprístupní inštaláciu PWA.
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-col gap-2 pb-4">
         <button
           onClick={logout}
