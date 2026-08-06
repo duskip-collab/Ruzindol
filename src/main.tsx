@@ -4,8 +4,11 @@ import { RouterProvider } from "@tanstack/react-router";
 
 import "./styles.css";
 import { getRouter } from "./router";
+import { ensurePwaInstallListeners } from "./lib/pwa-install";
 
 const router = getRouter();
+
+ensurePwaInstallListeners();
 
 // Registrácia Service Workera pre PWA a Push notifikácie na pozadí
 if ("serviceWorker" in navigator) {

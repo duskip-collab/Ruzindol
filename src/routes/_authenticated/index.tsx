@@ -222,10 +222,9 @@ function Index() {
                       <Download size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold tracking-tight">Nainštalujte si aplikáciu</p>
+                      <p className="text-sm font-semibold tracking-tight">Inštalácia aplikácie</p>
                       <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
-                        Pri prvom spustení si môžete pridať komunitu na plochu a otvárať ju ako
-                        samostatnú aplikáciu.
+                          Pridajte si komunitu na plochu. Otvorí sa ako samostatná aplikácia a bude vždy po ruke.
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {canInstall && (
@@ -236,7 +235,7 @@ function Index() {
                             className="btn-primary-glow inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                           >
                             <Download size={15} />
-                            {isPrompting ? "Spúšťam inštaláciu..." : "Pridať na plochu"}
+                            {isPrompting ? "Spúšťam inštaláciu..." : "Inštalovať"}
                           </button>
                         )}
                         {canShowIosHint && (
