@@ -7,6 +7,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Ak prehliadač obnoví/rotuje push subskripciu, požiadame otvorené klienty
+// o tichý refresh uloženia subscription na backend.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      const clientList = await clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clientList) {
+        client.postMessage({ type: "PUSH_SUBSCRIPTION_REFRESH_REQUIRED" });
+      }
+    })(),
+  );
+});
+
 // Minimal fetch handler keeps PWA installability checks green in strict browsers.
 self.addEventListener("fetch", (event) => {
   event.respondWith(fetch(event.request));

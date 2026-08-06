@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
 import ruzindolErb from "@/assets/ruzindol-erb.png";
 import { cn } from "@/lib/utils";
-import { subscribeToPush } from "@/lib/push"; // PRIDANÉ: Import pre zapnutie push notifikácií
+import { enableNotifications } from "@/lib/push";
 
 export function Header({
   profile,
@@ -32,10 +32,9 @@ export function Header({
     navigate({ to: "/auth", replace: true });
   }
 
-  // PRIDANÉ: Funkcia, ktorá pri kliknutí na zvonček zaregistruje push notifikácie a spustí pôvodnú akciu
   async function handleBellClick() {
     try {
-      await subscribeToPush();
+      await enableNotifications();
     } catch (error) {
       console.error("Chyba pri registrácii push notifikácií:", error);
     }

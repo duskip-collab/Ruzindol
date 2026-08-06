@@ -3,8 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { evaluatePushDecision, parseWebhookRecord } from "./logic.ts";
 
-const PUBLIC_VAPID_KEY = Deno.env.get("VITE_PUBLIC_VAPID_KEY") || Deno.env.get("PUBLIC_VAPID_KEY") || "";
-const PRIVATE_VAPID_KEY = Deno.env.get("PRIVATE_VAPID_KEY") || "";
+const PUBLIC_VAPID_KEY =
+  Deno.env.get("VAPID_PUBLIC_KEY") ||
+  Deno.env.get("PUBLIC_VAPID_KEY") ||
+  Deno.env.get("VITE_PUBLIC_VAPID_KEY") ||
+  "";
+const PRIVATE_VAPID_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || Deno.env.get("PRIVATE_VAPID_KEY") || "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:podpora@mojisusedia.sk";
 
 if (PUBLIC_VAPID_KEY && PRIVATE_VAPID_KEY) {
@@ -103,7 +107,7 @@ serve(async (req) => {
         {
           success: false,
           error:
-            "Missing VAPID secrets. Set PUBLIC_VAPID_KEY (or VITE_PUBLIC_VAPID_KEY), PRIVATE_VAPID_KEY and VAPID_SUBJECT.",
+            "Missing VAPID secrets. Set VAPID_PUBLIC_KEY (or PUBLIC_VAPID_KEY / VITE_PUBLIC_VAPID_KEY), VAPID_PRIVATE_KEY (or PRIVATE_VAPID_KEY) and VAPID_SUBJECT.",
         },
         500,
       );

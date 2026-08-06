@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isIosDevice, isStandaloneMode } from "@/lib/pwa";
 
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
+let swPushMessageListenerAttached = false;
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -14,6 +15,23 @@ async function getPushServiceWorkerRegistration() {
   const existing = await navigator.serviceWorker.getRegistration("/");
   if (existing) return existing;
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
+}
+
+function ensurePushMessageListener() {
+  if (swPushMessageListenerAttached || !("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    const messageType = (event.data as { type?: string } | null)?.type;
+    if (messageType !== "PUSH_SUBSCRIPTION_REFRESH_REQUIRED") return;
+
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      syncPushSubscriptionSilently().catch((error) => {
+        console.error("Chyba pri refreshi push subskripcie zo SW správy:", error);
+      });
+    }
+  });
+
+  swPushMessageListenerAttached = true;
 }
 
 function isMissingEndpointColumnOrConstraint(error: unknown) {
@@ -37,22 +55,22 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
 
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
-      return;
+      return false;
     }
 
     if (!PUBLIC_VAPID_KEY) {
       console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
-      return;
+      return false;
     }
 
     if (typeof Notification === "undefined") {
       console.warn("Notification API nie je podporované v tomto prehliadači.");
-      return;
+      return false;
     }
 
     if (requestPermission && isIosDevice() && !isStandaloneMode()) {
       console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
-      return;
+      return false;
     }
 
     const permission = requestPermission
@@ -61,11 +79,12 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
 
     if (permission !== "granted") {
       console.warn("Používateľ nepovolil notifikácie.");
-      return;
+      return false;
     }
 
     const registration = await getPushServiceWorkerRegistration();
     await navigator.serviceWorker.ready;
+    ensurePushMessageListener();
 
     let subscription = await registration.pushManager.getSubscription();
 
@@ -81,13 +100,13 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
     } = await supabase.auth.getSession();
     if (!session?.user) {
       console.warn("Používateľ nie je prihlásený, subskripcia sa neuloží.");
-      return;
+      return false;
     }
 
     const serializedSubscription = subscription.toJSON();
     if (!serializedSubscription.endpoint) {
       console.error("Neplatná push subskripcia: chýba endpoint.");
-      return;
+      return false;
     }
 
     const endpoint = serializedSubscription.endpoint;
@@ -106,12 +125,12 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
 
     if (!endpointError) {
       console.log("Push notifikácie úspešne aktivované a uložené!");
-      return;
+      return true;
     }
 
     if (!isMissingEndpointColumnOrConstraint(endpointError)) {
       console.error("Chyba pri ukladaní subskripcie do Supabase:", endpointError);
-      return;
+      return false;
     }
 
     // Backward-compatible fallback for older schema (single subscription per user).
@@ -125,14 +144,22 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
 
     if (error) {
       console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
+      return false;
     } else {
       console.log("Push notifikácie úspešne aktivované a uložené!");
+      return true;
     }
   } catch (error) {
     console.error("Neočakávaná chyba pri subscribeToPush:", error);
+    return false;
   }
 }
 
+// Public helper aligned with standard frontend Web Push onboarding flow.
+export async function enableNotifications() {
+  return subscribeToPush({ requestPermission: true });
+}
+
 export async function syncPushSubscriptionSilently() {
-  await subscribeToPush({ requestPermission: false });
+  return subscribeToPush({ requestPermission: false });
 }
