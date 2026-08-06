@@ -72,11 +72,12 @@ export function Header({
             type="button"
             onClick={onInstallClick}
             disabled={installBusy}
-            className="relative grid h-10 w-10 place-items-center rounded-full border border-emerald-300/70 bg-emerald-50/90 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:opacity-60 active:scale-95 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-200 dark:hover:bg-emerald-500/18"
+            className="btn-primary-glow inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-sm disabled:opacity-60 active:scale-95"
             aria-label="Nainštalovať aplikáciu"
             title="Nainštalovať aplikáciu"
           >
             {installBusy ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+            <span className="hidden sm:inline">Pridať na plochu</span>
           </button>
         )}
         <button
