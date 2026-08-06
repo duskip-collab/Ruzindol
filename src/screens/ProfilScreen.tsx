@@ -796,8 +796,8 @@ function NotificationSettings({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-neutral-200/70 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+    <div className="app-card rounded-3xl p-5 shadow-sm backdrop-blur-xl">
+      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface-hover)] px-3 py-2">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
           {darkMode ? (
             <Moon className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
@@ -861,7 +861,7 @@ function NotificationSettings({ userId }: { userId: string }) {
         />
       </div>
 
-      <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
+      <div className="mt-4 border-t border-[color:var(--border-card)] pt-3">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
@@ -875,7 +875,7 @@ function NotificationSettings({ userId }: { userId: string }) {
                   : `Veľké písmo (${fontSizePx}px)`}
             </p>
           </div>
-          <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
+          <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold text-[color:var(--text-secondary)]">
             {fontScale}
           </span>
         </div>
@@ -908,7 +908,7 @@ function NotificationSettings({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
+      <div className="mt-4 border-t border-[color:var(--border-card)] pt-3">
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-500">
           Kategórie
         </p>
@@ -1387,7 +1387,7 @@ function RoleSwitcher({
   }
 
   return (
-    <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+    <div className="app-card rounded-3xl p-5 shadow-sm backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted">
           <UserCog className="h-5 w-5 text-foreground" />

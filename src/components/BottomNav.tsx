@@ -38,8 +38,8 @@ export function BottomNav({
               className={cn(
                 "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all",
                 isActive
-                  ? "bg-white text-brand shadow-md shadow-brand/10"
-                  : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
+                  ? "nav-tab-active"
+                  : "nav-tab-idle",
               )}
             >
               <span
@@ -63,7 +63,7 @@ export function BottomNav({
   return (
     <nav
       className={cn(
-        "glass-panel relative z-50 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        "glass-panel bottom-nav relative z-50 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
         className,
       )}
     >
@@ -77,8 +77,8 @@ export function BottomNav({
             onClick={() => onTabChange(tab.id)}
             className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
               isActive
-                ? "bg-white text-brand shadow-md shadow-brand/10"
-                : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
+                  ? "nav-tab-active"
+                  : "nav-tab-idle"
             }`}
           >
             <span

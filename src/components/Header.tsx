@@ -52,12 +52,12 @@ export function Header({
   return (
     <header
       className={cn(
-        "glass-panel relative z-50 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3",
+        "glass-panel app-header-surface relative z-50 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3",
         className,
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/80 shadow-lg shadow-brand/15 ring-1 ring-border/60">
+        <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] shadow-lg shadow-brand/15 ring-1 ring-[color:var(--border-card)]/70">
           <img src={ruzindolErb} alt="Erb obce Ružindol" className="h-full w-full object-contain" />
         </div>
         <div>
@@ -72,7 +72,7 @@ export function Header({
             type="button"
             onClick={onInstallClick}
             disabled={installBusy}
-            className="relative grid h-10 w-10 place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:opacity-60 active:scale-95"
+            className="relative grid h-10 w-10 place-items-center rounded-full border border-emerald-300/70 bg-emerald-50/90 text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:opacity-60 active:scale-95 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-200 dark:hover:bg-emerald-500/18"
             aria-label="Nainštalovať aplikáciu"
             title="Nainštalovať aplikáciu"
           >
@@ -82,7 +82,7 @@ export function Header({
         <button
           type="button"
           onClick={handleBellClick}
-          className="relative grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+          className="header-action-button relative grid h-10 w-10 place-items-center rounded-full shadow-sm transition-all active:scale-95"
           aria-label="Notifikácie"
         >
           <Bell size={17} strokeWidth={2} />
@@ -99,7 +99,7 @@ export function Header({
         <button
           type="button"
           onClick={handleSignOut}
-          className="grid h-10 w-10 place-items-center rounded-full border border-border/60 bg-white/70 text-muted-foreground shadow-sm transition-all hover:bg-white hover:text-foreground active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+          className="header-action-button grid h-10 w-10 place-items-center rounded-full shadow-sm transition-all active:scale-95"
           aria-label="Odhlásiť sa"
         >
           <LogOut size={15} strokeWidth={2} />
