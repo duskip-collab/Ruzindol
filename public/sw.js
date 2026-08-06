@@ -52,7 +52,7 @@ self.addEventListener("push", (event) => {
       const options = {
         body: data.body || "Máte novú správu alebo aktualizáciu.",
         icon: "/icon-192.png",
-        badge: "/icon-192.png",
+        badge: "/badge-96.png",
         tag,
         renotify: data.renotify !== false,
         requireInteraction: data.requireInteraction ?? priority === "high",
