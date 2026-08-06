@@ -127,7 +127,7 @@ export function LegalInfoPanel() {
 
   return (
     <>
-      <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+      <div className="app-card rounded-3xl p-5 shadow-sm backdrop-blur-xl">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
             <Scale className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
@@ -149,7 +149,7 @@ export function LegalInfoPanel() {
               setSection("terms");
               setOpen(true);
             }}
-            className="rounded-2xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
+            className="btn-primary-glow rounded-2xl px-4 py-2.5 text-sm font-semibold shadow-sm transition"
           >
             Náhľad podmienok používania a GDPR
           </button>

@@ -74,7 +74,7 @@ export function NearbyCatalog() {
   );
 
   return (
-    <section className="rounded-3xl border border-neutral-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-xl">
+    <section className="app-card rounded-3xl p-4 shadow-sm backdrop-blur-xl">
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-neutral-700" />
@@ -94,8 +94,8 @@ export function NearbyCatalog() {
               onClick={() => setFilter(f.key)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                 active
-                  ? "bg-neutral-900 text-white shadow-sm"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    ? "btn-primary-glow shadow-sm"
+                    : "chip-muted hover:bg-[color:var(--bg-surface-hover)]"
               }`}
             >
               <span className="mr-1">{f.emoji}</span>
@@ -129,8 +129,8 @@ function ItemTile({ item }: { item: Row }) {
   const price = item.type === "darovanie" || item.price === 0 ? "Zadarmo" : `${item.price} €`;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200/70 bg-white/80 shadow-sm">
-      <div className="relative aspect-[4/3] w-full bg-neutral-100">
+    <article className="app-card flex flex-col overflow-hidden rounded-2xl p-0 shadow-sm">
+      <div className="relative aspect-[4/3] w-full bg-[color:var(--bg-surface-hover)]">
         {item.image_url ? (
           <img src={item.image_url} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -138,7 +138,7 @@ function ItemTile({ item }: { item: Row }) {
             <Package className="h-8 w-8" />
           </div>
         )}
-        <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-800 shadow-sm backdrop-blur">
+        <span className="chip-muted absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold shadow-sm backdrop-blur">
           <MapPin className="h-2.5 w-2.5" />
           {dist} m
         </span>
@@ -149,9 +149,9 @@ function ItemTile({ item }: { item: Row }) {
         </span>
       </div>
       <div className="flex flex-col gap-0.5 p-2">
-        <h4 className="line-clamp-1 text-xs font-semibold text-neutral-900">{item.title}</h4>
-        <p className="line-clamp-2 text-[10px] leading-snug text-neutral-500">{item.description}</p>
-        <p className="mt-0.5 truncate text-[10px] text-neutral-400">
+        <h4 className="line-clamp-1 text-xs font-semibold text-foreground">{item.title}</h4>
+        <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground">{item.description}</p>
+        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
           {item.profiles?.name ?? "Sused"}
         </p>
       </div>

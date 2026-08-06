@@ -160,7 +160,7 @@ export function AktualityScreen() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-200/70 bg-white/70 px-4 py-3 backdrop-blur md:px-6">
+      <header className="app-toolbar flex items-center justify-between border-b px-4 py-3 backdrop-blur md:px-6">
         <div>
           <h1 className="text-base font-semibold tracking-tight">📰 Aktuality a oznamy</h1>
           <p className="text-[11px] text-muted-foreground">RSS z obce + oznamy úradu</p>
@@ -169,7 +169,7 @@ export function AktualityScreen() {
           <button
             onClick={forceSync}
             disabled={syncing}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-40"
+            className="header-action-button flex h-8 w-8 items-center justify-center rounded-full disabled:opacity-40"
             title="Aktualizovať RSS"
           >
             {syncing ? (
@@ -181,7 +181,7 @@ export function AktualityScreen() {
           {isAdmin && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-neutral-800"
+              className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
             >
               <Plus className="h-3.5 w-3.5" /> Nový oznam
             </button>
@@ -191,20 +191,20 @@ export function AktualityScreen() {
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 overscroll-y-contain md:px-6">
         {isUradnik && (
-          <div className="mb-4 rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-4 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
+          <div className="app-card mb-4 rounded-3xl p-4 shadow-sm">
             <button
               type="button"
               onClick={() => setShowRozhlas(true)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-orange-200/70 bg-white/80 px-4 py-3 text-left shadow-sm transition hover:border-orange-300 hover:bg-white dark:border-orange-500/20 dark:bg-white/5"
+              className="app-surface-muted flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left shadow-sm transition hover:bg-[color:var(--bg-surface-hover)]"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-sm">
                 <Megaphone className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                <span className="block text-sm font-semibold text-foreground">
                   Digitálny rozhlas
                 </span>
-                <span className="block text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="block text-xs text-muted-foreground">
                   Otvor hlásenie pre obecné oznamy a urgentné správy.
                 </span>
               </span>
@@ -263,7 +263,7 @@ export function AktualityScreen() {
 
       {showRozhlas && isUradnik && userId && (
         <div className="absolute inset-0 z-50 flex items-end bg-black/35 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-          <div className="relative h-full w-full bg-white pt-safe md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:bg-neutral-950 dark:md:border-white/15">
+          <div className="app-modal-surface relative h-full w-full pt-safe md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
             <button
               type="button"
               onClick={() => setShowRozhlas(false)}
@@ -282,11 +282,11 @@ export function AktualityScreen() {
               />
             </div>
             {useIosBackNav && (
-              <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+              <div className="absolute inset-x-0 bottom-0 border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/95 px-4 py-3 pb-safe md:hidden">
                 <button
                   type="button"
                   onClick={() => setShowRozhlas(false)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                  className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold"
                   aria-label="Späť"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -321,7 +321,7 @@ function AnnouncementCard({
 
   return (
     <article
-      className={`relative rounded-2xl border-2 bg-white/90 p-3 text-neutral-900 shadow-sm backdrop-blur dark:bg-white ${
+      className={`app-card relative rounded-2xl border-2 p-3 shadow-sm backdrop-blur ${
         emphasize ? meta.ring : "border-neutral-200/70"
       } ${item.priority === "vystraha" ? "ring-2 ring-red-200" : ""}`}
     >
@@ -345,20 +345,20 @@ function AnnouncementCard({
         <span className="text-neutral-500">{timeAgo(item.published_at)}</span>
       </div>
 
-      <h3 className="mt-2 text-sm font-semibold text-neutral-900">{item.title}</h3>
+      <h3 className="mt-2 text-sm font-semibold text-foreground">{item.title}</h3>
       {item.source === "rss" ? (
         <div
-          className="prose prose-sm mt-1 max-w-none text-xs leading-relaxed text-neutral-700 [&_a]:text-blue-600 [&_a]:underline [&_img]:my-2 [&_img]:rounded-lg"
+          className="prose prose-sm mt-1 max-w-none text-xs leading-relaxed text-muted-foreground [&_a]:text-blue-400 [&_a]:underline [&_img]:my-2 [&_img]:rounded-lg"
           dangerouslySetInnerHTML={{ __html: item.content }}
         />
       ) : (
-        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-neutral-700">
+        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
           {item.content}
         </p>
       )}
 
       {item.audio_url && (
-        <div className="mt-2 rounded-2xl border border-neutral-200/70 bg-neutral-50 p-2 dark:bg-neutral-100">
+        <div className="app-surface-muted mt-2 rounded-2xl p-2">
           <audio controls preload="none" className="w-full" playsInline>
             <source src={item.audio_url} />
           </audio>
@@ -392,7 +392,7 @@ function AnnouncementCard({
         {canDelete && (
           <button
             onClick={onDelete}
-            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-100"
+            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-[color:var(--bg-surface-hover)]"
           >
             <Trash2 className="h-3 w-3" /> Zmazať
           </button>
@@ -446,11 +446,11 @@ function AdminForm({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white pt-safe dark:bg-neutral-950 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+      <div className="app-modal-surface flex h-full w-full flex-col pt-safe md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
           <button
             onClick={onClose}
-            className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
+            className={`h-9 w-9 items-center justify-center rounded-full hover:bg-[color:var(--bg-surface-hover)] ${useIosBackNav ? "hidden md:flex" : "flex"}`}
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -472,8 +472,8 @@ function AdminForm({
                     onClick={() => setPriority(p)}
                     className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                       active
-                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+                        ? "border-primary btn-primary-glow text-primary-foreground"
+                        : "app-surface-muted text-muted-foreground hover:bg-[color:var(--bg-surface-hover)]"
                     }`}
                   >
                     <span className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
@@ -496,7 +496,7 @@ function AdminForm({
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={200}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+              className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
             />
           </div>
 
@@ -507,7 +507,7 @@ function AdminForm({
               onChange={(e) => setContent(e.target.value)}
               required
               rows={6}
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+              className="app-input mt-1 w-full resize-none rounded-xl px-3 py-2.5 text-sm outline-none"
             />
           </div>
 
@@ -517,7 +517,7 @@ function AdminForm({
               type="datetime-local"
               value={publishedAt}
               onChange={(e) => setPublishedAt(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+              className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
             />
             <p className="mt-1 text-[10px] text-neutral-500 dark:text-neutral-400">
               Interné oznamy sa automaticky mažú po 4 dňoch.

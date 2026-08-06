@@ -215,18 +215,18 @@ export function MojeSpravyScreen() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="border-b border-neutral-200/60 bg-white/70 px-5 py-3 backdrop-blur-xl">
+      <div className="app-toolbar border-b px-5 py-3 backdrop-blur-xl">
         <h2 className="text-base font-semibold tracking-tight">💬 Moje správy</h2>
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-muted-foreground">
           Konverzácie k tvojim inzerátom a inzerátom susedov.
         </p>
         <div className="relative mt-2">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Hľadať v konverzáciách…"
-            className="w-full rounded-full border border-neutral-200 bg-white/80 py-1.5 pl-8 pr-3 text-xs outline-none focus:border-neutral-400"
+            className="app-input w-full rounded-full py-1.5 pl-8 pr-3 text-xs outline-none"
           />
         </div>
       </div>
@@ -250,7 +250,7 @@ export function MojeSpravyScreen() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-200/70">
+          <ul className="divide-y divide-[color:var(--border-card)]">
             {filtered.map((c) => {
               const initials =
                 c.counterpartyName
@@ -264,23 +264,23 @@ export function MojeSpravyScreen() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(c.id)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-neutral-50 active:bg-neutral-100"
+                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[color:var(--bg-surface-hover)] active:bg-[color:var(--bg-surface)]"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-semibold text-white shadow-sm">
                       {initials}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-neutral-900">
+                        <p className="truncate text-sm font-semibold text-foreground">
                           {c.counterpartyName}
                         </p>
-                        <span className="shrink-0 text-[10px] text-neutral-400">
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
                           {timeAgo(c.lastAt)}
                         </span>
                       </div>
-                      <p className="truncate text-[11px] text-neutral-500">📦 {c.itemTitle}</p>
-                      <p className="mt-0.5 truncate text-xs text-neutral-600">
-                        {c.lastText ?? <span className="italic text-neutral-400">Bez správ</span>}
+                      <p className="truncate text-[11px] text-muted-foreground">📦 {c.itemTitle}</p>
+                      <p className="mt-0.5 truncate text-xs text-[color:var(--text-secondary)]">
+                        {c.lastText ?? <span className="italic text-muted-foreground">Bez správ</span>}
                       </p>
                     </div>
                   </button>

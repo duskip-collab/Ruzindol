@@ -107,31 +107,31 @@ export function SafeChat({
 
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/25 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
-        <div className="flex items-center gap-3 border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200">
+      <div className="app-modal-surface flex h-full w-full flex-col md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
+        <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3 backdrop-blur-xl">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+            className="header-action-button flex h-9 w-9 items-center justify-center rounded-full"
             aria-label="Zavrieť chat"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-900">{counterpartyName}</p>
-            <p className="truncate text-xs text-neutral-500 dark:text-neutral-700">k inzerátu: {listingTitle}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{counterpartyName}</p>
+            <p className="truncate text-xs text-muted-foreground">k inzerátu: {listingTitle}</p>
           </div>
           <span
             className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${
               isLocked
                 ? "bg-amber-100 text-amber-800 ring-amber-200"
-                : "bg-neutral-100 text-neutral-700 ring-neutral-200 dark:bg-neutral-300 dark:text-neutral-900 dark:ring-neutral-400"
+                : "chip-muted"
             }`}
           >
             {messages.length} / {MAX_MESSAGES}
           </span>
         </div>
 
-        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-neutral-50/60 p-4 dark:bg-neutral-200">
+        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-[color:var(--bg-surface-hover)]/55 p-4">
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -152,7 +152,7 @@ export function SafeChat({
             e.preventDefault();
             void trySend();
           }}
-          className="border-t border-neutral-200 bg-white/80 p-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200"
+          className="app-toolbar border-t p-3 backdrop-blur-xl"
         >
           {!isWriteLocked && !error && (
             <p className="mb-2 text-center text-xs text-neutral-500">
@@ -180,13 +180,13 @@ export function SafeChat({
               disabled={isWriteLocked || sending}
               rows={1}
               placeholder={isWriteLocked ? "Režim čítania" : "Napíš správu…"}
-              className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:placeholder:text-neutral-600 dark:disabled:bg-neutral-300 dark:disabled:text-neutral-600"
+              className="app-input max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl px-3 py-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={isWriteLocked || sending || draft.trim().length === 0}
               aria-label="Odoslať"
-              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+              className="btn-primary-glow flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
               {sending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -217,15 +217,15 @@ function MessageBubble({ isMe, text }: { isMe: boolean; text: string }) {
   return (
     <div className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
       {!isMe && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-600">
+        <div className="chip-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
           <User2 className="h-3.5 w-3.5" />
         </div>
       )}
       <div
         className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
           isMe
-            ? "rounded-br-md bg-neutral-900 text-white"
-            : "rounded-bl-md border border-neutral-200 bg-white text-neutral-800"
+            ? "rounded-br-md bg-primary text-primary-foreground"
+            : "rounded-bl-md border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] text-foreground"
         }`}
       >
         <p className="whitespace-pre-wrap break-words">{text}</p>

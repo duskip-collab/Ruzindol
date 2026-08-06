@@ -52,7 +52,7 @@ export function BanBanner({
   }
 
   return (
-    <div className="rounded-2xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 to-white p-4 shadow-sm dark:border-rose-400/40 dark:from-rose-500/10 dark:to-transparent">
+    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 shadow-sm">
       <div className="mb-2 flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-rose-600 text-white">
           <Ban className="h-4 w-4" />
@@ -72,7 +72,7 @@ export function BanBanner({
         </div>
       </div>
       {profile.ban_reason && (
-        <p className="mb-3 rounded-lg bg-white/60 px-3 py-2 text-xs italic text-rose-800 dark:bg-white/5 dark:text-rose-200">
+        <p className="mb-3 rounded-lg bg-rose-500/12 px-3 py-2 text-xs italic text-rose-200">
           „{profile.ban_reason}"
         </p>
       )}

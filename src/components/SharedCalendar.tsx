@@ -307,7 +307,7 @@ export function SharedCalendar() {
   return (
     <>
       <section
-        className="rounded-3xl border border-neutral-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-xl transition hover:bg-white/90 hover:shadow-md"
+        className="app-card rounded-3xl p-4 shadow-sm backdrop-blur-xl transition hover:bg-[color:var(--bg-surface-hover)] hover:shadow-md"
         onClick={openExpanded}
         title="Kliknite pre rozsirenie"
       >
@@ -320,16 +320,16 @@ export function SharedCalendar() {
 
       {expanded && canUseDom &&
         createPortal(
-          <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white/95 p-4 pt-safe backdrop-blur-xl">
+          <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-[color:var(--bg-app)]/95 p-4 pt-safe backdrop-blur-xl">
             <div className={`flex h-full min-h-0 flex-col ${useIosBackNav ? "pb-20" : ""}`}>
               {renderCalendarContent({ fullscreen: true })}
             </div>
             {useIosBackNav && (
-              <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+              <div className="absolute inset-x-0 bottom-0 border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/95 px-4 py-3 pb-safe md:hidden">
                 <button
                   type="button"
                   onClick={closeExpanded}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+                  className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold"
                   aria-label="Späť"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -398,7 +398,7 @@ function EventRow({
         onClick={onOpen}
         className={`flex w-full gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5 text-left transition hover:shadow-sm`}
       >
-        <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white/80 py-1 text-center shadow-sm">
+        <div className="app-surface-muted flex w-12 shrink-0 flex-col items-center justify-center rounded-xl py-1 text-center shadow-sm">
           <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
           <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500">{d.month}</span>
         </div>
@@ -414,13 +414,13 @@ function EventRow({
               {d.weekday} · {d.time}
             </span>
             {event.image_url && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-semibold text-neutral-600">
+              <span className="chip-muted inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold">
                 <ImageIcon className="h-3 w-3" /> Foto
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-sm font-semibold text-neutral-900">{event.title}</p>
-          <p className="line-clamp-1 text-[11px] text-neutral-600">{event.description}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-foreground">{event.title}</p>
+          <p className="line-clamp-1 text-[11px] text-muted-foreground">{event.description}</p>
           {event.location && (
             <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500">
               <MapPin className="h-3 w-3" />
@@ -433,7 +433,7 @@ function EventRow({
             </span>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-medium text-neutral-700 shadow-sm">
+            <span className="chip-muted rounded-full px-2 py-1 text-[10px] font-medium shadow-sm">
               Zaujemcovia: {attendanceCount}
             </span>
             {canAttend && (
@@ -462,7 +462,7 @@ function EventRow({
               e.stopPropagation();
               onDelete();
             }}
-            className="self-start rounded-full p-1 text-neutral-400 hover:bg-white/60 hover:text-red-600"
+            className="self-start rounded-full p-1 text-muted-foreground hover:bg-[color:var(--bg-surface-hover)] hover:text-red-600"
             title="Zmazat"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -496,12 +496,12 @@ function EventDetailModal({
   const end = event.ends_at ? new Date(event.ends_at) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-white pt-safe dark:bg-neutral-950">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+    <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-[color:var(--bg-app)] pt-safe">
+      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3">
         <button
           type="button"
           onClick={onClose}
-          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
+          className={`header-action-button h-9 w-9 items-center justify-center rounded-full ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavriet detail"
         >
           <X className="h-5 w-5" />
@@ -516,17 +516,17 @@ function EventDetailModal({
               {theme.icon}
               {theme.label}
             </span>
-            <span className="rounded-full bg-white/80 px-2 py-1 text-neutral-700">
+            <span className="chip-muted rounded-full px-2 py-1">
               {start.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
             </span>
             {end && (
-              <span className="rounded-full bg-white/80 px-2 py-1 text-neutral-700">
+              <span className="chip-muted rounded-full px-2 py-1">
                 Koniec: {end.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
               </span>
             )}
           </div>
 
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-800 dark:text-neutral-100">{event.description}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{event.description}</p>
 
           {event.location && (
             <p className="mt-3 flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-300">
@@ -535,13 +535,13 @@ function EventDetailModal({
           )}
 
           {event.image_url && (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-white/10 dark:bg-neutral-900">
+            <div className="app-surface-muted mt-4 overflow-hidden rounded-2xl">
               <img src={event.image_url} alt={event.title} className="h-auto w-full object-contain" />
             </div>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-neutral-700">
+            <span className="chip-muted rounded-full px-2.5 py-1 text-xs font-medium">
               Zaujemcovia: {attendanceCount}
             </span>
             {canAttend && (
@@ -552,7 +552,7 @@ function EventDetailModal({
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                   attending
                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "bg-neutral-900 text-white hover:bg-neutral-800"
+                    : "bg-primary text-primary-foreground hover:opacity-95"
                 } disabled:opacity-60`}
               >
                 {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
@@ -573,11 +573,11 @@ function EventDetailModal({
       </div>
 
       {useIosBackNav && (
-        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+        <div className="border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/95 px-4 py-3 pb-safe md:hidden">
           <button
             type="button"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold"
             aria-label="Späť"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -667,11 +667,11 @@ function EventForm({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-white pt-safe dark:bg-neutral-950">
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+    <div className="fixed inset-0 z-[160] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-[color:var(--bg-app)] pt-safe">
+      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3">
         <button
           onClick={onClose}
-          className={`h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 ${useIosBackNav ? "hidden md:flex" : "flex"}`}
+          className={`header-action-button h-9 w-9 items-center justify-center rounded-full ${useIosBackNav ? "hidden md:flex" : "flex"}`}
           aria-label="Zavriet"
         >
           <X className="h-5 w-5" />
@@ -681,7 +681,7 @@ function EventForm({
 
       <form onSubmit={submit} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Kategoria</label>
+          <label className="text-sm font-medium text-[color:var(--text-secondary)]">Kategoria</label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {(Object.keys(THEME) as EventCategory[]).map((t) => {
               const m = THEME[t];
@@ -693,8 +693,8 @@ function EventForm({
                   onClick={() => setType(t)}
                   className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition ${
                     active
-                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+                      ? "btn-primary-glow border-primary"
+                      : "app-surface-muted text-muted-foreground hover:bg-[color:var(--bg-surface-hover)]"
                   }`}
                 >
                   {m.icon}
@@ -706,62 +706,62 @@ function EventForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Nazov</label>
+          <label className="text-sm font-medium text-[color:var(--text-secondary)]">Nazov</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Popis</label>
+          <label className="text-sm font-medium text-[color:var(--text-secondary)]">Popis</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            className="app-input mt-1 w-full resize-none rounded-xl px-3 py-2.5 text-sm outline-none"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Miesto</label>
+          <label className="text-sm font-medium text-[color:var(--text-secondary)]">Miesto</label>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             required
             maxLength={200}
-            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+            className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Zaciatok</label>
+            <label className="text-sm font-medium text-[color:var(--text-secondary)]">Zaciatok</label>
             <input
               type="datetime-local"
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+              className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Koniec</label>
+            <label className="text-sm font-medium text-[color:var(--text-secondary)]">Koniec</label>
             <input
               type="datetime-local"
               value={endsAt}
               onChange={(e) => setEndsAt(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900"
+              className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
             />
           </div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-300 dark:bg-neutral-900">
-          <label className="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Fotografia</label>
+        <div className="app-surface-muted rounded-xl p-3">
+          <label className="mb-2 block text-sm font-medium text-[color:var(--text-secondary)]">Fotografia</label>
           <input
             type="file"
             accept="image/*"
@@ -770,12 +770,12 @@ function EventForm({
               setPhoto(file);
               setPhotoName(file?.name ?? null);
             }}
-            className="w-full text-xs text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+            className="w-full text-xs text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-[color:var(--primary)] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
           />
-          <p className="mt-2 text-[11px] text-neutral-500">
+          <p className="mt-2 text-[11px] text-muted-foreground">
             Obrazok sa pred uploadom automaticky komprimuje v prehliadaci.
           </p>
-          {photoName && <p className="mt-1 text-[11px] font-medium text-neutral-700 dark:text-neutral-300">{photoName}</p>}
+          {photoName && <p className="mt-1 text-[11px] font-medium text-[color:var(--text-secondary)]">{photoName}</p>}
         </div>
 
         {err && (
@@ -788,7 +788,7 @@ function EventForm({
           <button
             type="submit"
             disabled={saving}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-50"
+            className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-md active:scale-[0.99] disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Ulozit udalost
@@ -797,11 +797,11 @@ function EventForm({
       </form>
 
       {useIosBackNav && (
-        <div className="border-t border-neutral-200 bg-white/95 px-4 py-3 pb-safe dark:border-white/10 dark:bg-neutral-950/95 md:hidden">
+        <div className="border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/95 px-4 py-3 pb-safe md:hidden">
           <button
             type="button"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white dark:bg-neutral-100 dark:text-neutral-900"
+            className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold"
             aria-label="Späť"
           >
             <ArrowLeft className="h-4 w-4" />

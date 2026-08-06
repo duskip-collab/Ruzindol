@@ -165,7 +165,7 @@ function Index() {
               layout="sidebar"
               className="flex-1"
             />
-            <div className="mt-4 rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-[11px] text-muted-foreground dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
+            <div className="app-surface-muted mt-4 rounded-2xl px-3 py-2 text-[11px] text-muted-foreground">
               Zobrazenie pre desktop. Prepínaj sekcie v ľavom paneli.
             </div>
           </aside>
@@ -189,7 +189,7 @@ function Index() {
                   <button
                     type="button"
                     onClick={dismissIosInstallHint}
-                    className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                    className="header-action-button absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition hover:text-foreground"
                     aria-label="Zavrieť návod na inštaláciu"
                   >
                     <X size={16} />

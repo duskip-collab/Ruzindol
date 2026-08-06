@@ -109,22 +109,22 @@ export function SkladScreen() {
 
   return (
     <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col">
-      <div className="flex items-center gap-2 border-b border-neutral-200/60 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200 md:px-6">
+      <div className="app-toolbar flex items-center gap-2 border-b px-4 py-3 backdrop-blur-xl md:px-6">
         <button
           onClick={() => setSection(null)}
-          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="btn-secondary-surface flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
           Späť do Skladu
         </button>
-        <div className="ml-auto flex items-center gap-2 text-sm font-semibold text-neutral-800 dark:text-neutral-900">
+        <div className="ml-auto flex items-center gap-2 text-sm font-semibold text-foreground">
           {meta.icon}
           <span>{meta.title}</span>
         </div>
       </div>
 
       {isPoz && (
-        <div className="flex gap-1 border-b border-neutral-200/60 bg-white/60 p-1.5 backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200 md:px-4">
+        <div className="app-toolbar flex gap-1 border-b p-1.5 backdrop-blur-xl md:px-4">
           <TabButton active={pozTab === "ponuka"} onClick={() => setPozTab("ponuka")}>
             <Wrench className="h-4 w-4" /> Ponuka náradia
           </TabButton>
@@ -153,7 +153,7 @@ export function SkladScreen() {
       )}
 
       {meta.canAdd && !isActive && (
-        <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-xs text-amber-900 shadow-sm backdrop-blur dark:border-amber-300 dark:bg-amber-100 dark:text-amber-900">
+        <div className="pointer-events-none absolute bottom-5 left-5 right-5 flex items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/12 px-3 py-2 text-xs text-amber-200 shadow-sm backdrop-blur">
           <span className="font-semibold">Režim čítania</span>
           <span className="opacity-80">· zadaj pozývací kód v profile a odomkni pridávanie.</span>
         </div>
@@ -183,8 +183,8 @@ function TabButton({
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
         active
-          ? "bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-300 dark:text-neutral-900 dark:ring-neutral-400"
-          : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-800 dark:hover:text-neutral-900"
+          ? "nav-tab-active"
+          : "nav-tab-idle"
       }`}
     >
       {children}
@@ -266,7 +266,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
           <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900">
+        <div className="app-surface-muted rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
           Zatiaľ tu nič nie je. Pridaj prvý inzerát cez +.
         </div>
       ) : (
@@ -284,22 +284,22 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
               <article
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="cursor-pointer rounded-2xl border border-neutral-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl dark:border-neutral-300 dark:bg-neutral-200"
+                className="app-card cursor-pointer rounded-2xl p-4 shadow-sm backdrop-blur-xl"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold leading-tight text-neutral-900 dark:text-neutral-900">{item.title}</h3>
+                  <h3 className="font-semibold leading-tight text-foreground">{item.title}</h3>
                   <span
                     className={`shrink-0 rounded-full bg-gradient-to-r ${meta.accent} px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
                   >
                     {priceLabel(item.price)}
                   </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-neutral-600 dark:text-neutral-800">{item.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                  <span className="rounded-full bg-neutral-100 px-2 py-1 font-medium text-neutral-700 dark:bg-neutral-300 dark:text-neutral-900">
+                  <span className="chip-muted rounded-full px-2 py-1 font-medium">
                     Platnosť {validityLabel}
                   </span>
-                  <span className="rounded-full bg-neutral-100 px-2 py-1 font-medium text-neutral-700 dark:bg-neutral-300 dark:text-neutral-900">
+                  <span className="chip-muted rounded-full px-2 py-1 font-medium">
                     {remainingLabel}
                   </span>
                 </div>
@@ -311,7 +311,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                   />
                 )}
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-neutral-500 dark:text-neutral-800">
+                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
                     <span className="truncate">
                       {item.profiles?.name ?? "Sused"}
                       {item.profiles?.street ? ` · ${item.profiles.street}` : ""}
@@ -325,7 +325,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                         void openChat(item);
                       }}
                       disabled={opening === item.id}
-                      className="flex shrink-0 items-center gap-1 rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-400 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-100"
+                      className="btn-secondary-surface flex shrink-0 items-center gap-1 px-2.5 py-1 text-xs font-medium disabled:opacity-60"
                     >
                       {opening === item.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -344,7 +344,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                     </span>
                   )}
                 </div>
-                <div className="mt-2 border-t border-neutral-100 pt-2 text-right text-[11px] text-neutral-500 dark:border-neutral-300 dark:text-neutral-800">
+                <div className="mt-2 border-t border-[color:var(--border-card)] pt-2 text-right text-[11px] text-muted-foreground">
                   Expiruje {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
                 </div>
               </article>
@@ -400,18 +400,18 @@ function ListingDetailModal({
 
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-black/35 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-auto md:max-h-[92%] md:max-w-3xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+      <div className="app-modal-surface flex h-full w-full flex-col md:h-auto md:max-h-[92%] md:max-w-3xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[color:var(--bg-surface-hover)]"
             aria-label="Zavrieť detail"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{item.title}</p>
-            <p className="text-xs text-neutral-500">Detail inzerátu</p>
+            <p className="text-xs text-muted-foreground">Detail inzerátu</p>
           </div>
           <span
             className={`ml-auto shrink-0 rounded-full bg-gradient-to-r ${meta.accent} px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
@@ -430,34 +430,34 @@ function ListingDetailModal({
           )}
 
           <div>
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Popis</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Popis</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
               {item.description || "Bez doplňujúceho popisu."}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-neutral-200/70 bg-neutral-50/70 p-3 text-xs dark:border-white/10 dark:bg-white/5">
-            <p className="font-semibold text-neutral-800 dark:text-neutral-100">
+          <div className="app-surface-muted rounded-2xl p-3 text-xs">
+            <p className="font-semibold text-foreground">
               {item.profiles?.name ?? "Sused"}
             </p>
-            <p className="mt-0.5 text-neutral-500">
+            <p className="mt-0.5 text-muted-foreground">
               {item.profiles?.street ? `Ulica: ${item.profiles.street}` : "Ulica neuvedená"}
             </p>
-            <p className="mt-0.5 text-neutral-500">
+            <p className="mt-0.5 text-muted-foreground">
               Pridané: {new Date(item.created_at).toLocaleString("sk-SK")}
             </p>
-            <p className="mt-0.5 text-neutral-500">
+            <p className="mt-0.5 text-muted-foreground">
               Expiruje: {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
             </p>
           </div>
         </div>
 
-        <div className="border-t border-neutral-200 bg-white/90 p-4 dark:border-white/10 dark:bg-neutral-950/90">
+        <div className="border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/90 p-4">
           {canChat && (
             <button
               onClick={onChat}
               disabled={opening}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold disabled:opacity-60"
             >
               {opening ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -473,7 +473,7 @@ function ListingDetailModal({
             </div>
           )}
           {isMine && (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
+            <div className="app-surface-muted rounded-xl px-3 py-2 text-xs text-muted-foreground">
               Toto je tvoj inzerát.
             </div>
           )}

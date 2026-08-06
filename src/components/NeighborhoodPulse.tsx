@@ -231,26 +231,26 @@ export function NeighborhoodPulse() {
   }, [zonesForTod, ready]);
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-neutral-200/60 bg-white/80 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+    <section className="app-card overflow-hidden rounded-3xl p-0 shadow-sm backdrop-blur-xl">
       <div className="flex items-center justify-between gap-3 px-4 pt-4">
         <div className="min-w-0">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             <MapPin className="h-4 w-4" />
             {municipality?.name ?? "Ružindol"} pulse mapa
           </h3>
-          <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             Živá mapa aktivít v komunite {municipality?.name ?? "Ružindol"}
           </p>
         </div>
-        <div className="flex overflow-hidden rounded-full border border-neutral-200 bg-white/70 p-0.5 text-[11px] dark:border-white/10 dark:bg-white/5">
+        <div className="app-surface-muted flex overflow-hidden rounded-full p-0.5 text-[11px]">
           {(Object.keys(TIME_LABEL) as TimeOfDay[]).map((key) => (
             <button
               key={key}
               onClick={() => setTod(key)}
               className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition ${
                 tod === key
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "text-neutral-600 dark:text-neutral-300"
+                    ? "btn-primary-glow"
+                    : "text-muted-foreground"
               }`}
             >
               {TIME_LABEL[key].icon}
@@ -273,7 +273,7 @@ export function NeighborhoodPulse() {
         {zonesForTod.map((zone) => (
           <span
             key={zone.key}
-            className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900"
+            className="chip-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
           >
             <span
               className="h-2 w-2 rounded-full"

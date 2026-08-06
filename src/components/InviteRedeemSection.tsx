@@ -55,7 +55,7 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
             placeholder="XXXX-XXXXX"
             maxLength={20}
             autoComplete="off"
-            className="w-full rounded-2xl border border-neutral-200 bg-white pl-9 pr-3 py-3 font-mono text-sm tracking-[0.25em] text-neutral-900 placeholder:text-neutral-400 focus:border-indigo-400 focus:outline-none dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+            className="app-input w-full rounded-2xl pl-9 pr-3 py-3 font-mono text-sm tracking-[0.25em] outline-none"
           />
         </div>
         <button
