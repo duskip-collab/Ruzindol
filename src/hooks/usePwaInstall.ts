@@ -4,6 +4,7 @@ const IOS_HINT_DISMISS_UNTIL_KEY = "komunita.pwa.install.iosHintDismissUntil.v1"
 
 import {
   getPwaInstallSnapshot,
+  getPwaInstallVersion,
   promptPwaInstall,
   subscribePwaInstall,
 } from "@/lib/pwa-install";
@@ -22,11 +23,12 @@ function postponeIosHint(hours: number) {
 }
 
 export function usePwaInstall() {
-  const { canInstall, isInstalled, isPrompting } = useSyncExternalStore(
+  useSyncExternalStore(
     subscribePwaInstall,
-    getPwaInstallSnapshot,
-    getPwaInstallSnapshot,
+    getPwaInstallVersion,
+    getPwaInstallVersion,
   );
+  const { canInstall, isInstalled, isPrompting } = getPwaInstallSnapshot();
   const [canShowIosHint, setCanShowIosHint] = useState(false);
 
   const dismissIosInstallHint = useCallback(() => {

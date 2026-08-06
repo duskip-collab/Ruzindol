@@ -16,6 +16,7 @@ const DISMISS_UNTIL_KEY = "komunita.pwa.install.dismissUntil.v1";
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let listenersRegistered = false;
 const listeners = new Set<() => void>();
+let version = 0;
 
 const state: InstallState = {
   canInstall: false,
@@ -24,6 +25,7 @@ const state: InstallState = {
 };
 
 function emit() {
+  version += 1;
   listeners.forEach((listener) => listener());
 }
 
@@ -91,6 +93,10 @@ export function subscribePwaInstall(listener: () => void) {
 
 export function getPwaInstallSnapshot(): InstallState {
   return { ...state };
+}
+
+export function getPwaInstallVersion() {
+  return version;
 }
 
 export async function promptPwaInstall() {
