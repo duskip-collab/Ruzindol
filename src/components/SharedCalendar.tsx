@@ -56,18 +56,18 @@ const THEME: Record<
   Samosprava: {
     label: "Samosprava",
     icon: <Landmark className="h-3.5 w-3.5" />,
-    ring: "border-[color:var(--border-card)]",
-    bg: "bg-[color:var(--bg-surface)]",
-    chip: "border border-[color:rgba(255,107,0,0.24)] bg-[rgba(255,107,0,0.12)] text-[#ffb26a]",
-    accent: "text-[#ff6b00]",
+    ring: "border-blue-300 dark:border-[color:var(--border-card)]",
+    bg: "bg-blue-50/70 dark:bg-[color:var(--bg-surface)]",
+    chip: "bg-blue-600 text-white dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ffb26a]",
+    accent: "text-blue-700 dark:text-[#ff6b00]",
   },
   Kostol: {
     label: "Kostol",
     icon: <Church className="h-3.5 w-3.5" />,
-    ring: "border-[color:var(--border-card)]",
-    bg: "bg-[color:var(--bg-surface)]",
-    chip: "border border-[color:rgba(148,163,184,0.18)] bg-[rgba(30,34,43,0.96)] text-[#f8fafc]",
-    accent: "text-[#f8fafc]",
+    ring: "border-amber-300 dark:border-[color:var(--border-card)]",
+    bg: "bg-gradient-to-br from-purple-50/80 to-amber-50/80 dark:bg-[color:var(--bg-surface)]",
+    chip: "bg-gradient-to-r from-purple-600 to-amber-600 text-white dark:border dark:border-[color:rgba(148,163,184,0.18)] dark:bg-[rgba(30,34,43,0.96)] dark:text-[#f8fafc]",
+    accent: "text-purple-700 dark:text-[#f8fafc]",
   },
 };
 
@@ -238,14 +238,14 @@ export function SharedCalendar() {
     <>
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-[#f8fafc]" />
-          <h3 className="text-sm font-semibold tracking-tight text-[#f8fafc]">Zdielany kalendar obce</h3>
+          <CalendarDays className="h-4 w-4 text-neutral-700 dark:text-[#f8fafc]" />
+          <h3 className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-[#f8fafc]">Zdielany kalendar obce</h3>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
-          <span className="inline-flex items-center gap-1 rounded-full border border-[color:rgba(255,107,0,0.24)] bg-[rgba(255,107,0,0.12)] px-2 py-0.5 font-medium text-[#ffb26a]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 font-medium text-blue-700 dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ffb26a]">
             <Landmark className="h-3 w-3" /> Samosprava
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2 py-0.5 font-medium text-[#f8fafc]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-gradient-to-r from-purple-100 to-amber-100 px-2 py-0.5 font-medium text-purple-700 dark:border-[color:rgba(148,163,184,0.18)] dark:bg-[rgba(30,34,43,0.96)] dark:text-[#f8fafc]">
             <Church className="h-3 w-3" /> Kostol
           </span>
           {canManage && (
@@ -254,7 +254,7 @@ export function SharedCalendar() {
                 e.stopPropagation();
                 setShowForm(true);
               }}
-              className="ml-1 flex items-center gap-1 rounded-full border border-[color:rgba(255,107,0,0.24)] bg-[rgba(255,107,0,0.12)] px-2 py-1 text-[10px] font-semibold text-[#f8fafc] hover:bg-[rgba(255,107,0,0.18)]"
+              className="ml-1 flex items-center gap-1 rounded-full bg-neutral-900 px-2 py-1 text-[10px] font-semibold text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
               title="Pridat udalost"
             >
               <Plus className="h-3 w-3" /> Pridat
@@ -266,7 +266,7 @@ export function SharedCalendar() {
                 e.stopPropagation();
                 closeExpanded();
               }}
-              className={`ml-1 h-7 w-7 items-center justify-center rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] text-[#f8fafc] hover:bg-[color:var(--bg-surface-hover)] ${useIosBackNav ? "hidden md:flex" : "flex"}`}
+              className={`ml-1 h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 hover:bg-neutral-300 dark:border dark:border-[color:var(--border-card)] dark:bg-[color:var(--bg-surface)] dark:text-[#f8fafc] dark:hover:bg-[color:var(--bg-surface-hover)] ${useIosBackNav ? "hidden md:flex" : "flex"}`}
               aria-label="Zavriet"
             >
               <X className="h-4 w-4" />
@@ -277,11 +277,11 @@ export function SharedCalendar() {
 
       <div className={`${fullscreen ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}>
         {loading ? (
-          <div className="flex items-center justify-center py-6 text-[#94a3b8]">
+          <div className="flex items-center justify-center py-6 text-neutral-400 dark:text-[#94a3b8]">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : upcoming.length === 0 ? (
-          <p className="py-6 text-center text-xs text-[#94a3b8]">Momentalne nie su naplanovane ziadne udalosti.</p>
+          <p className="py-6 text-center text-xs text-neutral-500 dark:text-[#94a3b8]">Momentalne nie su naplanovane ziadne udalosti.</p>
         ) : (
           <ol className="flex flex-col gap-2">
             {upcoming.map((e) => (
@@ -398,9 +398,9 @@ function EventRow({
         onClick={onOpen}
         className={`flex w-full gap-3 rounded-2xl border ${theme.ring} ${theme.bg} p-2.5 text-left transition hover:bg-[color:var(--bg-surface-hover)] hover:shadow-sm`}
       >
-        <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-[color:var(--border-card)] bg-[#1e222b] py-1 text-center shadow-sm">
+        <div className="app-surface-muted flex w-12 shrink-0 flex-col items-center justify-center rounded-xl py-1 text-center shadow-sm dark:border-[color:var(--border-card)] dark:bg-[#1e222b]">
           <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#94a3b8]">{d.month}</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-[#94a3b8]">{d.month}</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -410,7 +410,7 @@ function EventRow({
               {theme.icon}
               {theme.label}
             </span>
-            <span className="text-[10px] text-[#94a3b8]">
+            <span className="text-[10px] text-neutral-500 dark:text-[#94a3b8]">
               {d.weekday} · {d.time}
             </span>
             {event.image_url && (
@@ -419,21 +419,21 @@ function EventRow({
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-sm font-semibold text-[#f8fafc]">{event.title}</p>
-          <p className="line-clamp-1 text-[11px] text-[#94a3b8]">{event.description}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-neutral-900 dark:text-[#f8fafc]">{event.title}</p>
+          <p className="line-clamp-1 text-[11px] text-muted-foreground dark:text-[#94a3b8]">{event.description}</p>
           {event.location && (
-            <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-[#94a3b8]">
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500 dark:text-[#94a3b8]">
               <MapPin className="h-3 w-3" />
               {event.location}
             </p>
           )}
           {event.source_url && (
-            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-[#ffb26a]">
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 dark:text-[#ffb26a]">
               <ExternalLink className="h-3 w-3" /> Zdroj dostupny
             </span>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2 py-1 text-[10px] font-medium text-[#94a3b8] shadow-sm">
+            <span className="chip-muted rounded-full px-2 py-1 text-[10px] font-medium shadow-sm">
               Zaujemcovia: {attendanceCount}
             </span>
             {canAttend && (
@@ -446,8 +446,8 @@ function EventRow({
                 disabled={attendanceBusy}
                 className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
                   attending
-                    ? "border border-[color:rgba(255,107,0,0.24)] bg-[rgba(255,107,0,0.12)] text-[#f8fafc] hover:bg-[rgba(255,107,0,0.18)]"
-                    : "border border-[color:rgba(255,107,0,0.3)] bg-[#ff6b00] text-white hover:bg-[#e85f00]"
+                    ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
+                    : "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-[#ff6b00] dark:text-white dark:hover:bg-[#e85f00]"
                 } disabled:opacity-60`}
               >
                 {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
@@ -506,7 +506,7 @@ function EventDetailModal({
         >
           <X className="h-5 w-5" />
         </button>
-        <h2 className="line-clamp-1 text-sm font-semibold text-[#f8fafc] md:text-base">{event.title}</h2>
+        <h2 className="line-clamp-1 text-sm font-semibold text-neutral-900 dark:text-[#f8fafc] md:text-base">{event.title}</h2>
       </div>
 
       <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${useIosBackNav ? "pb-24" : ""} md:p-6 md:pb-6`}>
@@ -516,32 +516,32 @@ function EventDetailModal({
               {theme.icon}
               {theme.label}
             </span>
-            <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2 py-1 text-[#94a3b8]">
+            <span className="chip-muted rounded-full px-2 py-1 text-[#94a3b8]">
               {start.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
             </span>
             {end && (
-              <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2 py-1 text-[#94a3b8]">
+              <span className="chip-muted rounded-full px-2 py-1 text-[#94a3b8]">
                 Koniec: {end.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" })}
               </span>
             )}
           </div>
 
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#f8fafc]">{event.description}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900 dark:text-[#f8fafc]">{event.description}</p>
 
           {event.location && (
-            <p className="mt-3 flex items-center gap-1 text-xs text-[#94a3b8]">
+            <p className="mt-3 flex items-center gap-1 text-xs text-neutral-500 dark:text-[#94a3b8]">
               <MapPin className="h-3.5 w-3.5" /> {event.location}
             </p>
           )}
 
           {event.image_url && (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)]">
+            <div className="app-surface-muted mt-4 overflow-hidden rounded-2xl">
               <img src={event.image_url} alt={event.title} className="h-auto w-full object-contain" />
             </div>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-medium text-[#94a3b8]">
+            <span className="chip-muted rounded-full px-2.5 py-1 text-xs font-medium">
               Zaujemcovia: {attendanceCount}
             </span>
             {canAttend && (
@@ -551,8 +551,8 @@ function EventDetailModal({
                 disabled={attendanceBusy}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                   attending
-                    ? "border border-[color:rgba(255,107,0,0.24)] bg-[rgba(255,107,0,0.12)] text-[#f8fafc] hover:bg-[rgba(255,107,0,0.18)]"
-                    : "border border-[color:rgba(255,107,0,0.3)] bg-[#ff6b00] text-white hover:bg-[#e85f00]"
+                    ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
+                    : "bg-primary text-primary-foreground hover:opacity-95 dark:bg-[#ff6b00] dark:text-white"
                 } disabled:opacity-60`}
               >
                 {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
@@ -563,7 +563,7 @@ function EventDetailModal({
                 href={event.source_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[#f8fafc] hover:bg-[color:var(--bg-surface-hover)]"
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-[color:var(--border-card)] dark:bg-[color:var(--bg-surface)] dark:text-[#f8fafc] dark:hover:bg-[color:var(--bg-surface-hover)]"
               >
                 <ExternalLink className="h-3.5 w-3.5" /> Zdroj podujatia
               </a>
