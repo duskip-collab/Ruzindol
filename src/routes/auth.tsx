@@ -148,11 +148,10 @@ function AuthPage() {
               </div>
               <div className="space-y-4">
                 <h1 className="max-w-md text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                  Jedna obrazovka, tri cesty dovnútra.
+                  Vitaj u susedov. Vyber si, ako vstúpiš.
                 </h1>
                 <p className="max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-                  Prihlás sa emailom, pokračuj cez Google alebo odomkni účet voliteľným invite
-                  kódom. Všetko prehľadne na jednom mieste.
+                  Použi svoj Google účet, klasický e-mail alebo zadaj pozývací kód. Všetko rýchlo, bezpečne a na jednom mieste.
                 </p>
               </div>
             </div>
