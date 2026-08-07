@@ -45,6 +45,15 @@ type Item = {
   profiles?: { name: string; street: string | null; is_active_neighbor?: boolean | null } | null;
 };
 
+type ActiveCountRow = { type: ItemType; active_count: number };
+
+const EMPTY_COUNTS: Record<ItemType, number> = {
+  trh: 0,
+  darovanie: 0,
+  sklad_ponuka: 0,
+  sklad_dopyt: 0,
+};
+
 const H = 60 * 60 * 1000;
 
 const SECTION_META: Record<
@@ -80,9 +89,46 @@ function sectionType(section: Section, pozTab: PoziciovnaTab): ItemType {
   return pozTab === "ponuka" ? "sklad_ponuka" : "sklad_dopyt";
 }
 
+function useActiveWarehouseCounts() {
+  const [counts, setCounts] = useState<Record<ItemType, number>>(EMPTY_COUNTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase.rpc("get_active_warehouse_counts");
+
+      if (!mounted) return;
+
+      if (error) {
+        setCounts(EMPTY_COUNTS);
+        setLoading(false);
+        return;
+      }
+
+      const next = { ...EMPTY_COUNTS };
+      ((data as ActiveCountRow[] | null) ?? []).forEach((row) => {
+        next[row.type] = Number(row.active_count) || 0;
+      });
+
+      setCounts(next);
+      setLoading(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return { counts, loading };
+}
+
 export function SkladScreen() {
   const { profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
+  const { counts, loading: countsLoading } = useActiveWarehouseCounts();
   const [section, setSection] = useState<Section | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [pozTab, setPozTab] = useState<PoziciovnaTab>("ponuka");
@@ -95,9 +141,24 @@ export function SkladScreen() {
           <p className="text-sm text-muted-foreground">Vyber si, čo chceš robiť.</p>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <PillarCard section="trh" onClick={() => setSection("trh")} />
-          <PillarCard section="darovanie" onClick={() => setSection("darovanie")} />
-          <PillarCard section="poziciovna" onClick={() => setSection("poziciovna")} />
+          <PillarCard
+            section="trh"
+            count={counts.trh}
+            loading={countsLoading}
+            onClick={() => setSection("trh")}
+          />
+          <PillarCard
+            section="darovanie"
+            count={counts.darovanie}
+            loading={countsLoading}
+            onClick={() => setSection("darovanie")}
+          />
+          <PillarCard
+            section="poziciovna"
+            count={counts.sklad_ponuka + counts.sklad_dopyt}
+            loading={countsLoading}
+            onClick={() => setSection("poziciovna")}
+          />
         </div>
       </div>
     );
@@ -127,9 +188,11 @@ export function SkladScreen() {
         <div className="app-toolbar flex gap-1 border-b p-1.5 backdrop-blur-xl md:px-4">
           <TabButton active={pozTab === "ponuka"} onClick={() => setPozTab("ponuka")}>
             <Wrench className="h-4 w-4" /> Ponuka náradia
+            <CountChip count={counts.sklad_ponuka} loading={countsLoading} />
           </TabButton>
           <TabButton active={pozTab === "dopyt"} onClick={() => setPozTab("dopyt")}>
             <Zap className="h-4 w-4" /> Rýchly dopyt
+            <CountChip count={counts.sklad_dopyt} loading={countsLoading} />
           </TabButton>
         </div>
       )}
@@ -166,6 +229,14 @@ export function SkladScreen() {
           <AddListingModal section={section} type={type} onClose={() => setFormOpen(false)} />
         ))}
     </div>
+  );
+}
+
+function CountChip({ count, loading }: { count: number; loading: boolean }) {
+  return (
+    <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 py-0.5 text-[10px] font-semibold text-current">
+      {loading ? "…" : count}
+    </span>
   );
 }
 
@@ -560,7 +631,17 @@ function DopytList() {
   );
 }
 
-function PillarCard({ section, onClick }: { section: Section; onClick: () => void }) {
+function PillarCard({
+  section,
+  count,
+  loading,
+  onClick,
+}: {
+  section: Section;
+  count: number;
+  loading: boolean;
+  onClick: () => void;
+}) {
   const meta = SECTION_META[section];
   const descriptions: Record<Section, string> = {
     trh: "Predaj alebo kúp veci od susedov v okolí.",
@@ -575,8 +656,11 @@ function PillarCard({ section, onClick }: { section: Section; onClick: () => voi
       className={`group relative overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br ${meta.accent} p-5 text-left text-white shadow-lg ring-1 ${meta.ring} transition hover:shadow-xl active:scale-[0.98]`}
     >
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur-md">
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur-md">
           {emojis[section]}
+          <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-neutral-900 shadow-sm">
+            {loading ? "…" : count}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold tracking-tight">{meta.title}</h3>

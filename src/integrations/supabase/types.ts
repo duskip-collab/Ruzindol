@@ -590,6 +590,7 @@ export type Database = {
           ban_reason: string | null;
           banned_until: string | null;
           created_at: string;
+          email: string | null;
           id: string;
           invite_code: string | null;
           is_active_neighbor: boolean;
@@ -603,6 +604,7 @@ export type Database = {
           ban_reason?: string | null;
           banned_until?: string | null;
           created_at?: string;
+          email?: string | null;
           id: string;
           invite_code?: string | null;
           is_active_neighbor?: boolean;
@@ -616,6 +618,7 @@ export type Database = {
           ban_reason?: string | null;
           banned_until?: string | null;
           created_at?: string;
+          email?: string | null;
           id?: string;
           invite_code?: string | null;
           is_active_neighbor?: boolean;
@@ -734,6 +737,13 @@ export type Database = {
           shared_via: string | null;
           used_by: string | null;
           used_at: string | null;
+        }[];
+      };
+      get_active_warehouse_counts: {
+        Args: never;
+        Returns: {
+          type: string;
+          active_count: number;
         }[];
       };
       mark_invite_code_shared: {

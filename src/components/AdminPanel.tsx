@@ -27,7 +27,7 @@ type Muni = {
   mayor_name: string | null;
   logo_url: string | null;
 };
-type UserRow = { id: string; name: string; role: ProfileRole };
+type UserRow = { id: string; name: string; email: string | null; role: ProfileRole };
 type ProfileNameRow = { id: string; name: string | null };
 
 const ROLE_CHOICES: ProfileRole[] = ["Sused", "Starosta", "Uradnik", "Farar", "VIP_Firma"];
@@ -407,7 +407,7 @@ function RoleAssigner() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("profiles").select("id, name, role").order("name");
+    const { data } = await supabase.from("profiles").select("id, name, email, role").order("name");
     setUsers((data as UserRow[] | null) ?? []);
     setLoading(false);
   };
@@ -433,7 +433,9 @@ function RoleAssigner() {
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return users;
-    return users.filter((u) => u.name.toLowerCase().includes(q));
+    return users.filter(
+      (u) => u.name.toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q),
+    );
   }, [users, search]);
 
   async function assign(userId: string, role: ProfileRole) {
@@ -470,7 +472,7 @@ function RoleAssigner() {
       <Input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Vyhľadať suseda podľa mena"
+        placeholder="Vyhľadať suseda podľa mena alebo e-mailu"
         className="mb-2"
       />
       {err && <p className="mb-2 text-xs text-rose-600">{err}</p>}
@@ -485,9 +487,10 @@ function RoleAssigner() {
               key={u.id}
               className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
             >
-              <span className="min-w-0 flex-1 truncate font-medium text-neutral-800 dark:text-neutral-200">
-                {u.name}
-              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{u.name}</p>
+                <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">{u.email ?? "—"}</p>
+              </div>
               <select
                 value={u.role}
                 onChange={(e) => assign(u.id, e.target.value as ProfileRole)}
