@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { Bell, Download, PlusSquare, Share2, X } from "lucide-react";
+import { Download, PlusSquare, Share2, X } from "lucide-react";
 
 import { Header } from "@/components/Header";
 import { BottomNav, NAV_TABS, type Tab } from "@/components/BottomNav";
@@ -167,12 +167,10 @@ function Index() {
     setShowFirstInstallBanner(window.localStorage.getItem(FIRST_INSTALL_BANNER_KEY) !== "1");
   }, [isInstalled]);
 
-  const activeTabMeta = useMemo(() => NAV_TABS.find((tab) => tab.id === activeTab), [activeTab]);
-
   return (
     <div className="bg-app-shell min-h-screen xl:h-screen xl:overflow-hidden">
       <OnboardingGate>
-        <div className="mx-auto flex min-h-screen w-full md:max-w-3xl md:px-4 md:py-4 lg:max-w-4xl xl:h-screen xl:max-w-7xl xl:gap-6 xl:px-6 xl:py-6">
+        <div className="mx-auto flex min-h-screen w-full md:max-w-3xl md:px-4 md:py-4 lg:max-w-4xl xl:h-screen xl:max-w-none xl:gap-6 xl:px-6 xl:py-6">
           <aside className="glass-panel hidden h-full w-[248px] shrink-0 flex-col rounded-[2rem] p-4 xl:flex">
             <div className="mb-4 px-2">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -334,36 +332,6 @@ function Index() {
             />
             <FullscreenAlert />
           </div>
-
-          <aside className="glass-panel hidden h-full w-[300px] shrink-0 flex-col gap-3 rounded-[2rem] p-4 xl:flex">
-            <div className="rounded-2xl border border-border/70 bg-white/70 p-3 dark:border-neutral-300 dark:bg-neutral-200">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground dark:text-neutral-800">
-                Aktívna sekcia
-              </p>
-              <p className="mt-1 text-sm font-semibold text-foreground dark:text-neutral-950">
-                {activeTabMeta?.label ?? "Nástenka"}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleBellClick}
-              className="flex items-center justify-between rounded-2xl border border-border/70 bg-white/70 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-white dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-950 dark:hover:bg-neutral-100"
-            >
-              <span>Notifikácie</span>
-              <span className="relative">
-                <Bell size={16} />
-                {hasBellDot && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-destructive" />
-                )}
-              </span>
-            </button>
-
-            <div className="rounded-2xl border border-border/70 bg-white/65 px-3 py-2 text-xs text-muted-foreground dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
-              Pre mobilné zariadenia je k dispozícii spodná navigácia. Na desktope je nahradená
-              bočným panelom.
-            </div>
-          </aside>
         </div>
       </OnboardingGate>
     </div>
