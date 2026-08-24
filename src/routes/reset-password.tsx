@@ -2,10 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, KeyRound, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RouteErrorView } from "@/components/RouteErrorView";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
   component: ResetPasswordPage,
+  errorComponent: RouteErrorView,
   head: () => ({
     meta: [
       { title: "Obnova hesla · Komunita" },

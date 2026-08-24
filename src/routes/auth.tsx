@@ -7,10 +7,12 @@ import { InviteRedeemSection } from "@/components/InviteRedeemSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { RouteErrorView } from "@/components/RouteErrorView";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
+  errorComponent: RouteErrorView,
 });
 
 type MuniOpt = { id: string; name: string; region: string | null; slug: string };

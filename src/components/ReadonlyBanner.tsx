@@ -24,6 +24,7 @@ export function ReadonlyBanner() {
     <>
       <button
         onClick={() => setOpen(true)}
+        aria-label="Režim čítania: zadajte pozývací kód pre aktiváciu plného prístupu"
         className="mx-3 mt-2 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-left text-xs text-amber-900 shadow-sm backdrop-blur"
       >
         <Lock className="h-3.5 w-3.5 shrink-0" />
@@ -62,6 +63,7 @@ export function ReadonlyLock({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
+      aria-label="Odomknúť plný prístup"
       className="flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900"
     >
       <Lock className="h-3 w-3" /> Odomknúť

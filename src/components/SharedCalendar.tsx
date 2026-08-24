@@ -6,6 +6,7 @@ import {
   Landmark,
   Church,
   CalendarDays,
+  CalendarPlus,
   MapPin,
   Plus,
   Loader2,
@@ -14,13 +15,14 @@ import {
   Maximize2,
   ExternalLink,
   Image as ImageIcon,
+  Recycle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { syncMunicipalEventsIfNeeded } from "@/lib/municipal-events-sync";
 import { isIosDevice } from "@/lib/pwa";
 
-type EventCategory = "Samosprava" | "Kostol";
+type EventCategory = "Samosprava" | "Kostol" | "odpad";
 
 type DbEvent = {
   id: string;
@@ -68,6 +70,14 @@ const THEME: Record<
     bg: "bg-gradient-to-br from-purple-50/80 to-amber-50/80 dark:bg-[color:var(--bg-surface)]",
     chip: "bg-gradient-to-r from-purple-600 to-amber-600 text-white dark:border dark:border-[color:rgba(148,163,184,0.18)] dark:bg-[rgba(30,34,43,0.96)] dark:text-[#f8fafc]",
     accent: "text-purple-700 dark:text-[#f8fafc]",
+  },
+  odpad: {
+    label: "Zber odpadu",
+    icon: <Recycle className="h-3.5 w-3.5" />,
+    ring: "border-green-300 dark:border-[color:var(--border-card)]",
+    bg: "bg-green-50/70 dark:bg-[color:var(--bg-surface)]",
+    chip: "bg-green-600 text-white dark:border dark:border-[color:rgba(34,197,94,0.24)] dark:bg-[rgba(34,197,94,0.12)] dark:text-[#4ade80]",
+    accent: "text-green-700 dark:text-[#4ade80]",
   },
 };
 
@@ -120,7 +130,53 @@ async function uploadEventImage(input: File, userId: string) {
   return data.publicUrl;
 }
 
-export function SharedCalendar() {
+function handleAddToGoogleCalendar(event: DbEvent, e?: React.MouseEvent) {
+  e?.stopPropagation();
+  const start = new Date(event.starts_at);
+  const end = event.ends_at ? new Date(event.ends_at) : new Date(start.getTime() + 60 * 60 * 1000);
+  const formatGCalDate = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatGCalDate(start)}/${formatGCalDate(end)}&details=${encodeURIComponent(event.description || "")}&location=${encodeURIComponent(event.location || "")}`;
+  window.open(url, "_blank");
+}
+
+function handleAddToAppleCalendar(event: DbEvent, e?: React.MouseEvent) {
+  e?.stopPropagation();
+  const start = new Date(event.starts_at);
+  const end = event.ends_at ? new Date(event.ends_at) : new Date(start.getTime() + 60 * 60 * 1000);
+  const formatIcsDate = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Obec Ruzindol//Shared Calendar//SK",
+    "BEGIN:VEVENT",
+    `UID:${event.id}@ruzindol.sk`,
+    `DTSTAMP:${formatIcsDate(new Date())}`,
+    `DTSTART:${formatIcsDate(start)}`,
+    `DTEND:${formatIcsDate(end)}`,
+    `SUMMARY:${escapeIcs(event.title)}`,
+    `DESCRIPTION:${escapeIcs(event.description || "")}`,
+    `LOCATION:${escapeIcs(event.location || "")}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${(event.title || "udalost").replace(/[^a-z0-9]/gi, "_").toLowerCase()}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function escapeIcs(str: string) {
+  return str.replace(/[\\;,/]/g, (m) => "\\" + m).replace(/\n/g, "\\n");
+}
+
+export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) {
   const { profile, userId } = useCurrentUser();
   const [events, setEvents] = useState<DbEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,7 +238,10 @@ export function SharedCalendar() {
     })();
   }, [load]);
 
-  const upcoming = useMemo(() => events, [events]);
+  const upcoming = useMemo(() => {
+    if (!categoryFilter) return events;
+    return events.filter((e) => (e.type ?? "").toLowerCase() === categoryFilter.toLowerCase());
+  }, [events, categoryFilter]);
 
   async function handleDelete(id: string) {
     if (!confirm("Naozaj vymazat tuto udalost?")) return;
@@ -453,6 +512,24 @@ function EventRow({
                 {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={(e) => handleAddToGoogleCalendar(event, e)}
+              className="chip-muted inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100 dark:text-[#ffb26a] dark:hover:bg-[rgba(255,107,0,0.2)]"
+              title="Pridať do Google Kalendára"
+            >
+              <CalendarPlus className="h-3 w-3" />
+              Google
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleAddToAppleCalendar(event, e)}
+              className="chip-muted inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium text-purple-700 hover:bg-purple-100 dark:text-[#f8fafc] dark:hover:bg-[rgba(148,163,184,0.2)]"
+              title="Pridať do iOS / Apple Kalendára (iCal)"
+            >
+              <CalendarDays className="h-3 w-3" />
+              iOS / iCal
+            </button>
           </div>
         </div>
         {canDelete && (
@@ -558,6 +635,24 @@ function EventDetailModal({
                 {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={(e) => handleAddToGoogleCalendar(event, e)}
+              className="chip-muted inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:text-[#ffb26a] dark:hover:bg-[rgba(255,107,0,0.2)]"
+              title="Pridať do Google Kalendára"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Google Kalendár
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleAddToAppleCalendar(event, e)}
+              className="chip-muted inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 dark:text-[#f8fafc] dark:hover:bg-[rgba(148,163,184,0.2)]"
+              title="Pridať do iOS / Apple Kalendára (iCal)"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              iOS / iCal (Apple)
+            </button>
             {event.source_url && (
               <a
                 href={event.source_url}

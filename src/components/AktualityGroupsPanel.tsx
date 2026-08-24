@@ -160,12 +160,12 @@ function sortProfilesForAssignment(list: BasicProfile[]) {
   });
 }
 
-export function AktualityGroupsPanel() {
+export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey }) {
   const { profile, userId, loading: userLoading } = useCurrentUser();
   const { isAdmin } = useIsAdmin(userId);
 
-  const [active, setActive] = useState<GroupKey>("osk_ruzindol");
-  const [openedGroup, setOpenedGroup] = useState<GroupKey | null>(null);
+  const [active, setActive] = useState<GroupKey>(initialGroup ?? "osk_ruzindol");
+  const [openedGroup, setOpenedGroup] = useState<GroupKey | null>(initialGroup ?? null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<GroupAnnouncement[]>([]);
   const [admins, setAdmins] = useState<GroupAdmin[]>([]);

@@ -26,13 +26,16 @@ export function BottomNav({
 }: BottomNavProps) {
   if (layout === "sidebar") {
     return (
-      <nav className={cn("flex flex-col gap-1", className)}>
+      <nav role="tablist" aria-label="Bočná navigácia aplikácie" className={cn("flex flex-col gap-1", className)}>
         {NAV_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={tab.label}
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={cn(
@@ -62,6 +65,8 @@ export function BottomNav({
 
   return (
     <nav
+      role="tablist"
+      aria-label="Hlavná navigácia aplikácie"
       className={cn(
         "glass-panel bottom-nav relative z-50 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
         className,
@@ -73,12 +78,15 @@ export function BottomNav({
         return (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={isActive}
+            aria-label={tab.label}
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
               isActive
-                  ? "nav-tab-active"
-                  : "nav-tab-idle"
+                ? "nav-tab-active"
+                : "nav-tab-idle"
             }`}
           >
             <span
