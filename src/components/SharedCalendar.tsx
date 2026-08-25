@@ -239,8 +239,11 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
   }, [load]);
 
   const upcoming = useMemo(() => {
-    if (!categoryFilter) return events;
-    return events.filter((e) => (e.type ?? "").toLowerCase() === categoryFilter.toLowerCase());
+    if (categoryFilter) {
+      return events.filter((e) => (e.type ?? "").toLowerCase() === categoryFilter.toLowerCase());
+    }
+    // Shared Calendar: exclude 'odpad' category items so they appear exclusively in the 'Kalendár zberu odpadu' tile
+    return events.filter((e) => (e.type ?? "").toLowerCase() !== "odpad");
   }, [events, categoryFilter]);
 
   async function handleDelete(id: string) {
@@ -449,6 +452,7 @@ function EventRow({
 }) {
   const theme = THEME[event.type ?? "Samosprava"];
   const d = formatDate(event.starts_at);
+  const isWaste = (event.type ?? "").toLowerCase() === "odpad";
 
   return (
     <li>
@@ -492,25 +496,29 @@ function EventRow({
             </span>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="chip-muted rounded-full px-2 py-1 text-[10px] font-medium shadow-sm">
-              Zaujemcovia: {attendanceCount}
-            </span>
-            {canAttend && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleAttendance();
-                }}
-                disabled={attendanceBusy}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
-                  attending
-                    ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
-                    : "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-[#ff6b00] dark:text-white dark:hover:bg-[#e85f00]"
-                } disabled:opacity-60`}
-              >
-                {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
-              </button>
+            {!isWaste && (
+              <>
+                <span className="chip-muted rounded-full px-2 py-1 text-[10px] font-medium shadow-sm">
+                  Zaujemcovia: {attendanceCount}
+                </span>
+                {canAttend && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAttendance();
+                    }}
+                    disabled={attendanceBusy}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                      attending
+                        ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
+                        : "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-[#ff6b00] dark:text-white dark:hover:bg-[#e85f00]"
+                    } disabled:opacity-60`}
+                  >
+                    {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
+                  </button>
+                )}
+              </>
             )}
             <button
               type="button"
@@ -571,6 +579,7 @@ function EventDetailModal({
   const theme = THEME[event.type ?? "Samosprava"];
   const start = new Date(event.starts_at);
   const end = event.ends_at ? new Date(event.ends_at) : null;
+  const isWaste = (event.type ?? "").toLowerCase() === "odpad";
 
   return createPortal(
     <div className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-[color:var(--bg-app)] pt-safe">
@@ -618,22 +627,26 @@ function EventDetailModal({
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="chip-muted rounded-full px-2.5 py-1 text-xs font-medium">
-              Zaujemcovia: {attendanceCount}
-            </span>
-            {canAttend && (
-              <button
-                type="button"
-                onClick={onToggleAttendance}
-                disabled={attendanceBusy}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  attending
-                    ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
-                    : "bg-primary text-primary-foreground hover:opacity-95 dark:bg-[#ff6b00] dark:text-white"
-                } disabled:opacity-60`}
-              >
-                {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
-              </button>
+            {!isWaste && (
+              <>
+                <span className="chip-muted rounded-full px-2.5 py-1 text-xs font-medium">
+                  Zaujemcovia: {attendanceCount}
+                </span>
+                {canAttend && (
+                  <button
+                    type="button"
+                    onClick={onToggleAttendance}
+                    disabled={attendanceBusy}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      attending
+                        ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:border dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#f8fafc] dark:hover:bg-[rgba(255,107,0,0.18)]"
+                        : "bg-primary text-primary-foreground hover:opacity-95 dark:bg-[#ff6b00] dark:text-white"
+                    } disabled:opacity-60`}
+                  >
+                    {attendanceBusy ? "Ukladam..." : attending ? "Zucastnim sa" : "Pridem"}
+                  </button>
+                )}
+              </>
             )}
             <button
               type="button"
