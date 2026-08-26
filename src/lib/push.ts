@@ -49,6 +49,37 @@ type SubscribeToPushOptions = {
   requestPermission?: boolean;
 };
 
+async function savePushSubscription(subscription: PushSubscription, userId: string) {
+  const subJson = subscription.toJSON();
+
+  if (!subscription.endpoint) {
+    console.error("Subscription neobsahuje endpoint!");
+    return false;
+  }
+
+  const payload = {
+    user_id: userId,
+    endpoint: subscription.endpoint,
+    p256dh: subJson.keys?.p256dh || null,
+    auth: subJson.keys?.auth || null,
+    subscription: subJson,
+    user_agent: navigator.userAgent,
+    last_seen_at: new Date().toISOString(),
+  };
+
+  const { error } = await (supabase as any)
+    .from("user_push_subscriptions")
+    .upsert(payload, { onConflict: "endpoint" });
+
+  if (error) {
+    console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
+    return false;
+  }
+
+  console.log("Push subskripcia úspešne uložená.");
+  return true;
+}
+
 export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
   try {
     const { requestPermission = true } = options;
@@ -103,37 +134,11 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       return false;
     }
 
-    const serializedSubscription = subscription.toJSON();
-    if (!serializedSubscription.endpoint) {
-      console.error("Neplatná push subskripcia: chýba endpoint.");
-      return false;
-    }
-
-    const endpoint = serializedSubscription.endpoint;
-
-    // Prefer endpoint-based upsert so one user can have multiple active devices.
-    const { error: endpointError } = await (supabase as any).from("user_push_subscriptions").upsert(
-      {
-        user_id: session.user.id,
-        endpoint,
-        subscription: serializedSubscription,
-        user_agent: navigator.userAgent,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "endpoint" },
-    );
-
-    if (!endpointError) {
-      console.log("Push notifikácie úspešne aktivované a uložené!");
-      return true;
-    }
-
-    if (!isMissingEndpointColumnOrConstraint(endpointError)) {
-      console.error("Chyba pri ukladaní subskripcie do Supabase:", endpointError);
-      return false;
-    }
+    const saved = await savePushSubscription(subscription, session.user.id);
+    if (saved) return true;
 
     // Backward-compatible fallback for older schema (single subscription per user).
+    const serializedSubscription = subscription.toJSON();
     const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
       {
         user_id: session.user.id,
@@ -142,13 +147,14 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       { onConflict: "user_id" },
     );
 
-    if (error) {
+    if (error && !isMissingEndpointColumnOrConstraint(error)) {
       console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
       return false;
-    } else {
-      console.log("Push notifikácie úspešne aktivované a uložené!");
-      return true;
     }
+
+    if (error) return false;
+    console.log("Push notifikácie úspešne aktivované a uložené!");
+    return true;
   } catch (error) {
     console.error("Neočakávaná chyba pri subscribeToPush:", error);
     return false;
