@@ -23,15 +23,18 @@ export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ sync
   try {
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
+    console.log("[FRONTEND] Pokus o spustenie fetch-municipal-events Edge Function...");
+
     const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
       body: { force },
     });
 
     if (error) {
-      console.error("Nepodarilo sa zavolat fetch-municipal-events:", error);
+      console.error("[FRONTEND ERROR] Edge Function zlyhala pri volaní:", error);
       return { synced: false, count: 0 };
     }
 
+    console.log("[FRONTEND SUCCESS] Edge Function odpovedala:", data);
     const count = typeof data?.count === "number" ? data.count : 0;
     markSyncedToday();
     return { synced: true, count };

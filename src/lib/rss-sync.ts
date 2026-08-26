@@ -71,10 +71,16 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
   try {
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
+    console.log("[FRONTEND] Pokus o spustenie fetch-municipal-events Edge Function...");
+
     const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
       body: { mode: "rss", force: true },
     });
-    if (error) throw error;
+    if (error) {
+      console.error("[FRONTEND ERROR] Edge Function zlyhala pri volaní:", error);
+      throw error;
+    }
+    console.log("[FRONTEND SUCCESS] Edge Function odpovedala:", data);
     if (data?.success !== true) {
       throw new Error(data?.error || "Synchronizácia RSS zlyhala.");
     }
