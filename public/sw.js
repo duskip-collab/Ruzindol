@@ -103,7 +103,7 @@ self.addEventListener("notificationclick", (event) => {
   console.log("[SW] Klik na notifikáciu zachytený:", event.notification.tag);
 
   event.notification.close();
-  const targetPath = "/nastenka";
+  const targetPath = "/?tab=nastenka";
   const fullUrl = new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(
