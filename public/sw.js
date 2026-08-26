@@ -103,26 +103,19 @@ self.addEventListener("notificationclick", (event) => {
   console.log("[SW] Klik na notifikáciu zachytený:", event.notification.tag);
 
   event.notification.close();
+  const targetPath = "/nastenka";
+  const fullUrl = new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      const relativeUrl = normalizeNotificationUrl(event.notification.data?.url);
-      let urlToOpen = `${self.location.origin}/`;
-
-      try {
-        urlToOpen = new URL(relativeUrl, self.location.origin).href;
-      } catch (error) {
-        console.error("[SW] Neplatná URL v notifikácii, používam domovskú stránku:", error);
-      }
-
       for (const client of windowClients) {
         if (client.url.startsWith(self.location.origin) && "focus" in client) {
-          client.navigate(urlToOpen);
+          client.navigate(fullUrl);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+        return clients.openWindow(fullUrl);
       }
     })
   );
