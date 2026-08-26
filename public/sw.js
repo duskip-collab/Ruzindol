@@ -41,6 +41,14 @@ self.addEventListener("fetch", (event) => {
 });
 
 // Počúvanie na prichádzajúce push notifikácie
+function normalizeNotificationUrl(value) {
+  if (typeof value !== "string") return "/";
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") return "/";
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
 self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
@@ -58,11 +66,7 @@ self.addEventListener("push", (event) => {
       const priority = data.priority || "high";
       const baseTag = data.tag || "komunita-push";
       const tag = `${baseTag}-${Date.now()}`;
-      const rawTargetUrl = data.url || data.data?.url;
-      const targetUrl =
-        typeof rawTargetUrl === "string" && rawTargetUrl.startsWith("/")
-          ? rawTargetUrl
-          : "/";
+      const targetUrl = normalizeNotificationUrl(data.url || data.data?.url);
       const vibratePattern = Array.isArray(data.vibrate)
         ? data.vibrate
         : priority === "high"
@@ -102,8 +106,14 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      const relativeUrl = event.notification.data?.url || "/";
-      const urlToOpen = new URL(relativeUrl, self.location.origin).href;
+      const relativeUrl = normalizeNotificationUrl(event.notification.data?.url);
+      let urlToOpen = `${self.location.origin}/`;
+
+      try {
+        urlToOpen = new URL(relativeUrl, self.location.origin).href;
+      } catch (error) {
+        console.error("[SW] Neplatná URL v notifikácii, používam domovskú stránku:", error);
+      }
 
       for (const client of windowClients) {
         if (client.url.startsWith(self.location.origin) && "focus" in client) {
