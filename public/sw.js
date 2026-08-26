@@ -57,8 +57,7 @@ self.addEventListener("push", (event) => {
       const title = data.title || "Moji Susedia";
       const priority = data.priority || "high";
       const baseTag = data.tag || "komunita-push";
-      const notificationId = data.notificationId || data.id || Date.now();
-      const tag = `${baseTag}-${notificationId}`;
+      const tag = `${baseTag}-${Date.now()}`;
       const vibratePattern = Array.isArray(data.vibrate)
         ? data.vibrate
         : priority === "high"
