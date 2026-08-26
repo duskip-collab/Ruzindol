@@ -151,7 +151,7 @@ export function AktualityScreen() {
         .maybeSingle(),
     ]);
 
-    if (rssRes.error) console.error("RSS announcements load failed", rssRes.error);
+    if (rssRes.error) console.warn("[RSS] Supabase načítanie zlyhalo, zobrazujem dostupné dáta.", rssRes.error);
     if (internalRes.error) console.error("Internal announcements load failed", internalRes.error);
 
     const rssItems = (rssRes.data as Announcement[] | null) ?? [];

@@ -2,7 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 
 const RSS_URL = "https://www.ruzindol.sk/api/rss/";
-const PROXY = "https://api.allorigins.win/raw?url=";
+const RSS_PROXIES = [
+  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
 const LAST_SYNC_KEY = "aktuality_rss_last_sync_v2";
 const LAST_SYNC_DAY_KEY = "aktuality_rss_last_sync_day_v2";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -112,16 +116,35 @@ async function fetchWithTimeout(url: string, timeoutMs: number) {
   }
 }
 
+async function fetchRssXml() {
+  let lastError: unknown = null;
+  for (const [index, createProxyUrl] of RSS_PROXIES.entries()) {
+    const proxyUrl = createProxyUrl(RSS_URL);
+    try {
+      const response = await retryAsync(
+        () => fetchWithTimeout(proxyUrl, FETCH_TIMEOUT_MS),
+        { retries: 1, delayMs: 400 },
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const xml = await response.text();
+      if (!xml.includes("<item") || xml.includes("<parsererror")) {
+        throw new Error("Odpoveď neobsahuje platný RSS XML feed");
+      }
+      console.log(`[RSS] Proxy ${index + 1} odpovedala úspešne.`);
+      return xml;
+    } catch (error) {
+      lastError = error;
+      console.warn(`[RSS] Proxy ${index + 1} zlyhala, skúšam ďalšiu.`, error);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("RSS proxy nedostupná");
+}
+
 export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean; count: number }> {
   try {
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
-    const res = await retryAsync(
-      () => fetchWithTimeout(PROXY + encodeURIComponent(RSS_URL), FETCH_TIMEOUT_MS),
-      { retries: 1, delayMs: 400 },
-    );
-    if (!res.ok) throw new Error("RSS fetch failed");
-    const xml = await res.text();
+    const xml = await fetchRssXml();
     const items = parseRss(xml).sort(
       (a, b) => +new Date(b.published_at) - +new Date(a.published_at),
     );
