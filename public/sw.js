@@ -20,9 +20,24 @@ self.addEventListener("pushsubscriptionchange", (event) => {
   );
 });
 
-// Minimal fetch handler keeps PWA installability checks green in strict browsers.
+// Fetch handler s bezpečným zachytávaním sieťových chýb pre PWA installability.
 self.addEventListener("fetch", (event) => {
-  event.respondWith(fetch(event.request));
+  // Ak ide o cross-origin požiadavku (napr. Supabase API/Functions), necháme prehliadač spracovať fetch štandardne.
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request).catch((error) => {
+      console.warn("[SW] Fetch failed:", error);
+      // Vráti čistú sieťovú chybovú odpoveď namiesto zlyhania v Service Workeri
+      return new Response("Network error occurred", {
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: new Headers({ "Content-Type": "text/plain" }),
+      });
+    })
+  );
 });
 
 // Počúvanie na prichádzajúce push notifikácie

@@ -15,10 +15,11 @@ const CALENDAR_URL = "https://www.ruzindol.sk/obcan/kalendar-podujati/";
 const RSS_URL = "https://www.ruzindol.sk/?rss=200";
 const EVENT_PATH_LIMIT = 40;
 const RSS_LIMIT = 6;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
 function json(data: unknown, status = 200) {
@@ -46,15 +47,12 @@ function stripTags(input: string) {
 }
 
 function parseRss(xml: string) {
-  // Odstránenie namespace predpôn (napr. atom:link -> link), aby regex/parsovanie nezlyhávalo
   const cleanXml = xml.replace(/<\/?([a-zA-Z0-9]+):/g, "<");
-  
   const itemMatches = cleanXml.match(/<item[\s\S]*?>[\s\S]*?<\/item>/gi) || [];
 
   return itemMatches
     .map((itemXml, index) => {
       const getValue = (tag: string) => {
-        // Podpora pre klasické tagy aj CDATA bloky
         const regex = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, "i");
         const match = itemXml.match(regex);
         const rawText = match ? match[1] || match[2] || "" : "";
@@ -161,7 +159,6 @@ async function syncRss(supabase: ReturnType<typeof createClient>) {
   const items = parseRss(xml)
     .slice(0, RSS_LIMIT)
     .map(({ category: _category, ...item }) => item);
-  console.log("RSS položiek načítaných z XML:", items.length);
 
   if (items.length === 0) return { success: true, count: 0, skipped: true };
 
@@ -227,6 +224,7 @@ function toTimePart(iso: string) {
 }
 
 serve(async (req) => {
+  // Pridané ošetrenie pre preflight OPTIONS request s prehľadnými hlavičkami
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
