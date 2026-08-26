@@ -96,21 +96,23 @@ self.addEventListener("push", (event) => {
 
 // Otvorenie aplikácie po kliknutí na notifikáciu
 self.addEventListener("notificationclick", (event) => {
+  console.log("[SW] Klik na notifikáciu zachytený:", event.notification.tag);
+
   event.notification.close();
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList) => {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       const relativeUrl = event.notification.data?.url || "/";
-      const targetUrl = new URL(relativeUrl, self.location.origin).href;
+      const urlToOpen = new URL(relativeUrl, self.location.origin).href;
 
-      for (const client of clientList) {
+      for (const client of windowClients) {
         if (client.url.startsWith(self.location.origin) && "focus" in client) {
-          await client.navigate(targetUrl);
+          client.navigate(urlToOpen);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow(urlToOpen);
       }
     })
   );
