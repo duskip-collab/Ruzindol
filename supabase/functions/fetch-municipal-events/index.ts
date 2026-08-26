@@ -44,14 +44,17 @@ function stripTags(input: string) {
 }
 
 function parseRss(xml: string) {
-  const itemMatches = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+  // Odstránenie namespace predpôn (napr. atom:link -> link), aby regex/parsovanie nezlyhávalo
+  const cleanXml = xml.replace(/<\/?([a-zA-Z0-9]+):/g, "<");
+  
+  const itemMatches = cleanXml.match(/<item[\s\S]*?>[\s\S]*?<\/item>/gi) || [];
 
   return itemMatches
     .map((itemXml, index) => {
       const getValue = (tag: string) => {
-        const match = itemXml.match(
-          new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, "i")
-        );
+        // Podpora pre klasické tagy aj CDATA bloky
+        const regex = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, "i");
+        const match = itemXml.match(regex);
         const rawText = match ? match[1] || match[2] || "" : "";
         return stripTags(rawText);
       };
@@ -137,8 +140,8 @@ function extractEventLinks(html: string) {
 async function fetchText(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; KomunitaRuzindolBot/1.0)",
-      "Accept": "text/html,application/xhtml+xml,application/xml",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
   });
 
