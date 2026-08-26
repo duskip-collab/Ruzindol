@@ -12,18 +12,22 @@ create table if not exists public.reminders (
 alter table public.reminders enable row level security;
 
 -- RLS Policies: users can only see/manage their own reminders
+drop policy if exists "Users can view their own reminders" on public.reminders;
 create policy "Users can view their own reminders"
   on public.reminders for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own reminders" on public.reminders;
 create policy "Users can insert their own reminders"
   on public.reminders for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own reminders" on public.reminders;
 create policy "Users can update their own reminders"
   on public.reminders for update
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own reminders" on public.reminders;
 create policy "Users can delete their own reminders"
   on public.reminders for delete
   using (auth.uid() = user_id);

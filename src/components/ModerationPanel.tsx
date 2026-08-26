@@ -124,7 +124,15 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
       _reason: reason[target.id]?.trim() || undefined,
     });
     setBusy(null);
-    if (error) return setErr(error.message);
+    if (error) {
+      console.error("RPC delete_neighbor detail chyby:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      return setErr(error.message);
+    }
     flash(`${target.name} zabanovaný na ${d} dní`);
     await load();
   }
