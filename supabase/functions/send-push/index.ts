@@ -184,20 +184,29 @@ serve(async (req) => {
     let failedCount = 0;
 
     const sendPromises = subscriptions.map(async (subRow) => {
+      const endpoint =
+        (subRow as any).endpoint ||
+        ((subRow as any).subscription && typeof (subRow as any).subscription === "object"
+          ? (subRow as any).subscription.endpoint
+          : null);
+      const endpointLabel = endpoint ? `${endpoint.slice(0, 30)}...` : "unknown";
+
       try {
-        await webpush.sendNotification((subRow as any).subscription, pushPayload, pushOptions);
+        const response = await webpush.sendNotification(
+          (subRow as any).subscription,
+          pushPayload,
+          pushOptions,
+        );
         sentCount += 1;
+        console.log(`[PUSH SUCCESS] Endpoint: ${endpointLabel} Stav: ${response.statusCode}`);
       } catch (err: any) {
         failedCount += 1;
         const status = err?.statusCode ?? err?.status;
-        if (status === 410 || status === 404) {
-          const endpoint =
-            (subRow as any).endpoint ||
-            ((subRow as any).subscription && typeof (subRow as any).subscription === "object"
-              ? (subRow as any).subscription.endpoint
-              : null);
+        console.error(`[PUSH ERROR] Endpoint: ${endpointLabel} Status: ${status ?? "unknown"}`, err);
 
+        if (status === 410 || status === 404) {
           if (endpoint) {
+            console.log(`[PUSH CLEANUP] Mažem neplatný endpoint: ${endpointLabel}`);
             const { error: deleteError } = await supabase
               .from("user_push_subscriptions")
               .delete()
@@ -211,7 +220,6 @@ serve(async (req) => {
             });
           }
         }
-        console.error("Chyba pri odosielaní push notifikácie:", err);
       }
     });
 
