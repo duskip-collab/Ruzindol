@@ -72,7 +72,7 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
     const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
-      body: { mode: "rss", force },
+      body: { mode: "rss", force: true },
     });
     if (error) throw error;
     if (data?.success !== true) {

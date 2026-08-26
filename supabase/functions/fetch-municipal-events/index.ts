@@ -83,7 +83,7 @@ function parseRss(xml: string) {
         category,
       };
     })
-    .filter((item) => item.title && item.external_id && item.category.toLowerCase() === "aktuality")
+    .filter((item) => item.title && item.external_id && item.category.toLowerCase().includes("aktualit"))
     .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
