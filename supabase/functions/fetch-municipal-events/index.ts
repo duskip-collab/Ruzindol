@@ -12,7 +12,7 @@ type ParsedEvent = {
 
 const BASE_URL = "https://www.ruzindol.sk";
 const CALENDAR_URL = "https://www.ruzindol.sk/obcan/kalendar-podujati/";
-const RSS_URL = "https://www.ruzindol.sk/api/rss/";
+const RSS_URL = "https://www.ruzindol.sk/?rss=200";
 const EVENT_PATH_LIMIT = 40;
 const RSS_LIMIT = 6;
 const corsHeaders = {
@@ -36,6 +36,8 @@ function decodeHtml(input: string) {
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
     .trim();
 }
 
@@ -63,6 +65,7 @@ function parseRss(xml: string) {
       const link = getValue("link") || null;
       const guid = getValue("guid") || link || `${title}-${index}`;
       const published = getValue("pubDate");
+      const category = getValue("category").toLocaleLowerCase("sk-SK");
 
       const publishedAt = published && !isNaN(new Date(published).getTime())
         ? new Date(published).toISOString()
@@ -77,9 +80,10 @@ function parseRss(xml: string) {
         priority: "oznam",
         published_at: publishedAt,
         author_id: null,
+        category,
       };
     })
-    .filter((item) => item.title && item.external_id)
+    .filter((item) => item.title && item.external_id && item.category === "aktuality")
     .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
@@ -154,7 +158,9 @@ async function fetchText(url: string): Promise<string> {
 
 async function syncRss(supabase: ReturnType<typeof createClient>) {
   const xml = await fetchText(RSS_URL);
-  const items = parseRss(xml).slice(0, RSS_LIMIT);
+  const items = parseRss(xml)
+    .slice(0, RSS_LIMIT)
+    .map(({ category: _category, ...item }) => item);
   console.log("RSS položiek načítaných z XML:", items.length);
 
   if (items.length === 0) return { success: true, count: 0, skipped: true };

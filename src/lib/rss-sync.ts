@@ -81,6 +81,9 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
       body: { mode: "rss", force },
     });
     if (error) throw error;
+    if (data?.success !== true) {
+      throw new Error(data?.error || "Synchronizácia RSS zlyhala.");
+    }
     const count = typeof data?.count === "number" ? data.count : 0;
     console.log("[RSS] Backend synchronizácia dokončená:", count);
 
