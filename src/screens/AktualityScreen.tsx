@@ -156,6 +156,8 @@ export function AktualityScreen() {
 
     const rssItems = (rssRes.data as Announcement[] | null) ?? [];
     const internalItems = (internalRes.data as Announcement[] | null) ?? [];
+    console.log("[RSS] Záznamov vrátených zo Supabase pre UI:", rssItems.length);
+    if (rssRes.error) console.error("[RSS] Supabase chyba pri načítaní:", rssRes.error);
 
     const merged = [...rssItems, ...internalItems]
       .filter((item) => !isExpired(item))
@@ -177,14 +179,11 @@ export function AktualityScreen() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await load();
-      setLoading(false);
-
       setSyncing(true);
       const result = await syncRssIfNeeded();
-      if (result.synced) {
-        await load();
-      }
+      console.log("[RSS] Výsledok štartovacej synchronizácie:", result);
+      await load();
+      setLoading(false);
       setSyncing(false);
     })();
   }, [load]);
