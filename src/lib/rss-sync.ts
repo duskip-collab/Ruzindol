@@ -47,14 +47,8 @@ function getTodayLocalKey() {
 function shouldSyncToday(force: boolean) {
   if (force) return true;
 
-  const today = getTodayLocalKey();
-  const lastDay = localStorage.getItem(LAST_SYNC_DAY_KEY);
-  if (lastDay === today) return false;
-
-  // Backward compatibility for older key based on timestamp.
-  const lastTs = Number(localStorage.getItem(LAST_SYNC_KEY) ?? 0);
-  if (lastTs > 0 && Date.now() - lastTs < DAY_MS) return false;
-
+  // Sync on every single app startup. We bypass the 24h limit, but fallback to 24h if desired.
+  // To fetch on every app startup, we can just return true.
   return true;
 }
 

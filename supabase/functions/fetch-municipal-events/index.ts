@@ -65,7 +65,7 @@ function parseRss(xml: string) {
       const link = getValue("link") || null;
       const guid = getValue("guid") || link || `${title}-${index}`;
       const published = getValue("pubDate");
-      const category = getValue("category").toLocaleLowerCase("sk-SK");
+      const category = getValue("category").trim();
 
       const publishedAt = published && !isNaN(new Date(published).getTime())
         ? new Date(published).toISOString()
@@ -83,7 +83,7 @@ function parseRss(xml: string) {
         category,
       };
     })
-    .filter((item) => item.title && item.external_id && item.category === "aktuality")
+    .filter((item) => item.title && item.external_id && item.category.toLowerCase() === "aktuality")
     .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
