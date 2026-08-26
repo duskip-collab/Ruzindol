@@ -44,31 +44,40 @@ function stripTags(input: string) {
 }
 
 function parseRss(xml: string) {
-  const document = new DOMParser().parseFromString(xml, "application/xml");
-  if (!document) throw new Error("RSS XML sa nepodarilo spracovať");
+  const itemMatches = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
 
-  const textOf = (element: Element | null) => stripTags(element?.textContent ?? "");
-  return [...document.querySelectorAll("item")].map((item, index) => {
-    const value = (tag: string) => textOf(item.querySelector(tag));
-    const title = value("title") || "Oznam";
-    const link = value("link") || null;
-    const guid = value("guid") || link || `${title}-${index}`;
-    const published = value("pubDate");
-    const publishedAt = published && !isNaN(new Date(published).getTime())
-      ? new Date(published).toISOString()
-      : new Date().toISOString();
+  return itemMatches
+    .map((itemXml, index) => {
+      const getValue = (tag: string) => {
+        const match = itemXml.match(
+          new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, "i")
+        );
+        const rawText = match ? match[1] || match[2] || "" : "";
+        return stripTags(rawText);
+      };
 
-    return {
-      source: "rss",
-      external_id: guid,
-      title,
-      content: stripTags(value("description")),
-      link,
-      priority: "oznam",
-      published_at: publishedAt,
-      author_id: null,
-    };
-  }).sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
+      const title = getValue("title") || "Oznam";
+      const link = getValue("link") || null;
+      const guid = getValue("guid") || link || `${title}-${index}`;
+      const published = getValue("pubDate");
+
+      const publishedAt = published && !isNaN(new Date(published).getTime())
+        ? new Date(published).toISOString()
+        : new Date().toISOString();
+
+      return {
+        source: "rss",
+        external_id: guid,
+        title,
+        content: getValue("description"),
+        link,
+        priority: "oznam",
+        published_at: publishedAt,
+        author_id: null,
+      };
+    })
+    .filter((item) => item.title && item.external_id)
+    .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
 function parseDateTime(text: string): { startsAt: string; endsAt: string | null } | null {
@@ -129,7 +138,7 @@ async function fetchText(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; KomunitaRuzindolBot/1.0)",
-      "Accept": "text/html,application/xhtml+xml",
+      "Accept": "text/html,application/xhtml+xml,application/xml",
     },
   });
 
@@ -144,6 +153,7 @@ async function syncRss(supabase: ReturnType<typeof createClient>) {
   const xml = await fetchText(RSS_URL);
   const items = parseRss(xml).slice(0, RSS_LIMIT);
   console.log("RSS položiek načítaných z XML:", items.length);
+
   if (items.length === 0) return { success: true, count: 0, skipped: true };
 
   const { error } = await supabase.from("announcements").upsert(items, {
