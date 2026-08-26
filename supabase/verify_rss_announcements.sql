@@ -18,5 +18,13 @@ WHERE source = 'rss'
 ORDER BY published_at DESC, id DESC
 LIMIT 6;
 
+SELECT
+  conname,
+  pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE conrelid = 'public.announcements'::regclass
+  AND contype = 'u'
+  AND pg_get_constraintdef(oid) LIKE '%source%external_id%';
+
 -- Expected result: rss_count is 6 (or fewer only when the RSS feed itself
 -- currently contains fewer than six items).

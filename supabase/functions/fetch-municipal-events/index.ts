@@ -12,7 +12,9 @@ type ParsedEvent = {
 
 const BASE_URL = "https://www.ruzindol.sk";
 const CALENDAR_URL = "https://www.ruzindol.sk/obcan/kalendar-podujati/";
+const RSS_URL = "https://www.ruzindol.sk/api/rss/";
 const EVENT_PATH_LIMIT = 40;
+const RSS_LIMIT = 6;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -39,6 +41,34 @@ function decodeHtml(input: string) {
 
 function stripTags(input: string) {
   return decodeHtml(input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+}
+
+function parseRss(xml: string) {
+  const document = new DOMParser().parseFromString(xml, "application/xml");
+  if (!document) throw new Error("RSS XML sa nepodarilo spracovať");
+
+  const textOf = (element: Element | null) => stripTags(element?.textContent ?? "");
+  return [...document.querySelectorAll("item")].map((item, index) => {
+    const value = (tag: string) => textOf(item.querySelector(tag));
+    const title = value("title") || "Oznam";
+    const link = value("link") || null;
+    const guid = value("guid") || link || `${title}-${index}`;
+    const published = value("pubDate");
+    const publishedAt = published && !isNaN(new Date(published).getTime())
+      ? new Date(published).toISOString()
+      : new Date().toISOString();
+
+    return {
+      source: "rss",
+      external_id: guid,
+      title,
+      content: stripTags(value("description")),
+      link,
+      priority: "oznam",
+      published_at: publishedAt,
+      author_id: null,
+    };
+  }).sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
 function parseDateTime(text: string): { startsAt: string; endsAt: string | null } | null {
@@ -110,6 +140,37 @@ async function fetchText(url: string): Promise<string> {
   return await response.text();
 }
 
+async function syncRss(supabase: ReturnType<typeof createClient>) {
+  const xml = await fetchText(RSS_URL);
+  const items = parseRss(xml).slice(0, RSS_LIMIT);
+  console.log("RSS položiek načítaných z XML:", items.length);
+  if (items.length === 0) return { success: true, count: 0, skipped: true };
+
+  const { error } = await supabase.from("announcements").upsert(items, {
+    onConflict: "source,external_id",
+    ignoreDuplicates: false,
+  });
+  if (error) throw error;
+
+  const { data: existing, error: listError } = await supabase
+    .from("announcements")
+    .select("id")
+    .eq("source", "rss")
+    .order("published_at", { ascending: false });
+  if (listError) throw listError;
+
+  const obsoleteIds = (existing ?? []).slice(RSS_LIMIT).map((row) => row.id);
+  if (obsoleteIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("announcements")
+      .delete()
+      .in("id", obsoleteIds);
+    if (deleteError) throw deleteError;
+  }
+
+  return { success: true, count: items.length };
+}
+
 function parseSingleEventHtml(html: string, sourceUrl: string): ParsedEvent | null {
   const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? "";
   const title = stripTags(h1);
@@ -163,6 +224,11 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json().catch(() => ({}));
+    if (body?.mode === "rss") {
+      return json(await syncRss(supabase));
+    }
 
     const listingHtml = await fetchText(CALENDAR_URL);
     const links = extractEventLinks(listingHtml);

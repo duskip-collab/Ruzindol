@@ -1,12 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 
-const RSS_URL = "https://www.ruzindol.sk/api/rss/";
-const RSS_PROXIES = [
-  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
 const LAST_SYNC_KEY = "aktuality_rss_last_sync_v2";
 const LAST_SYNC_DAY_KEY = "aktuality_rss_last_sync_day_v2";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -20,43 +14,6 @@ export type RssItem = {
   link: string | null;
   published_at: string;
 };
-
-function textOf(el: Element | null | undefined): string {
-  if (!el) return "";
-  return (el.textContent ?? "").trim();
-}
-
-function parseRss(xml: string): RssItem[] {
-  const doc = new DOMParser().parseFromString(xml, "application/xml");
-  const items = Array.from(doc.querySelectorAll("item"));
-  return items.map((it) => {
-    const title = textOf(it.querySelector("title"));
-    const link = textOf(it.querySelector("link")) || null;
-    const guid = textOf(it.querySelector("guid")) || link || title;
-    const pubDate = textOf(it.querySelector("pubDate"));
-    const description = textOf(it.querySelector("description"));
-    const publishedAt = pubDate ? new Date(pubDate) : new Date();
-    return {
-      external_id: guid,
-      title: title || "Oznam",
-      content: sanitizeHtml(description),
-      link,
-      published_at: (isNaN(publishedAt.getTime()) ? new Date() : publishedAt).toISOString(),
-    };
-  });
-}
-
-function sanitizeHtml(html: string): string {
-  if (!html) return "";
-  // Remove script/style blocks and inline event handlers / javascript: URLs.
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/\son\w+="[^"]*"/gi, "")
-    .replace(/\son\w+='[^']*'/gi, "")
-    .replace(/javascript:/gi, "")
-    .trim();
-}
 
 export async function cleanupExpiredAnnouncements() {
   const now = Date.now();
@@ -116,70 +73,19 @@ async function fetchWithTimeout(url: string, timeoutMs: number) {
   }
 }
 
-async function fetchRssXml() {
-  let lastError: unknown = null;
-  for (const [index, createProxyUrl] of RSS_PROXIES.entries()) {
-    const proxyUrl = createProxyUrl(RSS_URL);
-    try {
-      const response = await retryAsync(
-        () => fetchWithTimeout(proxyUrl, FETCH_TIMEOUT_MS),
-        { retries: 1, delayMs: 400 },
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const xml = await response.text();
-      if (!xml.includes("<item") || xml.includes("<parsererror")) {
-        throw new Error("Odpoveď neobsahuje platný RSS XML feed");
-      }
-      console.log(`[RSS] Proxy ${index + 1} odpovedala úspešne.`);
-      return xml;
-    } catch (error) {
-      lastError = error;
-      console.warn(`[RSS] Proxy ${index + 1} zlyhala, skúšam ďalšiu.`, error);
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("RSS proxy nedostupná");
-}
-
 export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean; count: number }> {
   try {
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
-    const xml = await fetchRssXml();
-    const items = parseRss(xml).sort(
-      (a, b) => +new Date(b.published_at) - +new Date(a.published_at),
-    );
-    console.log("[RSS] Položiek načítaných z XML:", items.length);
-
-    const fresh = items.slice(0, RSS_LIMIT);
-    console.log("[RSS] Položiek určených na uloženie:", fresh.length);
-
-    await cleanupExpiredAnnouncements();
-
-    if (fresh.length > 0) {
-      const rows = fresh.map((i) => ({
-        source: "rss" as const,
-        external_id: i.external_id,
-        title: i.title,
-        content: i.content,
-        link: i.link,
-        priority: "oznam" as const,
-        published_at: i.published_at,
-        author_id: null,
-      }));
-      await withTimeout(
-        () =>
-          retryAsync(
-            () => supabase.from("announcements").upsert(rows, { onConflict: "source,external_id" }),
-            { retries: 1, delayMs: 250 },
-          ).then(() => undefined),
-        8000,
-        "Ukladanie RSS oznamov trvalo príliš dlho.",
-      );
-    }
+    const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
+      body: { mode: "rss", force },
+    });
+    if (error) throw error;
+    const count = typeof data?.count === "number" ? data.count : 0;
+    console.log("[RSS] Backend synchronizácia dokončená:", count);
 
     markSyncedToday();
-    console.log("[RSS] Synchronizácia dokončená:", fresh.length);
-    return { synced: true, count: fresh.length };
+    return { synced: true, count };
   } catch (e) {
     console.error("Nepodarilo sa stiahnut aktuality z obce:", e);
     return { synced: false, count: 0 };
