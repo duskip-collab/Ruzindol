@@ -58,6 +58,11 @@ self.addEventListener("push", (event) => {
       const priority = data.priority || "high";
       const baseTag = data.tag || "komunita-push";
       const tag = `${baseTag}-${Date.now()}`;
+      const rawTargetUrl = data.url || data.data?.url;
+      const targetUrl =
+        typeof rawTargetUrl === "string" && rawTargetUrl.startsWith("/")
+          ? rawTargetUrl
+          : "/";
       const vibratePattern = Array.isArray(data.vibrate)
         ? data.vibrate
         : priority === "high"
@@ -78,7 +83,7 @@ self.addEventListener("push", (event) => {
         sound: data.sound || "default",
         timestamp: Date.now(),
         data: {
-          url: data.url || "/",
+          url: targetUrl,
           priority,
           sound: data.sound || "default",
         },
@@ -94,11 +99,13 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      const targetUrl = new URL(event.notification.data.url, self.location.origin).href;
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList) => {
+      const relativeUrl = event.notification.data?.url || "/";
+      const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
       for (const client of clientList) {
-        if (client.url === targetUrl && "focus" in client) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          await client.navigate(targetUrl);
           return client.focus();
         }
       }
