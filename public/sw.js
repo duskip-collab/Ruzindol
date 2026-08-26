@@ -57,7 +57,8 @@ self.addEventListener("push", (event) => {
       const title = data.title || "Moji Susedia";
       const priority = data.priority || "high";
       const baseTag = data.tag || "komunita-push";
-      const tag = data.renotify === false ? `${baseTag}-${Date.now()}` : baseTag;
+      const notificationId = data.notificationId || data.id || Date.now();
+      const tag = `${baseTag}-${notificationId}`;
       const vibratePattern = Array.isArray(data.vibrate)
         ? data.vibrate
         : priority === "high"
@@ -69,7 +70,7 @@ self.addEventListener("push", (event) => {
         icon: "/icon-192.png",
         badge: "/badge-96.png",
         tag,
-        renotify: data.renotify !== false,
+        renotify: true,
         requireInteraction: data.requireInteraction ?? priority === "high",
         silent: false,
         vibrate: vibratePattern,

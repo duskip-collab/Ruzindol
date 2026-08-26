@@ -474,9 +474,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (typeof Notification === "undefined") return;
     if (Notification.permission !== "granted") return;
 
-    syncPushSubscriptionSilently().catch((error) => {
+    const syncCurrentPushSubscription = () => syncPushSubscriptionSilently().catch((error) => {
       console.error("Chyba pri synchronizácii push subskripcie:", error);
     });
+
+    // Re-check the browser subscription on every app/page activation.
+    syncCurrentPushSubscription();
+    window.addEventListener("pageshow", syncCurrentPushSubscription);
+
+    return () => {
+      window.removeEventListener("pageshow", syncCurrentPushSubscription);
+    };
   }, [currentUserId]);
 
   const unreadCount = useMemo(

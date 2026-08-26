@@ -160,11 +160,15 @@ serve(async (req) => {
       body: record.body || "Máte novú správu v aplikácii.",
       url: resolveTargetUrl(record, critical),
       priority: critical ? "high" : "normal",
-      renotify: critical,
+      renotify: true,
       requireInteraction: critical || forceSend,
       vibrate: critical ? [300, 120, 300, 120, 500] : [120, 80, 120],
       sound: "default",
       tag: record.type ? `komunita-${record.type}` : "komunita-system",
+      notificationId:
+        (typeof record.id === "string" && record.id) ||
+        (typeof record.ref_id === "string" && record.ref_id) ||
+        `${Date.now()}`,
       isCritical: critical,
     });
 
@@ -185,17 +189,26 @@ serve(async (req) => {
         sentCount += 1;
       } catch (err: any) {
         failedCount += 1;
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const status = err?.statusCode ?? err?.status;
+        if (status === 410 || status === 404) {
           const endpoint =
             (subRow as any).endpoint ||
             ((subRow as any).subscription && typeof (subRow as any).subscription === "object"
               ? (subRow as any).subscription.endpoint
               : null);
 
-          if ((subRow as any).id) {
-            await supabase.from("user_push_subscriptions").delete().eq("id", (subRow as any).id);
-          } else if (endpoint) {
-            await supabase.from("user_push_subscriptions").delete().eq("endpoint", endpoint);
+          if (endpoint) {
+            const { error: deleteError } = await supabase
+              .from("user_push_subscriptions")
+              .delete()
+              .eq("endpoint", endpoint);
+            if (deleteError) {
+              console.error("Chyba pri mazaní neplatnej push subskripcie:", deleteError);
+            }
+          } else {
+            console.warn("Neplatná push subskripcia nemá endpoint na vymazanie.", {
+              id: (subRow as any).id,
+            });
           }
         }
         console.error("Chyba pri odosielaní push notifikácie:", err);
