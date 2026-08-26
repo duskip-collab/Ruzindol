@@ -32,7 +32,7 @@ import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
 type Source = "rss" | "internal";
-const RSS_ITEMS_LIMIT = 8;
+const RSS_ITEMS_LIMIT = 6;
 
 type Announcement = {
   id: string;
@@ -251,6 +251,7 @@ export function AktualityScreen() {
         +new Date(b.published_at) - +new Date(a.published_at),
     );
   const rest = items.filter((i) => !pinOrder.includes(i.priority));
+  const rssAnnouncements = items.filter((i) => i.source === "rss");
   const internalAnnouncements = items.filter((i) => i.source === "internal");
 
   return (
@@ -330,17 +331,19 @@ export function AktualityScreen() {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-foreground">Oficiálne oznamy a RSS obce</h2>
-                  <span className="text-xs text-muted-foreground">{items.length} oznamov</span>
+                  <span className="text-xs text-muted-foreground">{rssAnnouncements.length} oznamov</span>
                 </div>
                 {loading ? (
                   <div className="flex items-center justify-center py-16 text-neutral-400">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : items.length === 0 ? (
+                ) : rssAnnouncements.length === 0 ? (
                   <p className="py-12 text-center text-xs text-neutral-500">Zatiaľ žiadne oznamy.</p>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                    {pinned.map((it) => (
+                    {rssAnnouncements
+                      .filter((it) => pinOrder.includes(it.priority))
+                      .map((it) => (
                       <AnnouncementCard
                         key={it.id}
                         item={it}
@@ -349,7 +352,9 @@ export function AktualityScreen() {
                         onDelete={() => handleDelete(it.id)}
                       />
                     ))}
-                    {rest.map((it) => (
+                    {rssAnnouncements
+                      .filter((it) => !pinOrder.includes(it.priority))
+                      .map((it) => (
                       <AnnouncementCard
                         key={it.id}
                         item={it}

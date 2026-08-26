@@ -7,7 +7,7 @@ const LAST_SYNC_KEY = "aktuality_rss_last_sync";
 const LAST_SYNC_DAY_KEY = "aktuality_rss_last_sync_day";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
-const RSS_LIMIT = 8;
+const RSS_LIMIT = 6;
 
 export type RssItem = {
   external_id: string;
@@ -56,14 +56,12 @@ function sanitizeHtml(html: string): string {
 
 export async function cleanupExpiredAnnouncements() {
   const now = Date.now();
-  const rssCut = new Date(now - 3 * DAY_MS).toISOString();
   const intCut = new Date(now - 4 * DAY_MS).toISOString();
   await withTimeout(
     () =>
       retryAsync(
         () =>
           Promise.all([
-            supabase.from("announcements").delete().eq("source", "rss").lt("published_at", rssCut),
             supabase
               .from("announcements")
               .delete()
@@ -128,11 +126,7 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
       (a, b) => +new Date(b.published_at) - +new Date(a.published_at),
     );
 
-    // Only keep fresh items (<3 days)
-    const cutoff = Date.now() - 3 * DAY_MS;
-    const fresh = items
-      .filter((i) => new Date(i.published_at).getTime() >= cutoff)
-      .slice(0, RSS_LIMIT);
+    const fresh = items.slice(0, RSS_LIMIT);
 
     await cleanupExpiredAnnouncements();
 
