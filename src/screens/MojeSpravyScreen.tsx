@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, MessageCircle, Search } from "lucide-react";
+import { Loader2, MessageCircle, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SafeChat } from "@/components/SafeChat";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
+import { resolveWarehouseExpiry } from "@/lib/warehouse";
 
 type ChatRow = {
   id: string;
@@ -13,7 +14,7 @@ type ChatRow = {
   created_at: string;
 };
 
-type ItemRow = { id: string; title: string; user_id: string };
+type ItemRow = { id: string; title: string; user_id: string; type: string; created_at: string; expires_at: string | null };
 type ProfileRow = { id: string; name: string | null };
 type LastMessage = { chat_id: string; text: string; created_at: string; sender_id: string };
 
@@ -87,7 +88,7 @@ export function MojeSpravyScreen() {
         withTimeout(
           () =>
             retryAsync(
-              () => supabase.from("warehouse_items").select("id, title, user_id").in("id", itemIds),
+              () => supabase.from("warehouse_items").select("id, title, user_id, type, created_at, expires_at").in("id", itemIds),
               { retries: 1, delayMs: 250 },
             ),
           7000,
@@ -119,6 +120,25 @@ export function MojeSpravyScreen() {
       ]);
 
       const itemMap = new Map<string, ItemRow>((items ?? []).map((i) => [i.id, i as ItemRow]));
+      const expiredChatIds = chatRows
+        .filter((chat) => {
+          const item = itemMap.get(chat.item_id);
+          if (!item) return true;
+          return resolveWarehouseExpiry(
+            item.type as "trh" | "darovanie" | "sklad_ponuka" | "sklad_dopyt",
+            item.created_at,
+            item.expires_at,
+          ).getTime() <= Date.now();
+        })
+        .map((chat) => chat.id);
+      if (expiredChatIds.length > 0) {
+        await supabase.from("chats").delete().in("id", expiredChatIds);
+      }
+      const activeChatRows = chatRows.filter((chat) => !expiredChatIds.includes(chat.id));
+      if (activeChatRows.length === 0) {
+        setConvos([]);
+        return;
+      }
       const profMap = new Map<string, ProfileRow>(
         (profiles ?? []).map((p) => [p.id, p as ProfileRow]),
       );
@@ -127,7 +147,7 @@ export function MojeSpravyScreen() {
         if (!lastByChat.has(m.chat_id)) lastByChat.set(m.chat_id, m);
       }
 
-      const result: Conversation[] = chatRows.map((c) => {
+      const result: Conversation[] = activeChatRows.map((c) => {
         const otherId = c.buyer_id === userId ? c.seller_id : c.buyer_id;
         const last = lastByChat.get(c.id) ?? null;
         return {
@@ -192,6 +212,17 @@ export function MojeSpravyScreen() {
   }, [convos, search]);
 
   const selected = convos.find((c) => c.id === selectedId) ?? null;
+
+  async function deleteConversation(conversationId: string) {
+    if (!confirm("Naozaj vymazať túto konverzáciu?")) return;
+    const { error } = await supabase.from("chats").delete().eq("id", conversationId);
+    if (error) {
+      setLoadError("Konverzáciu sa nepodarilo vymazať: " + error.message);
+      return;
+    }
+    setConvos((previous) => previous.filter((conversation) => conversation.id !== conversationId));
+    if (selectedId === conversationId) setSelectedId(null);
+  }
 
   if (authLoading) {
     return (
@@ -283,6 +314,26 @@ export function MojeSpravyScreen() {
                         {c.lastText ?? <span className="italic text-muted-foreground">Bez správ</span>}
                       </p>
                     </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Vymazať konverzáciu"
+                      title="Vymazať konverzáciu"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void deleteConversation(c.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void deleteConversation(c.id);
+                        }
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </span>
                   </button>
                 </li>
               );

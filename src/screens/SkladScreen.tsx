@@ -22,6 +22,7 @@ import {
   getWarehouseExpiryIso,
   getWarehouseLifetimeLabel,
   getWarehouseRemainingLabel,
+  resolveWarehouseExpiry,
   type WarehouseItemType,
 } from "@/lib/warehouse";
 
@@ -292,10 +293,19 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
   const { items, loading } = useItems(type);
   const { userId, profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
-  const [nowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [chat, setChat] = useState<{ chatId: string; item: Item } | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const activeItems = items.filter(
+    (item) => resolveWarehouseExpiry(item.type, item.created_at, item.expires_at).getTime() > nowMs,
+  );
 
   async function openChat(item: Item) {
     if (!userId || opening) return;
@@ -336,13 +346,13 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
         <div className="flex justify-center py-8">
           <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
         </div>
-      ) : items.length === 0 ? (
+      ) : activeItems.length === 0 ? (
         <div className="app-surface-muted rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
           Zatiaľ tu nič nie je. Pridaj prvý inzerát cez +.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-          {items.map((item) => {
+          {activeItems.map((item) => {
             const isMine = item.user_id === userId;
             const validityLabel = getWarehouseLifetimeLabel(item.type as WarehouseItemType);
             const remainingLabel = getWarehouseRemainingLabel(
