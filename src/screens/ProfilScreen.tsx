@@ -1381,7 +1381,7 @@ function AccountActions({ userId }: { userId: string }) {
 
 const ROLE_OPTIONS: { value: ProfileRole; label: string; emoji: string }[] = [
   { value: "Sused", label: "Sused", emoji: "👤" },
-  { value: "VIP_Firma", label: "VIP Firma", emoji: "🏢" },
+  { value: "VIP_Firma", label: "Firma", emoji: "🏢" },
   { value: "Starosta", label: "Starosta", emoji: "🛡️" },
   { value: "Uradnik", label: "Úradník", emoji: "📢" },
   { value: "Farar", label: "Farár", emoji: "⛪" },

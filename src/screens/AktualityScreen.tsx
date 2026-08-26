@@ -85,7 +85,7 @@ const TILES = [
   { id: "osk", label: "OŠK Ružindol", icon: <Trophy className="h-5 w-5" /> },
   { id: "seniori", label: "Dôchodcovia", icon: <HeartHandshake className="h-5 w-5" /> },
   { id: "farnost", label: "Farnosť", icon: <Church className="h-5 w-5" /> },
-  { id: "sluzby", label: "Služby & Lokálne firmy", icon: <Wrench className="h-5 w-5" /> },
+  { id: "sluzby", label: "Služby & Firmy", icon: <Wrench className="h-5 w-5" /> },
 ];
 
 function timeAgo(iso: string) {

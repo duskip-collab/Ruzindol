@@ -65,7 +65,7 @@ export function VipDashboard({
     <section className="rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm dark:border-amber-500/20 dark:from-amber-500/10 dark:to-white/5">
       <PanelHeader
         icon={<Building2 className="h-4 w-4" />}
-        title="VIP Dashboard"
+        title="Firemný panel"
         subtitle="Analytika, firemný profil a mini-web"
         tone="amber"
       />

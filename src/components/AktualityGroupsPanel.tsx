@@ -21,7 +21,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 import { uploadCompressedImage } from "@/lib/upload-image";
-import { ImageInput } from "@/components/ImageInput";
+import { PostLightbox } from "@/components/PostLightbox";
 import type { CompressedImage } from "@/lib/compress-image";
 import { isIosDevice } from "@/lib/pwa";
 
@@ -38,7 +38,7 @@ type GroupAnnouncement = {
   post_kind: "oznam" | "parte";
   deceased_name: string | null;
   created_at: string;
-  expires_at: string;
+  expires_at: string | null;
 };
 
 type GroupAdmin = {
@@ -122,7 +122,7 @@ function hasAutomaticSectionAccess(role: string | null | undefined, groupKey: Gr
 
 function getAutomaticAccessLabel(groupKey: GroupKey) {
   if (groupKey === "farnost") return "Automaticky: Farar";
-  if (groupKey === "sluzby") return "Automaticky: VIP_Firma";
+  if (groupKey === "sluzby") return "Automaticky: Firma";
   return null;
 }
 
@@ -171,7 +171,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
   const [admins, setAdmins] = useState<GroupAdmin[]>([]);
   const [people, setPeople] = useState<Record<string, BasicProfile>>({});
   const [assignableProfiles, setAssignableProfiles] = useState<BasicProfile[]>([]);
-  const [vipProfiles, setVipProfiles] = useState<BasicProfile[]>([]);
+  const [companyProfiles, setCompanyProfiles] = useState<BasicProfile[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [showAdmins, setShowAdmins] = useState(false);
   const [showAllPosts, setShowAllPosts] = useState(false);
@@ -205,7 +205,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
       setAdmins([]);
       setPeople({});
       setAssignableProfiles([]);
-      setVipProfiles([]);
+      setCompanyProfiles([]);
       setLoading(false);
       setLoadError("Pouzivatel nie je prihlaseny.");
       return;
@@ -272,7 +272,11 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
       const adminList = (adminRows as GroupAdmin[] | null) ?? [];
       const profileList = (profileRows as BasicProfile[] | null) ?? [];
 
-      setPosts(postList.filter((p) => new Date(p.expires_at).getTime() > Date.now()));
+      setPosts(
+        postList.filter(
+          (p) => p.expires_at === null || new Date(p.expires_at).getTime() > Date.now(),
+        ),
+      );
       setAdmins(adminList);
 
       const map: Record<string, BasicProfile> = {};
@@ -286,7 +290,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
       setAssignableProfiles(
         sortProfilesForAssignment(visibleProfiles.filter((p) => p.id !== userId)),
       );
-      setVipProfiles(profileList.filter((p) => p.role === "VIP_Firma"));
+      setCompanyProfiles(profileList.filter((p) => p.role === "VIP_Firma"));
     } catch (e) {
       console.error("Failed to load group sections", e);
       if (e && typeof e === "object" && "message" in e) {
@@ -430,7 +434,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     {active === "farnost"
                       ? "Pravo pridavat oznamy ma automaticky Farar."
-                      : "Pravo pridavat oznamy maju automaticky profily s rolou VIP_Firma."}
+                      : "Pravo pridavat oznamy maju automaticky firemne profily."}
                   </p>
                 )}
                 {isManualAdminGroup(active) && (
@@ -514,7 +518,9 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
                       >
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                           <span>{timeAgo(p.created_at)}</span>
-                          <span>platné do {formatExpiry(p.expires_at)}</span>
+                          {p.expires_at && active !== "sluzby" && (
+                            <span>platné do {formatExpiry(p.expires_at)}</span>
+                          )}
                         </div>
                         <h4 className="mt-1 text-sm font-semibold text-foreground">{p.title}</h4>
                         {p.post_kind === "parte" && (
@@ -526,11 +532,23 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
                           {p.content}
                         </p>
                         {p.image_url && (
-                          <img
-                            src={p.image_url}
-                            alt={p.title}
-                            className="mt-2 w-full rounded-xl border border-neutral-200 object-cover"
-                          />
+                          <div
+                            className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPost(p);
+                            }}
+                          >
+                            <img
+                              src={p.image_url}
+                              alt={p.title}
+                              className="h-32 w-full object-cover transition hover:opacity-95"
+                              title="Kliknite pre zväčšenie obrázka"
+                            />
+                            <div className="px-2 py-1 text-[10px] text-muted-foreground bg-white/50 dark:bg-neutral-900/50 text-center font-medium">
+                              Kliknutím zväčšíte obrázok
+                            </div>
+                          </div>
                         )}
                         {p.linked_event_id && (
                           <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
@@ -578,20 +596,20 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
               {active === "sluzby" && (
                 <div className="mt-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-3">
                   <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
-                    <BriefcaseBusiness className="h-3.5 w-3.5" /> VIP profily firiem
+                    <BriefcaseBusiness className="h-3.5 w-3.5" /> Profily firiem
                   </p>
-                  {vipProfiles.length === 0 ? (
-                    <p className="text-xs text-amber-700/80">Zatiaľ nie sú dostupné VIP firmy.</p>
+                  {companyProfiles.length === 0 ? (
+                    <p className="text-xs text-amber-700/80">Zatiaľ nie sú dostupné firmy.</p>
                   ) : (
                     <ul className="space-y-1.5">
-                      {vipProfiles.map((vip) => (
+                      {companyProfiles.map((company) => (
                         <li
-                          key={vip.id}
+                          key={company.id}
                           className="app-surface-muted flex items-center justify-between rounded-xl px-3 py-2"
                         >
-                          <span className="text-sm font-medium text-foreground">{vip.name}</span>
+                          <span className="text-sm font-medium text-foreground">{company.name}</span>
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                            VIP Firma
+                            Firma
                           </span>
                         </li>
                       ))}

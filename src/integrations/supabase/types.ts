@@ -248,7 +248,7 @@ export type Database = {
           content: string;
           created_at: string;
           deceased_name: string | null;
-          expires_at: string;
+          expires_at: string | null;
           group_key: string;
           id: string;
           image_url: string | null;
@@ -261,7 +261,7 @@ export type Database = {
           content: string;
           created_at?: string;
           deceased_name?: string | null;
-          expires_at?: string;
+          expires_at?: string | null;
           group_key: string;
           id?: string;
           image_url?: string | null;
@@ -274,7 +274,7 @@ export type Database = {
           content?: string;
           created_at?: string;
           deceased_name?: string | null;
-          expires_at?: string;
+          expires_at?: string | null;
           group_key?: string;
           id?: string;
           image_url?: string | null;
