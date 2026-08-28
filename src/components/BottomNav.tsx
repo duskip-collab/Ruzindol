@@ -1,8 +1,8 @@
-import { MessageCircle, Megaphone, Newspaper, Package, User } from "lucide-react";
+import { MessageCircle, Megaphone, Newspaper, Package, User, Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil";
+export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil" | "susedia";
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -16,6 +16,7 @@ export const NAV_TABS: { id: Tab; label: string; icon: typeof Newspaper }[] = [
   { id: "sklad", label: "Sklad", icon: Package },
   { id: "spravy", label: "Správy", icon: MessageCircle },
   { id: "profil", label: "Profil", icon: User },
+  { id: "susedia", label: "Susedia", icon: Users },
 ];
 
 export function BottomNav({
@@ -67,7 +68,7 @@ export function BottomNav({
       role="tablist"
       aria-label="Hlavná navigácia aplikácie"
       className={cn(
-        "glass-panel bottom-nav relative z-50 grid shrink-0 grid-cols-5 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        "glass-panel bottom-nav relative z-50 grid shrink-0 grid-cols-6 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
         className,
       )}
     >

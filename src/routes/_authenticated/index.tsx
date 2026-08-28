@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/")({
   },
 });
 
-const TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil"];
+const TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil", "susedia"];
 const SWIPE_THRESHOLD = 60;
 const SWIPE_VELOCITY = 300;
 const FIRST_INSTALL_BANNER_KEY = "komunita.pwa.install.firstLaunchBannerDismissed.v1";

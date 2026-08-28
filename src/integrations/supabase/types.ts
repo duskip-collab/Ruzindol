@@ -587,13 +587,16 @@ export type Database = {
       };
       profiles: {
         Row: {
+          avatar_url: string | null;
           ban_reason: string | null;
           banned_until: string | null;
           created_at: string;
           email: string | null;
           id: string;
           invite_code: string | null;
+          invited_by_user_id: string | null;
           is_active_neighbor: boolean;
+          is_verified: boolean;
           municipality_id: string | null;
           name: string;
           role: string;
@@ -601,13 +604,16 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          avatar_url?: string | null;
           ban_reason?: string | null;
           banned_until?: string | null;
           created_at?: string;
           email?: string | null;
           id: string;
           invite_code?: string | null;
+          invited_by_user_id?: string | null;
           is_active_neighbor?: boolean;
+          is_verified?: boolean;
           municipality_id?: string | null;
           name?: string;
           role?: string;
@@ -615,13 +621,16 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          avatar_url?: string | null;
           ban_reason?: string | null;
           banned_until?: string | null;
           created_at?: string;
           email?: string | null;
           id?: string;
           invite_code?: string | null;
+          invited_by_user_id?: string | null;
           is_active_neighbor?: boolean;
+          is_verified?: boolean;
           municipality_id?: string | null;
           name?: string;
           role?: string;
@@ -629,6 +638,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "profiles_invited_by_user_id_fkey";
+            columns: ["invited_by_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "profiles_municipality_id_fkey";
             columns: ["municipality_id"];

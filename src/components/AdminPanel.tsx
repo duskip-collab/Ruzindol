@@ -44,6 +44,8 @@ function randomCode(): string {
 }
 
 export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuperAdmin: boolean }) {
+  void adminId;
+
   return (
     <div className="w-full rounded-3xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-400/30 dark:from-indigo-500/10 dark:to-transparent xl:p-6">
       <div className="mb-4 flex items-center gap-2">
@@ -62,7 +64,7 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
 
       <div className="space-y-6">
         <RoleAssigner />
-        <InviteCodeManager adminId={adminId} />
+        <InviteCodeManager />
         {isSuperAdmin && <MunicipalityManager />}
       </div>
     </div>
@@ -71,7 +73,7 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
 
 // ---------- Invite codes ----------
 
-function InviteCodeManager({ adminId }: { adminId: string }) {
+function InviteCodeManager() {
   const [codes, setCodes] = useState<InviteRow[]>([]);
   const [munis, setMunis] = useState<Muni[]>([]);
   const [users, setUsers] = useState<Record<string, { name: string }>>({});
@@ -135,9 +137,15 @@ function InviteCodeManager({ adminId }: { adminId: string }) {
   async function generate(n = 1) {
     setBusy(true);
     setErr(null);
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const creatorId = authData.user?.id;
+    if (authError || !creatorId) {
+      setBusy(false);
+      return setErr("Pri generovaní kódu musíš byť prihlásený.");
+    }
     const rows = Array.from({ length: n }, () => ({
       code: randomCode(),
-      created_by: adminId,
+      created_by: creatorId,
       municipality_id: muniId || null,
       role,
     }));

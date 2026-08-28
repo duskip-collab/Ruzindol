@@ -18,6 +18,7 @@ import { Route as AuthenticatedNastenkaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedSkladRouteImport } from './routes/_authenticated/sklad'
 import { Route as AuthenticatedSpravyRouteImport } from './routes/_authenticated/spravy'
+import { Route as AuthenticatedSusediaRouteImport } from './routes/_authenticated/susedia'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthenticatedSkladItemIdRouteImport } from './routes/_authenticated/sklad.$itemId'
 
@@ -65,6 +66,11 @@ const AuthenticatedSpravyRoute = AuthenticatedSpravyRouteImport.update({
   path: '/spravy',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSusediaRoute = AuthenticatedSusediaRouteImport.update({
+  id: '/susedia',
+  path: '/susedia',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/profil': typeof AuthenticatedProfilRoute
   '/sklad': typeof AuthenticatedSkladRouteWithChildren
   '/spravy': typeof AuthenticatedSpravyRoute
+  '/susedia': typeof AuthenticatedSusediaRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
 }
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/profil': typeof AuthenticatedProfilRoute
   '/sklad': typeof AuthenticatedSkladRouteWithChildren
   '/spravy': typeof AuthenticatedSpravyRoute
+  '/susedia': typeof AuthenticatedSusediaRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
   '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/sklad': typeof AuthenticatedSkladRouteWithChildren
   '/_authenticated/spravy': typeof AuthenticatedSpravyRoute
+  '/_authenticated/susedia': typeof AuthenticatedSusediaRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/sklad'
     | '/spravy'
+    | '/susedia'
     | '/auth/callback'
     | '/sklad/$itemId'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/sklad'
     | '/spravy'
+    | '/susedia'
     | '/auth/callback'
     | '/'
     | '/sklad/$itemId'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profil'
     | '/_authenticated/sklad'
     | '/_authenticated/spravy'
+    | '/_authenticated/susedia'
     | '/auth/callback'
     | '/_authenticated/'
     | '/_authenticated/sklad/$itemId'
@@ -226,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSpravyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/susedia': {
+      id: '/_authenticated/susedia'
+      path: '/susedia'
+      fullPath: '/susedia'
+      preLoaderRoute: typeof AuthenticatedSusediaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -260,6 +279,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedSkladRoute: typeof AuthenticatedSkladRouteWithChildren
   AuthenticatedSpravyRoute: typeof AuthenticatedSpravyRoute
+  AuthenticatedSusediaRoute: typeof AuthenticatedSusediaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -269,6 +289,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedSkladRoute: AuthenticatedSkladRouteWithChildren,
   AuthenticatedSpravyRoute: AuthenticatedSpravyRoute,
+  AuthenticatedSusediaRoute: AuthenticatedSusediaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
