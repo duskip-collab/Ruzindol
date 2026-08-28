@@ -39,18 +39,11 @@ export default defineConfig({
         importScripts: ["push-handlers.js"],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/[^/]+\.supabase\.co\/(rest\/v1|functions\/v1)\//,
-            handler: "NetworkFirst",
+            urlPattern: /^https:\/\/[^/]+\.supabase\.co\//,
+            handler: "NetworkOnly",
             options: {
-              cacheName: "supabase-api",
+              cacheName: "supabase-api-bypass",
               networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
             },
           },
         ],

@@ -37,66 +37,20 @@ export function useCurrentUser() {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await withTimeout(
-          () => retryAsync(() => supabase.auth.getUser(), { retries: 1, delayMs: 250 }),
-          7000,
-          "Overenie prihlásenia trvalo príliš dlho.",
-        );
-        const uid = data.user?.id ?? null;
-        if (!mounted) return;
-
-        setUserId(uid);
-
-        if (!uid) {
-          setProfile(null);
-          return;
-        }
-
-        let { data: p } = await withTimeout(
-          () =>
-            retryAsync(() => supabase.from("profiles").select(SELECT).eq("id", uid).maybeSingle(), {
-              retries: 1,
-              delayMs: 250,
-            }),
-          7000,
-          "Načítanie profilu trvalo príliš dlho.",
-        );
-
-        // Self-heal: if profile row is missing, create a minimal one so UI is not stuck.
-        if (!p) {
-          const defaultName =
-            (data.user?.user_metadata?.name as string | undefined) ??
-            fallbackName(data.user?.email ?? null);
-
-          await withTimeout(
-            () =>
-              retryAsync(
-                () =>
-                  supabase.from("profiles").upsert({
-                    id: uid,
-                    name: defaultName,
-                    role: "Sused",
-                  }),
-                { retries: 1, delayMs: 250 },
-              ),
-            7000,
-            "Vytvorenie profilu trvalo príliš dlho.",
-          );
-
-          const refetch = await withTimeout(
-            () =>
-              retryAsync(
-                () => supabase.from("profiles").select(SELECT).eq("id", uid).maybeSingle(),
-                { retries: 1, delayMs: 250 },
-              ),
-            7000,
-            "Opätovné načítanie profilu trvalo príliš dlho.",
-          );
-          p = refetch.data;
-        }
-
-        if (!mounted) return;
-        setProfile((p as Profile | null) ?? null);
+// Namiesto retryAsync hneď na začiatku:
+      const { data: { user } } = await supabase.auth.getUser(); 
+      if (!user) { 
+        setUserId(null);
+        setLoading(false);
+        return; 
+      }
+      
+      setUserId(user.id);
+      
+      // Načítaj profil len raz, bez zbytočného timeoutu
+      const { data: p } = await supabase.from("profiles").select(SELECT).eq("id", user.id).maybeSingle();
+      if (mounted) setProfile((p as Profile | null) ?? null);
+      setLoading(false);
       } catch (e) {
         console.error("useCurrentUser load failed", e);
         if (!mounted) return;
