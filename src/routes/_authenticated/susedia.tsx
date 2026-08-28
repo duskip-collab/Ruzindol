@@ -27,14 +27,36 @@ function NeighborsScreen() {
     queryKey: ["verified-neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
-      const query = supabase
+      // Pokus o načítanie s novými poliami (ak existuje migrácia)
+      const primaryQuery = await supabase
         .from("profiles")
         .select("id, name, street, avatar_url, is_verified, invited_by:invited_by_user_id(id, name)")
         .eq("is_verified", true)
-        .eq("municipality_id", municipalityId!);
-      const { data, error: queryError } = await query.order("name");
-      if (queryError) throw queryError;
-      return (data as unknown as Neighbor[]) ?? [];
+        .eq("municipality_id", municipalityId!)
+        .order("name");
+
+      if (!primaryQuery.error && primaryQuery.data) {
+        return (primaryQuery.data as unknown as Neighbor[]) ?? [];
+      }
+
+      // Bezpečný fallback na štandardné stĺpce v produkčnej Supabase databáze
+      const fallbackQuery = await supabase
+        .from("profiles")
+        .select("id, name, street, is_active_neighbor")
+        .eq("is_active_neighbor", true)
+        .eq("municipality_id", municipalityId!)
+        .order("name");
+
+      if (fallbackQuery.error) throw fallbackQuery.error;
+
+      return (fallbackQuery.data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        street: row.street,
+        avatar_url: null,
+        is_verified: Boolean(row.is_active_neighbor),
+        invited_by: null,
+      }));
     },
   });
 
