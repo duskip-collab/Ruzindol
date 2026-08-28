@@ -10,6 +10,19 @@ const router = getRouter();
 
 ensurePwaInstallListeners();
 
+window.addEventListener("error", (event) => {
+  const message = event.message || "";
+  const isChunkLoadError =
+    message.includes("Loading chunk failed") ||
+    message.includes("Importing a module script failed");
+  const reloadKey = "komunita.chunk-load-reload-attempted";
+
+  if (!isChunkLoadError || sessionStorage.getItem(reloadKey) === "1") return;
+
+  sessionStorage.setItem(reloadKey, "1");
+  window.location.reload();
+});
+
 // Dev server must not be controlled by a production worker left from a previous build.
 if (import.meta.env.DEV && "serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {

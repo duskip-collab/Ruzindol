@@ -30,6 +30,9 @@ export default defineConfig({
         scope: "/",
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,jpeg,svg,webp}"],
         importScripts: ["push-handlers.js"],
         runtimeCaching: [
