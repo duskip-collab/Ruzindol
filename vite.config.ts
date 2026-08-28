@@ -33,24 +33,16 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ["**/*.{js,css,ico,png,jpg,jpeg,svg,webp}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,jpg,jpeg,svg,webp}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^https:\/\/[^/]+\.supabase\.co/],
         importScripts: ["push-handlers.js"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/[^/]+\.supabase\.co\//,
-            handler: "NetworkFirst",
+            handler: "NetworkOnly",
             options: {
-              cacheName: "supabase-api",
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
+              cacheName: "supabase-api-bypass",
             },
           },
         ],
