@@ -10,9 +10,13 @@ type ParsedEvent = {
   imageUrl: string | null;
 };
 
-const BASE_URL = "https://www.ruzindol.sk";
-const CALENDAR_URL = "https://www.ruzindol.sk/obcan/kalendar-podujati/";
-const RSS_URL = "https://www.ruzindol.sk/?rss=200";
+type Municipality = {
+  id: string;
+  name: string;
+  rss_url: string | null;
+  calendar_url: string | null;
+};
+
 const EVENT_PATH_LIMIT = 40;
 const RSS_LIMIT = 6;
 
@@ -113,13 +117,12 @@ function parseDateTime(text: string): { startsAt: string; endsAt: string | null 
   return { startsAt: startsAt.toISOString(), endsAt };
 }
 
-function toAbsoluteUrl(pathOrUrl: string) {
+function toAbsoluteUrl(pathOrUrl: string, baseUrl: string) {
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-  if (pathOrUrl.startsWith("/")) return `${BASE_URL}${pathOrUrl}`;
-  return `${BASE_URL}/${pathOrUrl}`;
+  return new URL(pathOrUrl, baseUrl).toString();
 }
 
-function extractEventLinks(html: string) {
+function extractEventLinks(html: string, calendarUrl: string) {
   const links = new Set<string>();
   const re = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
   let match: RegExpExecArray | null = re.exec(html);
@@ -131,7 +134,7 @@ function extractEventLinks(html: string) {
       !href.endsWith("/obcan/kalendar-podujati/") &&
       !href.endsWith("/obcan/kalendar-podujati")
     ) {
-      links.add(toAbsoluteUrl(href));
+      links.add(toAbsoluteUrl(href, calendarUrl));
     }
     match = re.exec(html);
   }
@@ -154,11 +157,19 @@ async function fetchText(url: string): Promise<string> {
   return await response.text();
 }
 
-async function syncRss(supabase: ReturnType<typeof createClient>) {
-  const xml = await fetchText(RSS_URL);
+async function syncRssForMunicipality(
+  supabase: ReturnType<typeof createClient>,
+  municipality: Municipality,
+) {
+  if (!municipality.rss_url) return { success: true, count: 0, skipped: true };
+
+  const xml = await fetchText(municipality.rss_url);
   const items = parseRss(xml)
     .slice(0, RSS_LIMIT)
-    .map(({ category: _category, ...item }) => item);
+    .map(({ category: _category, ...item }) => ({
+      ...item,
+      municipality_id: municipality.id,
+    }));
 
   if (items.length === 0) return { success: true, count: 0, skipped: true };
 
@@ -172,6 +183,7 @@ async function syncRss(supabase: ReturnType<typeof createClient>) {
     .from("announcements")
     .select("id")
     .eq("source", "rss")
+    .eq("municipality_id", municipality.id)
     .order("published_at", { ascending: false });
   if (listError) throw listError;
 
@@ -196,7 +208,7 @@ function parseSingleEventHtml(html: string, sourceUrl: string): ParsedEvent | nu
   const description = stripTags(paragraph);
 
   const image = html.match(/<img[^>]*src=["']([^"']+)["'][^>]*>/i)?.[1] ?? null;
-  const imageUrl = image ? toAbsoluteUrl(image) : null;
+  const imageUrl = image ? toAbsoluteUrl(image, sourceUrl) : null;
 
   const dt = parseDateTime(`${title} ${description}`);
   if (!dt) return null;
@@ -242,59 +254,85 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json().catch(() => ({}));
-    if (body?.mode === "rss") {
-      return json(await syncRss(supabase));
-    }
+    const { data: municipalities, error: municipalitiesError } = await supabase
+      .from("municipalities")
+      .select("id, name, rss_url, calendar_url")
+      .eq("is_active", true);
 
-    const listingHtml = await fetchText(CALENDAR_URL);
-    const links = extractEventLinks(listingHtml);
+    if (municipalitiesError) throw municipalitiesError;
 
-    const parsed: ParsedEvent[] = [];
-    for (const link of links) {
-      try {
-        const html = await fetchText(link);
-        const item = parseSingleEventHtml(html, link);
-        if (item) parsed.push(item);
-      } catch (error) {
-        console.error("Failed to parse event page", { link, error });
-      }
-    }
-
-    const upcoming = parsed
-      .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000)
-      .slice(0, EVENT_PATH_LIMIT);
-
-    if (upcoming.length === 0) {
+    const activeMunicipalities = (municipalities ?? []) as Municipality[];
+    if (activeMunicipalities.length === 0) {
       return json({ success: true, count: 0, skipped: true });
     }
 
-    const rows = upcoming.map((event) => ({
-      author_id: null,
-      municipality_id: null,
-      title: event.title,
-      description: event.description,
-      location: "Ružindol",
-      starts_at: event.startsAt,
-      ends_at: event.endsAt,
-      type: "Samosprava",
-      source_url: event.sourceUrl,
-      image_url: event.imageUrl,
-      end_date: event.endsAt ? toDatePart(event.endsAt) : null,
-      end_time: event.endsAt ? toTimePart(event.endsAt) : null,
-    }));
-
-    const { error } = await supabase.from("events").upsert(rows, {
-      onConflict: "source_url,starts_at",
-      ignoreDuplicates: false,
-    });
-
-    if (error) {
-      console.error("Upsert municipal events failed", error);
-      return json({ success: false, error: error.message }, 500);
+    const body = await req.json().catch(() => ({}));
+    if (body?.mode === "rss") {
+      const results = [];
+      for (const municipality of activeMunicipalities) {
+        try {
+          results.push({ municipality_id: municipality.id, ...(await syncRssForMunicipality(supabase, municipality)) });
+        } catch (error) {
+          console.error("Failed to sync municipality RSS", { municipality, error });
+          results.push({ municipality_id: municipality.id, success: false, error: String(error) });
+        }
+      }
+      return json({ success: results.every((result) => result.success), results });
     }
 
-    return json({ success: true, count: rows.length });
+    let totalCount = 0;
+    for (const municipality of activeMunicipalities) {
+      if (!municipality.calendar_url) continue;
+
+      const listingHtml = await fetchText(municipality.calendar_url);
+      const links = extractEventLinks(listingHtml, municipality.calendar_url);
+
+      const parsed: ParsedEvent[] = [];
+      for (const link of links) {
+        try {
+          const html = await fetchText(link);
+          const item = parseSingleEventHtml(html, link);
+          if (item) parsed.push(item);
+        } catch (error) {
+          console.error("Failed to parse event page", { municipality, link, error });
+        }
+      }
+
+      const upcoming = parsed
+        .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000)
+        .slice(0, EVENT_PATH_LIMIT);
+
+      if (upcoming.length === 0) continue;
+
+      const rows = upcoming.map((event) => ({
+        author_id: null,
+        municipality_id: municipality.id,
+        title: event.title,
+        description: event.description,
+        location: municipality.name,
+        starts_at: event.startsAt,
+        ends_at: event.endsAt,
+        type: "Samospráva",
+        source_url: event.sourceUrl,
+        image_url: event.imageUrl,
+        end_date: event.endsAt ? toDatePart(event.endsAt) : null,
+        end_time: event.endsAt ? toTimePart(event.endsAt) : null,
+      }));
+
+      const { error } = await supabase.from("events").upsert(rows, {
+        onConflict: "source_url,starts_at",
+        ignoreDuplicates: false,
+      });
+
+      if (error) {
+        console.error("Upsert municipal events failed", { municipality, error });
+        return json({ success: false, error: error.message }, 500);
+      }
+
+      totalCount += rows.length;
+    }
+
+    return json({ success: true, count: totalCount });
   } catch (error) {
     console.error("fetch-municipal-events failed", error);
     const message = error instanceof Error ? error.message : "unknown_error";

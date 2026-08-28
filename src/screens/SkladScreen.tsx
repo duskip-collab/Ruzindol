@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Plus,
@@ -290,6 +291,7 @@ function useItems(type: ItemType) {
 }
 
 function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_META)[Section] }) {
+  const navigate = useNavigate();
   const { items, loading } = useItems(type);
   const { userId, profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
@@ -364,7 +366,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
             return (
               <article
                 key={item.id}
-                onClick={() => setSelectedItem(item)}
+                onClick={() => void navigate({ to: "/sklad/$itemId", params: { itemId: item.id } })}
                 className="app-card cursor-pointer rounded-2xl p-4 shadow-sm backdrop-blur-xl"
               >
                 <div className="flex items-start justify-between gap-3">

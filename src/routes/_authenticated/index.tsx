@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { createFileRoute, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
+import { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { Download, PlusSquare, Share2, X } from "lucide-react";
 
@@ -13,38 +13,10 @@ import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useNotifications } from "@/context/NotificationContext";
 import { runStartupContentSync } from "@/lib/startup-sync";
 
-const NastenkaScreen = lazy(async () => {
-  const module = await import("@/screens/NastenkaScreen");
-  return { default: module.NastenkaScreen };
-});
-
-const SkladScreen = lazy(async () => {
-  const module = await import("@/screens/SkladScreen");
-  return { default: module.SkladScreen };
-});
-
-const ProfilScreen = lazy(async () => {
-  const module = await import("@/screens/ProfilScreen");
-  return { default: module.ProfilScreen };
-});
-
-const AktualityScreen = lazy(async () => {
-  const module = await import("@/screens/AktualityScreen");
-  return { default: module.AktualityScreen };
-});
-
-const MojeSpravyScreen = lazy(async () => {
-  const module = await import("@/screens/MojeSpravyScreen");
-  return { default: module.MojeSpravyScreen };
-});
-
-type Search = {
-  tab?: string;
-};
-
 export const Route = createFileRoute("/_authenticated/")({
-  validateSearch: (search: Search) => search,
-  component: Index,
+  beforeLoad: () => {
+    throw redirect({ to: "/nastenka" });
+  },
 });
 
 const TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil"];
@@ -60,17 +32,15 @@ function ScreenFallback() {
   );
 }
 
-function Index() {
-  const navigate = useNavigate({ from: "/" });
-  const search = Route.useSearch();
+function tabFromPath(pathname: string): Tab {
+  const tab = pathname.split("/").filter(Boolean).at(-1);
+  return TAB_ORDER.includes(tab as Tab) ? (tab as Tab) : "nastenka";
+}
 
-  const initialTab = useMemo<Tab>(() => {
-    const value = search.tab;
-    if (!value) return "nastenka";
-    return TAB_ORDER.includes(value as Tab) ? (value as Tab) : "nastenka";
-  }, []);
-
-  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+export function AuthenticatedShell() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeTab = tabFromPath(location.pathname);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [showFirstInstallBanner, setShowFirstInstallBanner] = useState(false);
 
@@ -97,25 +67,8 @@ function Index() {
     const to = TAB_ORDER.indexOf(next);
     setDirection(to >= from ? 1 : -1);
 
-    setActiveTab(next);
-
-    try {
-      navigate({
-        search: (prev: Search) => ({ ...prev, tab: next }),
-        replace: true,
-      });
-    } catch {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", next);
-      window.history.replaceState({}, "", url.toString());
-    }
+    void navigate({ to: `/${next}` });
   }
-
-  useEffect(() => {
-    if (search.tab && TAB_ORDER.includes(search.tab as Tab)) {
-      setActiveTab(search.tab as Tab);
-    }
-  }, [search.tab]);
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     const { offset, velocity } = info;
@@ -182,7 +135,6 @@ function Index() {
             </div>
             <BottomNav
               activeTab={activeTab}
-              onTabChange={changeTab}
               layout="sidebar"
               className="flex-1"
             />
@@ -316,18 +268,13 @@ function Index() {
                   className="absolute inset-0 overflow-y-auto touch-pan-y"
                 >
                   <Suspense fallback={<ScreenFallback />}>
-                    {activeTab === "nastenka" && <NastenkaScreen />}
-                    {activeTab === "aktuality" && <AktualityScreen />}
-                    {activeTab === "sklad" && <SkladScreen />}
-                    {activeTab === "spravy" && <MojeSpravyScreen />}
-                    {activeTab === "profil" && <ProfilScreen />}
+                    <Outlet />
                   </Suspense>
                 </motion.div>
               </AnimatePresence>
             </main>
             <BottomNav
               activeTab={activeTab}
-              onTabChange={changeTab}
               className="sticky bottom-0 mx-3 mb-2 md:mx-4 md:mb-3 xl:hidden"
             />
             <FullscreenAlert />

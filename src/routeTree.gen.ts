@@ -13,7 +13,13 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAktualityRouteImport } from './routes/_authenticated/aktuality'
+import { Route as AuthenticatedNastenkaRouteImport } from './routes/_authenticated/nastenka'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AuthenticatedSkladRouteImport } from './routes/_authenticated/sklad'
+import { Route as AuthenticatedSpravyRouteImport } from './routes/_authenticated/spravy'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthenticatedSkladItemIdRouteImport } from './routes/_authenticated/sklad.$itemId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -34,44 +40,119 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAktualityRoute = AuthenticatedAktualityRouteImport.update({
+  id: '/aktuality',
+  path: '/aktuality',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNastenkaRoute = AuthenticatedNastenkaRouteImport.update({
+  id: '/nastenka',
+  path: '/nastenka',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSkladRoute = AuthenticatedSkladRouteImport.update({
+  id: '/sklad',
+  path: '/sklad',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSpravyRoute = AuthenticatedSpravyRouteImport.update({
+  id: '/spravy',
+  path: '/spravy',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthenticatedSkladItemIdRoute =
+  AuthenticatedSkladItemIdRouteImport.update({
+    id: '/$itemId',
+    path: '/$itemId',
+    getParentRoute: () => AuthenticatedSkladRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/aktuality': typeof AuthenticatedAktualityRoute
+  '/nastenka': typeof AuthenticatedNastenkaRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/sklad': typeof AuthenticatedSkladRouteWithChildren
+  '/spravy': typeof AuthenticatedSpravyRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/aktuality': typeof AuthenticatedAktualityRoute
+  '/nastenka': typeof AuthenticatedNastenkaRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/sklad': typeof AuthenticatedSkladRouteWithChildren
+  '/spravy': typeof AuthenticatedSpravyRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
+  '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/aktuality': typeof AuthenticatedAktualityRoute
+  '/_authenticated/nastenka': typeof AuthenticatedNastenkaRoute
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/_authenticated/sklad': typeof AuthenticatedSkladRouteWithChildren
+  '/_authenticated/spravy': typeof AuthenticatedSpravyRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/auth/callback'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/aktuality'
+    | '/nastenka'
+    | '/profil'
+    | '/sklad'
+    | '/spravy'
+    | '/auth/callback'
+    | '/sklad/$itemId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/reset-password' | '/auth/callback' | '/'
+  to:
+    | '/auth'
+    | '/reset-password'
+    | '/aktuality'
+    | '/nastenka'
+    | '/profil'
+    | '/sklad'
+    | '/spravy'
+    | '/auth/callback'
+    | '/'
+    | '/sklad/$itemId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/aktuality'
+    | '/_authenticated/nastenka'
+    | '/_authenticated/profil'
+    | '/_authenticated/sklad'
+    | '/_authenticated/spravy'
     | '/auth/callback'
     | '/_authenticated/'
+    | '/_authenticated/sklad/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -110,6 +191,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aktuality': {
+      id: '/_authenticated/aktuality'
+      path: '/aktuality'
+      fullPath: '/aktuality'
+      preLoaderRoute: typeof AuthenticatedAktualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/nastenka': {
+      id: '/_authenticated/nastenka'
+      path: '/nastenka'
+      fullPath: '/nastenka'
+      preLoaderRoute: typeof AuthenticatedNastenkaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profil': {
+      id: '/_authenticated/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sklad': {
+      id: '/_authenticated/sklad'
+      path: '/sklad'
+      fullPath: '/sklad'
+      preLoaderRoute: typeof AuthenticatedSkladRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/spravy': {
+      id: '/_authenticated/spravy'
+      path: '/spravy'
+      fullPath: '/spravy'
+      preLoaderRoute: typeof AuthenticatedSpravyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -117,14 +233,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_authenticated/sklad/$itemId': {
+      id: '/_authenticated/sklad/$itemId'
+      path: '/$itemId'
+      fullPath: '/sklad/$itemId'
+      preLoaderRoute: typeof AuthenticatedSkladItemIdRouteImport
+      parentRoute: typeof AuthenticatedSkladRoute
+    }
   }
 }
 
+interface AuthenticatedSkladRouteChildren {
+  AuthenticatedSkladItemIdRoute: typeof AuthenticatedSkladItemIdRoute
+}
+
+const AuthenticatedSkladRouteChildren: AuthenticatedSkladRouteChildren = {
+  AuthenticatedSkladItemIdRoute: AuthenticatedSkladItemIdRoute,
+}
+
+const AuthenticatedSkladRouteWithChildren =
+  AuthenticatedSkladRoute._addFileChildren(AuthenticatedSkladRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAktualityRoute: typeof AuthenticatedAktualityRoute
+  AuthenticatedNastenkaRoute: typeof AuthenticatedNastenkaRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  AuthenticatedSkladRoute: typeof AuthenticatedSkladRouteWithChildren
+  AuthenticatedSpravyRoute: typeof AuthenticatedSpravyRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAktualityRoute: AuthenticatedAktualityRoute,
+  AuthenticatedNastenkaRoute: AuthenticatedNastenkaRoute,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+  AuthenticatedSkladRoute: AuthenticatedSkladRouteWithChildren,
+  AuthenticatedSpravyRoute: AuthenticatedSpravyRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

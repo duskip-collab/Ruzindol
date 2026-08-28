@@ -1,11 +1,11 @@
 import { MessageCircle, Megaphone, Newspaper, Package, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil";
 
 interface BottomNavProps {
   activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
   layout?: "bottom" | "sidebar";
   className?: string;
 }
@@ -20,7 +20,6 @@ export const NAV_TABS: { id: Tab; label: string; icon: typeof Newspaper }[] = [
 
 export function BottomNav({
   activeTab,
-  onTabChange,
   layout = "bottom",
   className,
 }: BottomNavProps) {
@@ -31,13 +30,13 @@ export function BottomNav({
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
           return (
-            <button
+            <Link
               key={tab.id}
+              to={`/${tab.id}`}
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
               type="button"
-              onClick={() => onTabChange(tab.id)}
               className={cn(
                 "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all",
                 isActive
@@ -56,7 +55,7 @@ export function BottomNav({
               <span className={cn("text-sm", isActive ? "font-semibold" : "font-medium")}>
                 {tab.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -76,13 +75,13 @@ export function BottomNav({
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
         return (
-          <button
+          <Link
             key={tab.id}
+            to={`/${tab.id}`}
             role="tab"
             aria-selected={isActive}
             aria-label={tab.label}
             type="button"
-            onClick={() => onTabChange(tab.id)}
             className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
               isActive
                 ? "nav-tab-active"
@@ -103,7 +102,7 @@ export function BottomNav({
             >
               {tab.label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>
