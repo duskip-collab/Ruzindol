@@ -12,6 +12,7 @@ import {
   Loader2,
   X,
   Trash2,
+  Pencil,
   Maximize2,
   ExternalLink,
   Image as ImageIcon,
@@ -182,6 +183,7 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<DbEvent | null>(null);
+  const [editingEvent, setEditingEvent] = useState<DbEvent | null>(null);
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [attendanceCounts, setAttendanceCounts] = useState<Record<string, number>>({});
   const [attendanceBusyId, setAttendanceBusyId] = useState<string | null>(null);
@@ -351,8 +353,10 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
                 attending={attendingIds.has(e.id)}
                 attendanceBusy={attendanceBusyId === e.id}
                 canDelete={canManage || e.author_id === userId}
+                canEdit={canManage}
                 canAttend={Boolean(userId)}
                 onOpen={() => setSelectedEvent(e)}
+                onEdit={() => setEditingEvent(e)}
                 onToggleAttendance={() => void toggleAttendance(e.id)}
                 onDelete={() => void handleDelete(e.id)}
               />
@@ -418,8 +422,25 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
           attending={attendingIds.has(selectedEvent.id)}
           attendanceBusy={attendanceBusyId === selectedEvent.id}
           canAttend={Boolean(userId)}
+          canEdit={canManage}
           onClose={() => setSelectedEvent(null)}
+          onEdit={() => {
+            setEditingEvent(selectedEvent);
+            setSelectedEvent(null);
+          }}
           onToggleAttendance={() => void toggleAttendance(selectedEvent.id)}
+        />
+      )}
+
+      {editingEvent && canManage && userId && (
+        <EventForm
+          userId={userId}
+          initialEvent={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onCreated={async () => {
+            setEditingEvent(null);
+            await load();
+          }}
         />
       )}
     </>
@@ -433,7 +454,9 @@ function EventRow({
   attendanceBusy,
   canAttend,
   canDelete,
+  canEdit,
   onOpen,
+  onEdit,
   onToggleAttendance,
   onDelete,
 }: {
@@ -443,7 +466,9 @@ function EventRow({
   attendanceBusy: boolean;
   canAttend: boolean;
   canDelete: boolean;
+  canEdit: boolean;
   onOpen: () => void;
+  onEdit: () => void;
   onToggleAttendance: () => void;
   onDelete: () => void;
 }) {
@@ -550,6 +575,19 @@ function EventRow({
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
+        {canEdit && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="self-start rounded-full p-1 text-muted-foreground hover:bg-[color:var(--bg-surface-hover)] hover:text-blue-600"
+            title="Upraviť"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
       </button>
     </li>
   );
@@ -561,7 +599,9 @@ function EventDetailModal({
   attending,
   attendanceBusy,
   canAttend,
+  canEdit,
   onClose,
+  onEdit,
   onToggleAttendance,
 }: {
   event: DbEvent;
@@ -569,7 +609,9 @@ function EventDetailModal({
   attending: boolean;
   attendanceBusy: boolean;
   canAttend: boolean;
+  canEdit: boolean;
   onClose: () => void;
+  onEdit: () => void;
   onToggleAttendance: () => void;
 }) {
   const useIosBackNav = isIosDevice();
@@ -624,6 +666,11 @@ function EventDetailModal({
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            {canEdit && (
+              <button type="button" onClick={onEdit} className="btn-secondary-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium">
+                <Pencil className="h-3.5 w-3.5" /> Upraviť
+              </button>
+            )}
             {!isWaste && (
               <>
                 <span className="chip-muted rounded-full px-2.5 py-1 text-xs font-medium">
@@ -697,25 +744,28 @@ function EventDetailModal({
 
 function EventForm({
   userId,
+  initialEvent,
   onClose,
   onCreated,
 }: {
   userId: string;
+  initialEvent?: DbEvent;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const useIosBackNav = isIosDevice();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [type, setType] = useState<EventCategory>("Samosprava");
+  const [title, setTitle] = useState(initialEvent?.title ?? "");
+  const [description, setDescription] = useState(initialEvent?.description ?? "");
+  const [location, setLocation] = useState(initialEvent?.location ?? "");
+  const [type, setType] = useState<EventCategory>(initialEvent?.type ?? "Samosprava");
   const [startsAt, setStartsAt] = useState(() => {
+    if (initialEvent) return toLocalDatetimeInput(new Date(initialEvent.starts_at));
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + 1);
     return toLocalDatetimeInput(d);
   });
-  const [endsAt, setEndsAt] = useState("");
+  const [endsAt, setEndsAt] = useState(() => initialEvent?.ends_at ? toLocalDatetimeInput(new Date(initialEvent.ends_at)) : "");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -742,8 +792,8 @@ function EventForm({
         imageUrl = await uploadEventImage(photo, userId);
       }
 
-      const { error } = await supabase.from("events").insert({
-        author_id: userId,
+      const eventPayload = {
+        author_id: initialEvent?.author_id ?? userId,
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
@@ -752,9 +802,12 @@ function EventForm({
         ends_at: endsIso,
         end_date: toDatePart(endsIso),
         end_time: toTimePart(endsIso),
-        source_url: null,
-        image_url: imageUrl,
-      });
+        source_url: initialEvent?.source_url ?? null,
+        image_url: imageUrl ?? initialEvent?.image_url ?? null,
+      };
+      const { error } = initialEvent
+        ? await supabase.from("events").update(eventPayload).eq("id", initialEvent.id)
+        : await supabase.from("events").insert(eventPayload);
 
       if (error) {
         setErr(error.message);
@@ -895,8 +948,8 @@ function EventForm({
             disabled={saving}
             className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-md active:scale-[0.99] disabled:opacity-50"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Ulozit udalost
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : initialEvent ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {initialEvent ? "Uložiť zmeny" : "Ulozit udalost"}
           </button>
         </div>
       </form>
