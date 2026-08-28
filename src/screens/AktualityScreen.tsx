@@ -23,7 +23,7 @@ import {
   Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { syncRssIfNeeded, cleanupExpiredAnnouncements } from "@/lib/rss-sync";
+import { cleanupExpiredAnnouncements, syncRssIfNeeded } from "@/lib/rss-sync";
 import { isIosDevice } from "@/lib/pwa";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SharedCalendar } from "../components/SharedCalendar";
@@ -179,12 +179,8 @@ export function AktualityScreen() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setSyncing(true);
-      const result = await syncRssIfNeeded();
-      console.log("[RSS] Výsledok štartovacej synchronizácie:", result);
       await load();
       setLoading(false);
-      setSyncing(false);
     })();
   }, [load]);
 

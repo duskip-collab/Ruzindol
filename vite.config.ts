@@ -40,10 +40,17 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/[^/]+\.supabase\.co\//,
-            handler: "NetworkOnly",
+            handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-api-bypass",
+              cacheName: "supabase-api",
               networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
             },
           },
         ],

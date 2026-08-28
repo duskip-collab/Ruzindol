@@ -46,10 +46,7 @@ function getTodayLocalKey() {
 
 function shouldSyncToday(force: boolean) {
   if (force) return true;
-
-  // Sync on every single app startup. We bypass the 24h limit, but fallback to 24h if desired.
-  // To fetch on every app startup, we can just return true.
-  return true;
+  return localStorage.getItem(LAST_SYNC_DAY_KEY) !== getTodayLocalKey();
 }
 
 function markSyncedToday() {
@@ -74,7 +71,7 @@ export async function syncRssIfNeeded(force = false): Promise<{ synced: boolean;
     console.log("[FRONTEND] Pokus o spustenie fetch-municipal-events Edge Function...");
 
     const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
-      body: { mode: "rss", force: true },
+      body: { mode: "rss", force },
     });
     if (error) {
       console.error("[FRONTEND ERROR] Edge Function zlyhala pri volaní:", error);

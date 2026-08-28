@@ -38,6 +38,7 @@ export function BottomNav({
             <Link
               key={tab.id}
               to={`/${tab.id}`}
+              preload="intent"
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
@@ -84,6 +85,7 @@ export function BottomNav({
           <Link
             key={tab.id}
             to={`/${tab.id}`}
+            preload="intent"
             role="tab"
             aria-selected={isActive}
             aria-label={tab.label}

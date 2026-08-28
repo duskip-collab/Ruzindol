@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { syncMunicipalEventsIfNeeded } from "@/lib/municipal-events-sync";
 import { isIosDevice } from "@/lib/pwa";
 
 type EventCategory = "Samosprava" | "Kostol" | "odpad";
@@ -231,8 +230,6 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await load();
-      await syncMunicipalEventsIfNeeded();
       await load();
       setLoading(false);
     })();
