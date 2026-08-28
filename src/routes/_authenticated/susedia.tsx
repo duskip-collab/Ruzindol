@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { CheckCircle2, Loader2, Search, Users } from "lucide-react";
 import { useState } from "react";
 
@@ -16,6 +16,24 @@ type Neighbor = {
 };
 
 export const Route = createFileRoute("/_authenticated/susedia")({
+  beforeLoad: async () => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) throw redirect({ to: "/nastenka" });
+
+    const [{ data: profile }, { data: adminRole }] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", authData.user.id).maybeSingle(),
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .eq("role", "admin")
+        .maybeSingle(),
+    ]);
+
+    if (!adminRole && profile?.role !== "Starosta" && profile?.role !== "Uradnik") {
+      throw redirect({ to: "/nastenka" });
+    }
+  },
   component: NeighborsScreen,
 });
 
@@ -24,14 +42,13 @@ function NeighborsScreen() {
   const { profile } = useCurrentUser();
   const municipalityId = profile?.municipality_id;
   const { data: neighbors, error, isLoading } = useQuery({
-    queryKey: ["verified-neighbors", municipalityId],
+    queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
       // Pokus o načítanie s novými poliami (ak existuje migrácia)
       const primaryQuery = await supabase
         .from("profiles")
         .select("id, name, street, avatar_url, is_verified, invited_by:invited_by_user_id(id, name)")
-        .eq("is_verified", true)
         .eq("municipality_id", municipalityId!)
         .order("name");
 
@@ -39,11 +56,10 @@ function NeighborsScreen() {
         return (primaryQuery.data as unknown as Neighbor[]) ?? [];
       }
 
-      // Bezpečný fallback na štandardné stĺpce v produkčnej Supabase databáze
+      // Fallback for databases where the optional profile fields are not deployed yet.
       const fallbackQuery = await supabase
         .from("profiles")
         .select("id, name, street, is_active_neighbor")
-        .eq("is_active_neighbor", true)
         .eq("municipality_id", municipalityId!)
         .order("name");
 
@@ -74,7 +90,7 @@ function NeighborsScreen() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-foreground">Susedia v obci</h1>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Overení členovia komunity
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Registrovaní susedia
           </p>
         </div>
       </header>

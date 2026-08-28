@@ -6,6 +6,7 @@ export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil" | "su
 
 interface BottomNavProps {
   activeTab: Tab;
+  showNeighbors?: boolean;
   layout?: "bottom" | "sidebar";
   className?: string;
 }
@@ -21,13 +22,16 @@ export const NAV_TABS: { id: Tab; label: string; icon: typeof Newspaper }[] = [
 
 export function BottomNav({
   activeTab,
+  showNeighbors = false,
   layout = "bottom",
   className,
 }: BottomNavProps) {
+  const visibleTabs = showNeighbors ? NAV_TABS : NAV_TABS.filter((tab) => tab.id !== "susedia");
+
   if (layout === "sidebar") {
     return (
       <nav role="tablist" aria-label="Bočná navigácia aplikácie" className={cn("flex flex-col gap-1", className)}>
-        {NAV_TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
           return (
@@ -68,11 +72,12 @@ export function BottomNav({
       role="tablist"
       aria-label="Hlavná navigácia aplikácie"
       className={cn(
-        "glass-panel bottom-nav relative z-50 grid shrink-0 grid-cols-6 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        "glass-panel bottom-nav relative z-50 grid shrink-0 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        visibleTabs.length === 6 ? "grid-cols-6" : "grid-cols-5",
         className,
       )}
     >
-      {NAV_TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
         return (

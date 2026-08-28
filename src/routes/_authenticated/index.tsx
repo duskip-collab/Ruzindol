@@ -9,6 +9,7 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { ReadonlyBanner } from "@/components/ReadonlyBanner";
 import { FullscreenAlert } from "@/components/FullscreenAlert";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useNotifications } from "@/context/NotificationContext";
 import { runStartupContentSync } from "@/lib/startup-sync";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/")({
   },
 });
 
-const TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil", "susedia"];
+const BASE_TAB_ORDER: Tab[] = ["nastenka", "aktuality", "sklad", "spravy", "profil"];
 const SWIPE_THRESHOLD = 60;
 const SWIPE_VELOCITY = 300;
 const FIRST_INSTALL_BANNER_KEY = "komunita.pwa.install.firstLaunchBannerDismissed.v1";
@@ -32,19 +33,22 @@ function ScreenFallback() {
   );
 }
 
-function tabFromPath(pathname: string): Tab {
+function tabFromPath(pathname: string, tabOrder: Tab[]): Tab {
   const tab = pathname.split("/").filter(Boolean).at(-1);
-  return TAB_ORDER.includes(tab as Tab) ? (tab as Tab) : "nastenka";
+  return tabOrder.includes(tab as Tab) ? (tab as Tab) : "nastenka";
 }
 
 export function AuthenticatedShell() {
   const navigate = useNavigate();
   const location = useLocation();
-  const activeTab = tabFromPath(location.pathname);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [showFirstInstallBanner, setShowFirstInstallBanner] = useState(false);
 
   const { profile, error: userLoadError } = useCurrentUser();
+  const { isAdmin } = useIsAdmin(profile?.id);
+  const canViewNeighbors = isAdmin || profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const tabOrder = canViewNeighbors ? [...BASE_TAB_ORDER, "susedia" as const] : BASE_TAB_ORDER;
+  const activeTab = tabFromPath(location.pathname, tabOrder);
   const {
     hasBellDot,
     hasMessageUnread,
@@ -63,8 +67,8 @@ export function AuthenticatedShell() {
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
-    const from = TAB_ORDER.indexOf(activeTab);
-    const to = TAB_ORDER.indexOf(next);
+    const from = tabOrder.indexOf(activeTab);
+    const to = tabOrder.indexOf(next);
     setDirection(to >= from ? 1 : -1);
 
     void navigate({ to: `/${next}` });
@@ -72,11 +76,11 @@ export function AuthenticatedShell() {
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     const { offset, velocity } = info;
-    const idx = TAB_ORDER.indexOf(activeTab);
+    const idx = tabOrder.indexOf(activeTab);
     if (offset.x < -SWIPE_THRESHOLD || velocity.x < -SWIPE_VELOCITY) {
-      if (idx < TAB_ORDER.length - 1) changeTab(TAB_ORDER[idx + 1]);
+      if (idx < tabOrder.length - 1) changeTab(tabOrder[idx + 1]);
     } else if (offset.x > SWIPE_THRESHOLD || velocity.x > SWIPE_VELOCITY) {
-      if (idx > 0) changeTab(TAB_ORDER[idx - 1]);
+      if (idx > 0) changeTab(tabOrder[idx - 1]);
     }
   }
 
@@ -135,6 +139,7 @@ export function AuthenticatedShell() {
             </div>
             <BottomNav
               activeTab={activeTab}
+              showNeighbors={canViewNeighbors}
               layout="sidebar"
               className="flex-1"
             />
@@ -275,6 +280,7 @@ export function AuthenticatedShell() {
             </main>
             <BottomNav
               activeTab={activeTab}
+              showNeighbors={canViewNeighbors}
               className="sticky bottom-0 mx-3 mb-2 md:mx-4 md:mb-3 xl:hidden"
             />
             <FullscreenAlert />
