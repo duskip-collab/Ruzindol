@@ -1179,7 +1179,7 @@ function AccountActions({ userId }: { userId: string }) {
     setBusy(true);
     setErr(null);
 
-    const { error } = await supabase.rpc("delete_my_account");
+    const { error } = await (supabase.rpc as any)("delete_my_account");
 
     if (error) {
       setBusy(false);
