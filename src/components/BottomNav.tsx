@@ -98,7 +98,7 @@ export function BottomNav({
           >
             <span
               className={`grid h-8 w-14 place-items-center rounded-2xl transition-all ${
-                isActive ? "bg-slate-200" : "bg-transparent"
+                isActive ? "bg-slate-900 text-white" : "bg-transparent text-slate-500"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />

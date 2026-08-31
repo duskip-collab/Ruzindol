@@ -19,6 +19,11 @@ import {
   Save,
   Bell,
   UserCog,
+  Pencil,
+  Palette,
+  UserPlus,
+  Building2,
+  ShieldAlert,
   RefreshCw,
   X,
   ChevronDown,
@@ -264,6 +269,8 @@ export function ProfilScreen() {
               value="admin"
               title="Admin panel"
               description="Správa používateľov, rolí, obsahu a nastavení obce."
+              icon={<Building2 className="h-4 w-4" />}
+              iconClass="bg-indigo-600"
               isActive={openSection === "admin"}
               onToggle={() => setOpenSection((prev) => (prev === "admin" ? "" : "admin"))}
               onClose={() => setOpenSection("")}
@@ -279,6 +286,8 @@ export function ProfilScreen() {
               value="moderation"
               title="Moderácia"
               description="Rýchle schvaľovanie, kontrola hlásení a zásahy moderátora."
+              icon={<ShieldAlert className="h-4 w-4" />}
+              iconClass="bg-rose-600"
               isActive={openSection === "moderation"}
               onToggle={() => setOpenSection((prev) => (prev === "moderation" ? "" : "moderation"))}
               onClose={() => setOpenSection("")}
@@ -314,6 +323,8 @@ export function ProfilScreen() {
             value="edit"
             title="Úprava profilu"
             description="Meno, ulica a základné profilové údaje."
+            icon={<Pencil className="h-4 w-4" />}
+            iconClass="bg-teal-600"
             isActive={openSection === "edit"}
             onToggle={() => setOpenSection((prev) => (prev === "edit" ? "" : "edit"))}
             onClose={() => setOpenSection("")}
@@ -330,6 +341,8 @@ export function ProfilScreen() {
             value="settings"
             title="Vzhľad & notifikácie"
             description="Téma, veľkosť písma, upozornenia a právne informácie."
+            icon={<Palette className="h-4 w-4" />}
+            iconClass="bg-blue-500"
             isActive={openSection === "settings"}
             onToggle={() => setOpenSection((prev) => (prev === "settings" ? "" : "settings"))}
             onClose={() => setOpenSection("")}
@@ -357,6 +370,8 @@ export function ProfilScreen() {
             value="panels"
             title="Panely rolí"
             description="Prehľad dostupných panelov a komunitných nástrojov."
+            icon={<Shield className="h-4 w-4" />}
+            iconClass="bg-purple-600"
             isActive={openSection === "panels"}
             onToggle={() => setOpenSection((prev) => (prev === "panels" ? "" : "panels"))}
             onClose={() => setOpenSection("")}
@@ -392,6 +407,8 @@ export function ProfilScreen() {
             value="invite-neighbor"
             title="Pozvať suseda"
             description="Generovanie a zdieľanie pozývacích kódov pre nových susedov."
+            icon={<UserPlus className="h-4 w-4" />}
+            iconClass="bg-amber-500"
             isActive={openSection === "invite-neighbor"}
             onToggle={() =>
               setOpenSection((prev) => (prev === "invite-neighbor" ? "" : "invite-neighbor"))
@@ -525,6 +542,8 @@ function AccordionSection({
   value,
   title,
   description,
+  icon,
+  iconClass,
   isActive,
   onToggle,
   onClose,
@@ -535,6 +554,8 @@ function AccordionSection({
   value: string;
   title: string;
   description?: string;
+  icon?: React.ReactNode;
+  iconClass?: string;
   isActive: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -548,21 +569,28 @@ function AccordionSection({
     <>
       <div
         data-section={value}
-        className={`flex flex-col overflow-hidden rounded-3xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
+        className={`flex flex-col overflow-hidden rounded-2xl border border-border/90 bg-card text-card-foreground shadow-sm backdrop-blur-xl ${itemClassName ?? ""}`}
       >
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={isActive}
-          className="flex w-full items-start justify-between gap-2 rounded-2xl px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 transition-colors hover:bg-accent/60 focus-visible:bg-accent/60 dark:text-neutral-100 md:px-5 md:py-4 md:text-base"
+          className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left text-[15px] leading-6 text-neutral-900 transition-colors hover:bg-accent/60 focus-visible:bg-accent/60 dark:text-neutral-100 md:px-5 md:py-4 md:text-base"
         >
-          <div className="min-w-0 pr-3">
-            <p className="font-semibold leading-5">{title}</p>
-            {description && (
-              <p className="mt-0.5 line-clamp-2 text-xs font-normal leading-4 text-neutral-500 dark:text-neutral-400">
-                {description}
-              </p>
+          <div className="flex items-center gap-3.5 min-w-0 pr-3">
+            {icon && (
+              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${iconClass ?? "bg-teal-600"}`}>
+                {icon}
+              </div>
             )}
+            <div className="min-w-0">
+              <p className="font-semibold leading-5">{title}</p>
+              {description && (
+                <p className="mt-0.5 line-clamp-2 text-xs font-normal leading-4 text-neutral-500 dark:text-neutral-400">
+                  {description}
+                </p>
+              )}
+            </div>
           </div>
           <ChevronDown
             className={`mt-1 h-4 w-4 shrink-0 text-neutral-700 transition-transform duration-200 dark:text-neutral-200 ${
@@ -779,20 +807,19 @@ function NotificationSettings({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="rounded-3xl border border-neutral-200/60 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-neutral-200/70 bg-white/70 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {darkMode ? (
-            <Moon className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <Sun className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Tmavý režim</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {darkMode ? "Aktívny tmavý vzhľad" : "Aktívny svetlý vzhľad"}
-          </p>
+    <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/50 shadow-sm overflow-hidden">
+      {/* Tmavý režim */}
+      <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            {darkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Tmavý režim</span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {darkMode ? "Aktívny tmavý vzhľad (Deep Slate)" : "Aktívny svetlý vzhľad"}
+            </p>
+          </div>
         </div>
         <Switch
           checked={darkMode}
@@ -801,40 +828,63 @@ function NotificationSettings({ userId }: { userId: string }) {
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {muted ? (
-            <BellOff className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <Bell className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
+      {/* Veľkosť písma */}
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold text-xs">
+              Aa
+            </div>
+            <div>
+              <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Veľkosť písma</span>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Aktuálne: Stupeň {fontScale} ({fontSizePx}px)
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Vypnúť real-time notifikácie
-          </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Master prepínač – vypne všetky okamžité upozornenia.
+
+        <div className="mt-1 px-1">
+          <Slider
+            value={[fontScale]}
+            min={1}
+            max={3}
+            step={1}
+            onValueChange={handleFontScaleChange}
+            aria-label="Veľkosť písma"
+            className="w-full"
+          />
+          <div className="mt-2 flex justify-between text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            {FONT_SCALE_OPTIONS.map((option) => (
+              <span
+                key={option.value}
+                className={fontScale === option.value ? "font-bold text-emerald-600 dark:text-emerald-400" : ""}
+              >
+                {option.label} ({option.description})
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-1 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-2.5 text-center text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
+          <p style={{ fontSize: `${fontSizePx}px` }} className="transition-all duration-150">
+            Ukážka veľkosti textu aplikácie
           </p>
         </div>
-        <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
       </div>
 
-      <div className="mt-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {pushEnabled ? (
-            <Bell className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <BellOff className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Push notifikácie do zariadenia
-          </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Bežné push správy budú rešpektovať toto nastavenie, kritické zostanú povolené.
-          </p>
+      {/* Push Notifikácie */}
+      <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            {pushEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+          </div>
+          <div>
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Push notifikácie do zariadenia</span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Bežné push správy do mobilu / prehliadača.
+            </p>
+          </div>
         </div>
         <Switch
           checked={pushEnabled}
@@ -844,65 +894,35 @@ function NotificationSettings({ userId }: { userId: string }) {
         />
       </div>
 
-      <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      {/* Master Muted Toggle */}
+      <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <BellOff className="w-5 h-5" />
+          </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-              Veľkosť písma
-            </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              {fontScale === 1
-                ? "Štandardné písmo"
-                : fontScale === 2
-                  ? `Stredne zväčšené (${fontSizePx}px)`
-                  : `Veľké písmo (${fontSizePx}px)`}
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Stlmiť všetky okamžité upozornenia</span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Master prepínač real-time správ
             </p>
           </div>
-          <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
-            {fontScale}
-          </span>
         </div>
-
-        <Slider
-          value={[fontScale]}
-          min={1}
-          max={3}
-          step={1}
-          onValueChange={handleFontScaleChange}
-          aria-label="Veľkosť písma"
-          className="py-2"
-        />
-
-        <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-          {FONT_SCALE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFontScale(option.value)}
-              className={`rounded-full px-2 py-1 transition ${
-                fontScale === option.value
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300"
-              }`}
-            >
-              {option.label} · {option.description}
-            </button>
-          ))}
-        </div>
+        <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
       </div>
 
-      <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-500">
+      {/* Kategórie notifikácií */}
+      <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Kategórie
         </p>
         <ul className="space-y-2">
           {NOTIF_CATEGORIES.map((c) => (
-            <li key={c.key} className="flex items-center gap-3">
+            <li key={c.key} className="flex items-center justify-between gap-3">
               <span
-                className={`flex-1 text-sm ${
+                className={`text-xs font-medium ${
                   muted
-                    ? "text-neutral-400 dark:text-neutral-500"
-                    : "text-neutral-800 dark:text-neutral-200"
+                    ? "text-slate-400 dark:text-slate-600"
+                    : "text-slate-700 dark:text-slate-300"
                 }`}
               >
                 {c.label}

@@ -60,27 +60,30 @@ const H = 60 * 60 * 1000;
 
 const SECTION_META: Record<
   Section,
-  { title: string; icon: React.ReactNode; accent: string; ring: string; canAdd: boolean }
+  { title: string; icon: React.ReactNode; bgClass: string; badgeClass: string; ring: string; canAdd: boolean }
 > = {
   trh: {
     title: "Susedský trh",
     icon: <ShoppingCart className="h-6 w-6" />,
-    accent: "from-emerald-500/90 to-teal-500/90",
-    ring: "ring-emerald-200",
+    bgClass: "bg-teal-600 text-white",
+    badgeClass: "bg-teal-600 text-white",
+    ring: "ring-teal-200",
     canAdd: true,
   },
   darovanie: {
     title: "Darovanie",
     icon: <Gift className="h-6 w-6" />,
-    accent: "from-rose-500/90 to-pink-500/90",
+    bgClass: "bg-rose-500 text-white",
+    badgeClass: "bg-emerald-600 text-white",
     ring: "ring-rose-200",
     canAdd: true,
   },
   poziciovna: {
-    title: "Susedský sklad",
+    title: "Susedská požičovňa",
     icon: <Wrench className="h-6 w-6" />,
-    accent: "from-sky-500/90 to-indigo-500/90",
-    ring: "ring-sky-200",
+    bgClass: "bg-blue-600 text-white",
+    badgeClass: "bg-blue-600 text-white",
+    ring: "ring-blue-200",
     canAdd: true,
   },
 };
@@ -665,20 +668,20 @@ function PillarCard({
   return (
     <button
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left text-neutral-900 shadow-sm transition hover:shadow-xl active:scale-[0.98]`}
+      className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left text-neutral-900 shadow-sm transition hover:shadow-md active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur-md">
-          {emojis[section]}
-          <span className="absolute -right-1 -top-1 inline-flex min-w-6 items-center justify-center rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-neutral-900 shadow-sm">
-            {loading ? "…" : count}
-          </span>
+        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full shadow-sm ${meta.bgClass}`}>
+          {meta.icon}
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold tracking-tight">{meta.title}</h3>
-          <p className="mt-0.5 text-sm text-white/90">{descriptions[section]}</p>
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-foreground tracking-tight">{meta.title}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{descriptions[section]}</p>
         </div>
       </div>
+      <span className={`ml-3 inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold shadow-sm ${meta.badgeClass}`}>
+        {loading ? "…" : count}
+      </span>
     </button>
   );
 }

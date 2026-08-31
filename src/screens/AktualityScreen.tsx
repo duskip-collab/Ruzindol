@@ -76,16 +76,16 @@ const PRIORITY_META: Record<Priority, { label: string; dot: string; ring: string
   };
 
 const TILES = [
-  { id: "calendar", label: "Zdieľaný kalendár", icon: <CalendarDays className="h-5 w-5" /> },
-  { id: "rss", label: "RSS oznamy obce", icon: <Rss className="h-5 w-5" /> },
-  { id: "odpad", label: "Kalendár zberu odpadu", icon: <Recycle className="h-5 w-5" /> },
-  { id: "kontakty", label: "Stránkové dni & Kontakty OÚ", icon: <Building2 className="h-5 w-5" /> },
-  { id: "rozhlas", label: "Digitálny rozhlas", icon: <Radio className="h-5 w-5" /> },
-  { id: "dhz", label: "DHZ Ružindol", icon: <Flame className="h-5 w-5" /> },
-  { id: "osk", label: "OŠK Ružindol", icon: <Trophy className="h-5 w-5" /> },
-  { id: "seniori", label: "Dôchodcovia", icon: <HeartHandshake className="h-5 w-5" /> },
-  { id: "farnost", label: "Farnosť", icon: <Church className="h-5 w-5" /> },
-  { id: "sluzby", label: "Služby & Firmy", icon: <Wrench className="h-5 w-5" /> },
+  { id: "calendar", label: "Zdieľaný kalendár", icon: <CalendarDays className="h-5 w-5" />, colorClass: "bg-blue-500 text-white" },
+  { id: "rss", label: "RSS oznamy obce", icon: <Rss className="h-5 w-5" />, colorClass: "bg-emerald-500 text-white" },
+  { id: "odpad", label: "Kalendár zberu odpadu", icon: <Recycle className="h-5 w-5" />, colorClass: "bg-amber-800 text-white" },
+  { id: "kontakty", label: "Stránkové dni & Kontakty OÚ", icon: <Building2 className="h-5 w-5" />, colorClass: "bg-slate-600 text-white" },
+  { id: "rozhlas", label: "Digitálny rozhlas", icon: <Radio className="h-5 w-5" />, colorClass: "bg-orange-500 text-white" },
+  { id: "dhz", label: "DHZ Ružindol", icon: <Flame className="h-5 w-5" />, colorClass: "bg-red-500 text-white" },
+  { id: "osk", label: "OŠK Ružindol", icon: <Trophy className="h-5 w-5" />, colorClass: "bg-indigo-500 text-white" },
+  { id: "seniori", label: "Dôchodcovia", icon: <HeartHandshake className="h-5 w-5" />, colorClass: "bg-rose-500 text-white" },
+  { id: "farnost", label: "Farnosť", icon: <Church className="h-5 w-5" />, colorClass: "bg-purple-600 text-white" },
+  { id: "sluzby", label: "Služby & Firmy", icon: <Wrench className="h-5 w-5" />, colorClass: "bg-teal-600 text-white" },
 ];
 
 function timeAgo(iso: string) {
@@ -295,7 +295,7 @@ export function AktualityScreen() {
                   onClick={() => setActiveTile(t.id)}
                   className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)] shadow-sm"
                 >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl app-surface-muted text-foreground shadow-sm">
+                  <span className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm ${t.colorClass}`}>
                     {t.icon}
                   </span>
                   <span className="text-xs font-semibold leading-tight text-foreground">{t.label}</span>

@@ -92,7 +92,7 @@ export function Header({
           )}
         </button>
         <div
-          className="grid h-10 w-10 place-items-center rounded-full bg-slate-800 text-white shadow-sm"
+          className="grid h-10 w-10 place-items-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-sm"
           title={profile?.name ?? ""}
         >
           {initials}
