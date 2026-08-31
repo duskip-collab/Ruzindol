@@ -20,12 +20,16 @@ import {
   HeartHandshake,
   Church,
   Wrench,
+  Vote,
   Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanupExpiredAnnouncements, syncRssIfNeeded } from "@/lib/rss-sync";
 import { isIosDevice } from "@/lib/pwa";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { triggerHaptic } from "@/lib/haptics";
+import { ElectionsScreen } from "@/screens/ElectionsScreen";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
@@ -103,11 +107,29 @@ function isExpired(item: Announcement) {
 
 export function AktualityScreen() {
   const { profile, userId } = useCurrentUser();
+  const { electionsEnabled } = useAppSettings();
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [activeTile, setActiveTile] = useState<string | null>(null);
+
+  const currentYear = new Date().getFullYear();
+  const isOfficialOrAdmin = profile?.is_admin || profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const showElections = electionsEnabled || isOfficialOrAdmin;
+
+  const dynamicTiles = useMemo(() => {
+    if (!showElections) return TILES;
+    return [
+      {
+        id: "elections",
+        label: `VOĽBY ${currentYear}`,
+        icon: <Vote className="h-5 w-5" />,
+        colorClass: "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md",
+      },
+      ...TILES,
+    ];
+  }, [showElections, currentYear]);
 
   type OfficeInfo = {
     id: string;
@@ -288,11 +310,14 @@ export function AktualityScreen() {
               <p className="text-xs text-muted-foreground">Kliknutím na dlaždicu otvoríte príslušný modul na celú stranu.</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {TILES.map((t) => (
+              {dynamicTiles.map((t) => (
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setActiveTile(t.id)}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setActiveTile(t.id);
+                  }}
                   className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)] shadow-sm"
                 >
                   <span className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm ${t.colorClass}`}>
@@ -308,18 +333,22 @@ export function AktualityScreen() {
             <div className="flex items-center justify-between border-b pb-3">
               <button
                 type="button"
-                onClick={() => setActiveTile(null)}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setActiveTile(null);
+                }}
                 className="btn-primary-glow flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold"
                 aria-label="Zatvoriť a späť na ponuku"
               >
                 <ArrowLeft className="h-4 w-4" /> Zatvoriť / Späť na ponuku ikon
               </button>
               <span className="text-xs font-semibold text-primary">
-                {TILES.find((t) => t.id === activeTile)?.label}
+                {dynamicTiles.find((t) => t.id === activeTile)?.label}
               </span>
             </div>
 
             <div className="flex-1 pb-8">
+            {activeTile === "elections" && <ElectionsScreen />}
             {activeTile === "calendar" && <SharedCalendar />}
             {activeTile === "odpad" && <SharedCalendar categoryFilter="odpad" />}
             {activeTile === "rss" && (
