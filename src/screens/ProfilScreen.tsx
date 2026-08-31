@@ -76,23 +76,39 @@ type InviteCodeRow = {
 };
 
 const RolePanels = lazy(async () => {
-  const module = await import("@/components/RolePanels");
-  return { default: module.RolePanels };
+  return import("@/components/RolePanels")
+    .then((m) => ({ default: m.RolePanels }))
+    .catch(() => {
+      window.location.reload();
+      return { default: () => null } as any;
+    });
 });
 
 const NeighborhoodPulse = lazy(async () => {
-  const module = await import("@/components/NeighborhoodPulse");
-  return { default: module.NeighborhoodPulse };
+  return import("@/components/NeighborhoodPulse")
+    .then((m) => ({ default: m.NeighborhoodPulse }))
+    .catch(() => {
+      window.location.reload();
+      return { default: () => null } as any;
+    });
 });
 
 const ModerationPanel = lazy(async () => {
-  const module = await import("@/components/ModerationPanel");
-  return { default: module.ModerationPanel };
+  return import("@/components/ModerationPanel")
+    .then((m) => ({ default: m.ModerationPanel }))
+    .catch(() => {
+      window.location.reload();
+      return { default: () => null } as any;
+    });
 });
 
 const InviteRedeemSection = lazy(async () => {
-  const module = await import("@/components/InviteRedeemSection");
-  return { default: module.InviteRedeemSection };
+  return import("@/components/InviteRedeemSection")
+    .then((m) => ({ default: m.InviteRedeemSection }))
+    .catch(() => {
+      window.location.reload();
+      return { default: () => null } as any;
+    });
 });
 
 function timeAgo(iso: string) {

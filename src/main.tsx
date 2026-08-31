@@ -1,3 +1,16 @@
+// Automatické zotavenie pri zlyhaní načítania dynamických modulov/chunkov po novom nasadení (re-deploy na Verceli)
+window.addEventListener("vite:preload-error", () => {
+  const reloadKey = "komunita.vite-preload-reload-attempted";
+  if (sessionStorage.getItem(reloadKey) === "1") return;
+  sessionStorage.setItem(reloadKey, "1");
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      regs.forEach((reg) => reg.unregister());
+    });
+  }
+  window.location.reload();
+});
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
