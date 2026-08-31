@@ -824,6 +824,32 @@ function NotificationSettings({ userId }: { userId: string }) {
           disabled={pushLoading || pushSaving} 
         />
       </div>
+      {/* Veľkosť písma */}
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <span className="text-sm font-semibold">A</span>
+          </div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Veľkosť písma</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {FONT_SCALE_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => setFontScale(o.value)}
+              className={cn(
+                "flex items-center justify-center rounded-lg px-2 py-2 text-xs font-medium transition",
+                fontScale === o.value
+                  ? "bg-emerald-600 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
 
       {/* Odhlásenie */}
       <button 
