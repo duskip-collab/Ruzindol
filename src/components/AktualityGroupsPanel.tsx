@@ -22,6 +22,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 import { uploadCompressedImage } from "@/lib/upload-image";
 import { PostLightbox } from "@/components/PostLightbox";
+import { ImageInput } from "@/components/ImageInput";
 import type { CompressedImage } from "@/lib/compress-image";
 import { isIosDevice } from "@/lib/pwa";
 
