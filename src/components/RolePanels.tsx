@@ -19,7 +19,7 @@ import { uploadAnnouncementAudio } from "@/lib/upload-announcement-audio";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { isIosDevice } from "@/lib/pwa";
 import type { PostPriority } from "@/types";
-import { MayorInquiriesPanel } from "./mayor/MayorInquiriesPanel";
+import { MayorInquiriesPanel } from "@/components/mayor/MayorInquiriesPanel";
 
 type ReviewPost = {
   id: string;
@@ -832,7 +832,6 @@ export function RolePanels({ role }: { role: ProfileRole }) {
           <MayorInquiriesPanel />
         </div>
       )}
-
     </div>
   );
 }
