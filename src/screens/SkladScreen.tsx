@@ -817,7 +817,7 @@ function AddListingModal({
             <button
               type="submit"
               disabled={busy}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${meta.accent} py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60`}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               Zverejniť inzerát
