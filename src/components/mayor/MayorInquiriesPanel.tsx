@@ -28,6 +28,7 @@ interface Inquiry {
   answered_at?: string;
   created_at: string;
   profiles?: {
+    name?: string;
     full_name?: string;
     email?: string;
   };
@@ -55,13 +56,17 @@ export function MayorInquiriesPanel() {
   // Načítanie podnetov pre starostu
   const fetchInquiries = async () => {
     setLoading(true);
+    
+    // Explicitné naviazanie cudzieho kľúča profiles!user_id zabráni chybe 400 Bad Request
     const { data, error } = await supabase
       .from('mayor_inquiries')
-      .select('*, profiles:user_id(full_name, email)')
+      .select('*, profiles!user_id(name, full_name, email)')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setInquiries(data as Inquiry[]);
+    if (error) {
+      console.error('Chyba pri načítavaní podnetov:', error);
+    } else if (data) {
+      setInquiries(data as unknown as Inquiry[]);
     }
     setLoading(false);
   };
@@ -78,7 +83,8 @@ export function MayorInquiriesPanel() {
     if (!text || text.trim() === '') return;
 
     setSubmittingId(inquiryId);
-    const { data: userData } = await supabase.auth.getUser();
+    
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from('mayor_inquiries')
@@ -86,25 +92,31 @@ export function MayorInquiriesPanel() {
         answer: text.trim(),
         status: newStatus,
         answered_at: new Date().toISOString(),
-        answered_by: userData.user?.id,
+        answered_by: user?.id,
       })
       .eq('id', inquiryId);
 
     if (!error) {
       await fetchInquiries();
       setReplyText((prev) => ({ ...prev, [inquiryId]: '' }));
+    } else {
+      console.error('Chyba pri odosielaní odpovede:', error);
     }
     setSubmittingId(null);
   };
 
   // Prepnutie verejný / súkromný
   const togglePublicStatus = async (inquiryId: string, currentPublic: boolean) => {
-    await supabase
+    const { error } = await supabase
       .from('mayor_inquiries')
       .update({ is_public: !currentPublic })
       .eq('id', inquiryId);
 
-    fetchInquiries();
+    if (!error) {
+      await fetchInquiries();
+    } else {
+      console.error('Chyba pri zmene viditeľnosti:', error);
+    }
   };
 
   // Filtrovanie podnetov
@@ -183,7 +195,7 @@ export function MayorInquiriesPanel() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   <span className="font-semibold text-slate-900">
-                    {item.profiles?.full_name || 'Anonymný občan'}
+                    {item.profiles?.name || item.profiles?.full_name || 'Anonymný občan'}
                   </span>
                   <span>•</span>
                   <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-medium">
@@ -250,7 +262,7 @@ export function MayorInquiriesPanel() {
               {/* Formulár pre odpoveď starostu */}
               <div className="pt-2 border-t border-slate-200/60 space-y-2">
                 <textarea
-                  placeholder="Naspíšte odpoveď pre občana..."
+                  placeholder="Napíšte odpoveď pre občana..."
                   value={replyText[item.id] || ''}
                   onChange={(e) =>
                     setReplyText((prev) => ({ ...prev, [item.id]: e.target.value }))
@@ -326,4 +338,3 @@ function StatusBadge({ status }: { status: string }) {
       return null;
   }
 }
-
