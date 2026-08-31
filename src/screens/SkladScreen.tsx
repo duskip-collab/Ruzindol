@@ -17,7 +17,6 @@ import { uploadCompressedImage } from "@/lib/upload-image";
 import { SafeChat } from "@/components/SafeChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { removeBucketObject } from "@/lib/storage";
 import {
   formatWarehouseExpiry,
   getWarehouseExpiryIso,
@@ -64,26 +63,26 @@ const SECTION_META: Record<
 > = {
   trh: {
     title: "Susedský trh",
-    icon: <ShoppingCart className="h-6 w-6" />,
-    bgClass: "bg-teal-600 text-white",
-    badgeClass: "bg-teal-600 text-white",
-    ring: "ring-teal-200",
+    icon: <ShoppingCart className="h-7 w-7 text-white" />,
+    bgClass: "bg-teal-600 text-white shadow-teal-600/20",
+    badgeClass: "bg-teal-600 text-white dark:bg-teal-500",
+    ring: "ring-teal-200 dark:ring-teal-900",
     canAdd: true,
   },
   darovanie: {
     title: "Darovanie",
-    icon: <Gift className="h-6 w-6" />,
-    bgClass: "bg-rose-500 text-white",
-    badgeClass: "bg-emerald-600 text-white",
-    ring: "ring-rose-200",
+    icon: <Gift className="h-7 w-7 text-white" />,
+    bgClass: "bg-rose-500 text-white shadow-rose-500/20",
+    badgeClass: "bg-emerald-600 text-white dark:bg-emerald-500",
+    ring: "ring-rose-200 dark:ring-rose-900",
     canAdd: true,
   },
   poziciovna: {
     title: "Susedská požičovňa",
-    icon: <Wrench className="h-6 w-6" />,
-    bgClass: "bg-blue-600 text-white",
-    badgeClass: "bg-blue-600 text-white",
-    ring: "ring-blue-200",
+    icon: <Wrench className="h-7 w-7 text-white" />,
+    bgClass: "bg-blue-600 text-white shadow-blue-600/20",
+    badgeClass: "bg-blue-600 text-white dark:bg-blue-500",
+    ring: "ring-blue-200 dark:ring-blue-900",
     canAdd: true,
   },
 };
@@ -142,10 +141,10 @@ export function SkladScreen() {
     return (
       <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-4 overflow-y-auto p-4 pb-8 md:px-6 md:pt-5">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Sklad</h2>
-          <p className="text-sm text-muted-foreground">Vyber si, čo chceš robiť.</p>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Sklad</h2>
+          <p className="text-sm text-muted-foreground">Vyber si, čo chcešrobiť.</p>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <PillarCard
             section="trh"
             count={counts.trh}
@@ -210,10 +209,8 @@ export function SkladScreen() {
         <button
           onClick={() => setFormOpen(true)}
           aria-label="Pridať"
-          className={`absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br ${
-            isPoz && pozTab === "dopyt" ? "from-amber-500/95 to-orange-600/95" : meta.accent
-          } text-white shadow-xl ring-4 ${
-            isPoz && pozTab === "dopyt" ? "ring-amber-200" : meta.ring
+          className={`absolute bottom-5 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 dark:bg-teal-600 text-white shadow-xl ring-4 ${
+            isPoz && pozTab === "dopyt" ? "ring-amber-200 dark:ring-amber-900" : meta.ring
           } transition active:scale-95`}
         >
           <Plus className="h-6 w-6" />
@@ -258,9 +255,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
-        active
-          ? "nav-tab-active"
-          : "nav-tab-idle"
+        active ? "nav-tab-active" : "nav-tab-idle"
       }`}
     >
       {children}
@@ -293,7 +288,7 @@ function useItems(type: ItemType) {
   return { items, loading };
 }
 
-function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_META)[Section] }) {
+function ListingList({ type }: { type: ItemType; meta: (typeof SECTION_META)[Section] }) {
   const navigate = useNavigate();
   const { items, loading } = useItems(type);
   const { userId, profile } = useCurrentUser();
@@ -316,7 +311,6 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
     if (!userId || opening) return;
     if (item.user_id === userId) return;
     setOpening(item.id);
-    // Find existing chat between me (buyer) and item.user_id (seller) for this item.
     const { data: existing } = await supabase
       .from("chats")
       .select("id")
@@ -370,17 +364,17 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
               <article
                 key={item.id}
                 onClick={() => void navigate({ to: "/sklad/$itemId", params: { itemId: item.id } })}
-                className="bg-white border border-slate-100 cursor-pointer rounded-2xl p-4 shadow-sm"
+                className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/90"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold leading-tight text-foreground">{item.title}</h3>
+                  <h3 className="font-bold leading-tight text-slate-900 dark:text-white">{item.title}</h3>
                   <span
-                    className={`shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
+                    className="shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700"
                   >
                     {priceLabel(item.price)}
                   </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{item.description}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                   <span className="chip-muted rounded-full px-2 py-1 font-medium">
                     Platnosť {validityLabel}
@@ -396,7 +390,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                     className="mt-2 max-h-48 w-full rounded-xl object-cover"
                   />
                 )}
-                <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="mt-3 flex items-center justify-between gap-2">
                   <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
                     <span className="truncate">
                       {item.profiles?.name ?? "Sused"}
@@ -442,7 +436,6 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
       {selectedItem && (
         <ListingDetailModal
           item={selectedItem}
-          meta={meta}
           isMine={selectedItem.user_id === userId}
           canChat={isActive && selectedItem.user_id !== userId}
           opening={opening === selectedItem.id}
@@ -467,7 +460,6 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
 
 function ListingDetailModal({
   item,
-  meta,
   isMine,
   canChat,
   opening,
@@ -475,7 +467,6 @@ function ListingDetailModal({
   onClose,
 }: {
   item: Item;
-  meta: (typeof SECTION_META)[Section];
   isMine: boolean;
   canChat: boolean;
   opening: boolean;
@@ -485,7 +476,7 @@ function ListingDetailModal({
   const priceLabel = item.price > 0 ? `${item.price} €` : "Zadarmo";
 
   return (
-    <div className="absolute inset-0 z-40 flex items-end bg-black/35 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+    <div className="absolute inset-0 z-40 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="app-modal-surface flex h-full w-full flex-col md:h-auto md:max-h-[92%] md:max-w-3xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
         <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
           <button
@@ -500,7 +491,7 @@ function ListingDetailModal({
             <p className="text-xs text-muted-foreground">Detail inzerátu</p>
           </div>
           <span
-            className={`ml-auto shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
+            className="ml-auto shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700"
           >
             {priceLabel}
           </span>
@@ -554,7 +545,7 @@ function ListingDetailModal({
             </button>
           )}
           {!canChat && !isMine && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
               Chat je dostupný pre aktívnych susedov.
             </div>
           )}
@@ -590,12 +581,12 @@ function DopytList() {
 
   if (active.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-center py-12">
         <Zap className="h-8 w-8 text-amber-500" />
-        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
           Žiadne aktívne dopyty
         </p>
-        <p className="max-w-[240px] text-xs text-neutral-500">
+        <p className="max-w-[240px] text-xs text-slate-500 dark:text-slate-400">
           Rýchle dopyty platia len 24 hodín. Ak niečo súrne potrebuješ, klikni na +.
         </p>
       </div>
@@ -607,33 +598,32 @@ function DopytList() {
       {active.map((d) => {
         const remainingMs = TTL - (nowMs - new Date(d.created_at).getTime());
         const hoursLeft = Math.max(1, Math.ceil(remainingMs / H));
-        // Contact was stored on a "Kontakt: X" line in description; extract it.
         const contactMatch = d.description.match(/Kontakt:\s*(.+)$/m);
         const contact = contactMatch?.[1]?.trim() ?? "";
         const bodyText = d.description.replace(/\n?Kontakt:\s*.+$/m, "").trim();
         return (
           <article
             key={d.id}
-            className="rounded-2xl border-2 border-amber-300/70 bg-amber-50/70 p-4 shadow-sm backdrop-blur-xl"
+            className="rounded-2xl border-2 border-amber-300/70 bg-amber-50/70 p-4 shadow-sm backdrop-blur-xl dark:border-amber-500/40 dark:bg-amber-950/40"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm">
                 <Zap className="h-3 w-3" /> Urgentné
               </span>
-              <span className="text-xs font-medium text-amber-800">Platí ešte {hoursLeft}h</span>
+              <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Platí ešte {hoursLeft}h</span>
             </div>
-            <p className="line-clamp-2 text-sm font-medium text-neutral-800">
+            <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">
               {d.title || bodyText}
             </p>
             {d.title && bodyText && (
-              <p className="mt-1 line-clamp-2 text-xs text-neutral-700">{bodyText}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-slate-700 dark:text-slate-300">{bodyText}</p>
             )}
-            <div className="mt-2 flex items-center justify-between text-xs text-neutral-600">
+            <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>{d.profiles?.name ?? "Sused"}</span>
               {contact && (
                 <a
                   href={`tel:${contact.replace(/\s/g, "")}`}
-                  className="font-semibold text-amber-700 hover:underline"
+                  className="font-semibold text-amber-700 hover:underline dark:text-amber-400"
                 >
                   {contact}
                 </a>
@@ -663,23 +653,22 @@ function PillarCard({
     darovanie: "Ponúkni veci zadarmo za odvoz.",
     poziciovna: "Požičaj si náradie a vybavenie od susedov.",
   };
-  const emojis: Record<Section, string> = { trh: "🛒", darovanie: "🎁", poziciovna: "🛠️" };
 
   return (
     <button
       onClick={onClick}
-      className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left text-neutral-900 shadow-sm transition hover:shadow-md active:scale-[0.98]"
+      className="group relative flex w-full items-center justify-between overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/90 active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
-        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-full shadow-sm ${meta.bgClass}`}>
+        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-full shadow-md ${meta.bgClass}`}>
           {meta.icon}
         </div>
         <div className="min-w-0">
-          <h3 className="text-base font-semibold text-foreground tracking-tight">{meta.title}</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">{descriptions[section]}</p>
+          <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{meta.title}</h3>
+          <p className="mt-0.5 text-sm leading-snug text-slate-500 dark:text-slate-400">{descriptions[section]}</p>
         </div>
       </div>
-      <span className={`ml-3 inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold shadow-sm ${meta.badgeClass}`}>
+      <span className={`ml-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm ${meta.badgeClass}`}>
         {loading ? "…" : count}
       </span>
     </button>
@@ -736,7 +725,6 @@ function AddListingModal({
       });
       if (error) throw error;
       onClose();
-      // simple full-refresh of the list by reloading — cheap and correct.
       window.location.reload();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Uloženie zlyhalo.");
@@ -746,12 +734,12 @@ function AddListingModal({
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+    <div className="absolute inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-slate-200 md:shadow-2xl dark:md:border-slate-800">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
@@ -766,7 +754,7 @@ function AddListingModal({
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
               Názov
             </label>
             <input
@@ -774,12 +762,12 @@ function AddListingModal({
               onChange={(e) => setTitle(e.target.value)}
               required
               placeholder={isPoz ? "Napr. Vŕtačka Makita" : "Napr. Detský bicykel"}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
               Popis
             </label>
             <textarea
@@ -787,14 +775,14 @@ function AddListingModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Krátky popis…"
-              className="mt-1 w-full resize-none rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+              className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           <ImageInput value={photo} onChange={setPhoto} label="Fotka (voliteľné)" />
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
               {priceLabel}
             </label>
             <input
@@ -805,22 +793,22 @@ function AddListingModal({
               onChange={(e) => setPrice(e.target.value)}
               disabled={isDarovanie}
               placeholder={pricePlaceholder}
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 dark:disabled:bg-neutral-200 dark:disabled:text-neutral-700"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-400"
             />
             {isDarovanie && (
-              <p className="mt-1 text-xs text-rose-600">
+              <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
                 V sekcii Darovanie je cena pevne nastavená na 0 €.
               </p>
             )}
           </div>
 
-          {err && <p className="text-xs text-rose-600">{err}</p>}
+          {err && <p className="text-xs text-rose-600 dark:text-rose-400">{err}</p>}
 
           <div className="mt-auto flex flex-col gap-2 pt-4">
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 active:scale-[0.99] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 dark:bg-teal-600 dark:hover:bg-teal-500 active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               Zverejniť inzerát
@@ -828,7 +816,7 @@ function AddListingModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+              className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Zrušiť
             </button>
@@ -872,70 +860,66 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
-      <div className="flex h-full w-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-neutral-200 md:shadow-2xl dark:md:border-white/15">
-        <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-white/10">
+    <div className="absolute inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
+      <div className="flex h-full w-full flex-col bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 md:h-auto md:max-h-[92%] md:max-w-xl md:rounded-3xl md:border md:border-slate-200 md:shadow-2xl dark:md:border-slate-800">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-white/10"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label="Zavrieť"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-500" />
-            <h2 className="font-semibold">Rýchly dopyt · platí 24h</h2>
+            <h2 className="font-semibold">Rýchly dopyt (platnosť 24h)</h2>
           </div>
         </div>
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
-          <div className="flex-1">
-            <label className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-              Čo urgentne potrebuješ požičať a kedy?
+          <div>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Čo narýchlo potrebuješ?
             </label>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               required
-              autoFocus
-              rows={8}
-              placeholder="Napr. Nemá niekto na 2 hodiny požičať záhradný valec dnes večer?"
-              className="mt-2 h-56 w-full resize-none rounded-2xl border-2 border-amber-200 bg-amber-50/40 px-4 py-3 text-base text-neutral-900 placeholder:text-neutral-500 outline-none focus:border-amber-400 dark:border-amber-500/30 dark:bg-amber-500/5 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+              rows={3}
+              placeholder="Napr. Súrne potrebujem požičať príklepovú vŕtačku na 2 hodiny..."
+              className="mt-1 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-              Kontakt
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Telefón / kontakt pre rýchle spojenie
             </label>
             <input
+              type="text"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               required
-              placeholder="Telefón alebo meno"
-              className="mt-1 w-full rounded-xl border border-neutral-200 bg-white/80 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none backdrop-blur focus:border-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+              placeholder="09xx xxx xxx"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
-          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
-            ⚡ Tento dopyt sa automaticky skryje po 24 hodinách.
-          </div>
+          {err && <p className="text-xs text-rose-600 dark:text-rose-400">{err}</p>}
 
-          {err && <p className="text-xs text-rose-600">{err}</p>}
-
-          <div className="flex flex-col gap-2 pt-2">
+          <div className="mt-auto flex flex-col gap-2 pt-4">
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white shadow-sm active:scale-[0.99] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              Odoslať urgentný dopyt
+              Odoslať dopyt
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100"
+              className="w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Zrušiť
             </button>
