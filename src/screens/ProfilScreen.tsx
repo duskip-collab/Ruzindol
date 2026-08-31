@@ -738,6 +738,7 @@ function ProfileEditForm({
 // ---------- Notification settings ----------
 
 function NotificationSettings({ userId }: { userId: string }) {
+function NotificationSettings({ userId }: { userId: string }) {
   const { theme, setTheme } = useTheme();
   const { muted, setMuted, categories, setCategory } = useNotifications();
   const { fontScale, setFontScale, fontSizePx } = useFontScale();
@@ -780,60 +781,116 @@ function NotificationSettings({ userId }: { userId: string }) {
   };
 
   const handlePushEnabledChange = async (nextValue: boolean) => {
-    const prevValue = pushEnabled;
     setPushEnabled(nextValue);
     setPushSaving(true);
 
-    const { error } = await (supabase as any).from("user_settings").upsert(
-      {
-        user_id: userId,
-        notifications_enabled: nextValue,
-      },
-      { onConflict: "user_id" },
-    );
+    const { error } = await supabase
+      .from("user_settings")
+      .upsert(
+        { user_id: userId, notifications_enabled: nextValue },
+        { onConflict: "user_id" }
+      );
 
     if (error) {
-      console.error("Chyba pri ukladaní user_settings.notifications_enabled:", error);
-      setPushEnabled(prevValue);
-      setPushSaving(false);
-      return;
-    }
-
-    if (nextValue && typeof Notification !== "undefined" && Notification.permission === "granted") {
-      syncPushSubscriptionSilently().catch((syncError) => {
-        console.error("Chyba pri tichej synchronizácii push subskripcie:", syncError);
-      });
+      console.error("Nepodarilo sa uložiť nastavenie notifikácií:", error);
+      // V prípade potreby sem môžeš pridať rollback state-u
+    } else if (nextValue) {
+      // Ak používateľ notifikácie zapol, pokúsime sa synchronizovať odber
+      try {
+        await syncPushSubscriptionSilently(userId);
+      } catch (syncErr) {
+        console.error("Chyba pri synchronizácii push odberu:", syncErr);
+      }
     }
 
     setPushSaving(false);
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm divide-y divide-slate-100 dark:border-white/10 dark:bg-white/5 dark:divide-white/10">
-      {/* Tmavý režim */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
-            {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    <div className="flex flex-col gap-6 rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
+      {/* Vzhľad */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Vzhľad</h3>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {darkMode ? (
+              <Moon className="h-4 w-4 text-neutral-500" />
+            ) : (
+              <Sun className="h-4 w-4 text-neutral-500" />
+            )}
+            <span className="text-sm font-medium">Tmavý režim</span>
           </div>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Tmavý režim</span>
+          <Switch 
+            checked={darkMode} 
+            onCheckedChange={(c) => setTheme(c ? "dark" : "light")} 
+          />
         </div>
-        <Switch checked={darkMode} onCheckedChange={(v) => setTheme(v ? "dark" : "light")} />
+
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Veľkosť textu</span>
+            <span className="text-xs text-muted-foreground">{FONT_SCALE_OPTIONS[fontScale].label}</span>
+          </div>
+          <Slider
+            value={[fontScale]}
+            min={1}
+            max={3}
+            step={1}
+            onValueChange={handleFontScaleChange}
+            className="py-2"
+          />
+        </div>
       </div>
 
-      {/* Push Notifikácie */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-            <Bell className="h-4 w-4" />
+      <div className="border-t border-border/50" />
+
+      {/* Upozornenia */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">Upozornenia</h3>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {muted ? (
+              <BellOff className="h-4 w-4 text-neutral-500" />
+            ) : (
+              <Bell className="h-4 w-4 text-neutral-500" />
+            )}
+            <span className="text-sm font-medium">Globálne stlmiť zvuky</span>
           </div>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Push notifikácie</span>
+          <Switch 
+            checked={muted} 
+            onCheckedChange={setMuted} 
+          />
         </div>
-        <Switch 
-          checked={pushEnabled} 
-          disabled={pushLoading || pushSaving}
-          onCheckedChange={(v) => void handlePushEnabledChange(v)} 
-        />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Push notifikácie</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {pushSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            <Switch 
+              checked={pushEnabled} 
+              onCheckedChange={handlePushEnabledChange}
+              disabled={pushLoading || pushSaving}
+            />
+          </div>
+        </div>
+
+        {/* Kategórie upozornení */}
+        <div className="space-y-3 pt-2">
+          <span className="text-xs font-medium text-muted-foreground">Kategórie upozornení</span>
+          {NOTIF_CATEGORIES.map((cat) => (
+            <div key={cat.id} className="flex items-center justify-between">
+              <span className="text-sm text-foreground">{cat.label}</span>
+              <Switch 
+                checked={categories[cat.id] ?? true} 
+                onCheckedChange={(val) => setCategory(cat.id, val)} 
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
