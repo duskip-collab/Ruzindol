@@ -25,6 +25,7 @@ import { PostLightbox } from "@/components/PostLightbox";
 import { ImageInput } from "@/components/ImageInput";
 import type { CompressedImage } from "@/lib/compress-image";
 import { isIosDevice } from "@/lib/pwa";
+import { triggerHaptic } from "@/lib/haptics";
 
 type GroupKey = "osk_ruzindol" | "dochodcovia" | "dhz" | "farnost" | "sluzby";
 
@@ -784,6 +785,7 @@ function GroupPostForm({
   });
   const [isParte, setIsParte] = useState(false);
   const [deceasedName, setDeceasedName] = useState("");
+  const [isIndefinite, setIsIndefinite] = useState(groupKey === "sluzby");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const canCreateParte = groupKey === "farnost" && currentRole === "Farar";
@@ -846,6 +848,7 @@ function GroupPostForm({
                 linked_event_id: linkedEventId,
                 post_kind: isParte ? "parte" : "oznam",
                 deceased_name: isParte ? cleanDeceasedName : null,
+                expires_at: isIndefinite ? null : new Date(Date.now() + 4 * 24 * 3600_000).toISOString(),
               }),
             { retries: 1, delayMs: 250 },
           ),
@@ -926,9 +929,25 @@ function GroupPostForm({
             rows={6}
             className="app-input mt-1 w-full resize-none rounded-xl px-3 py-2.5 text-sm outline-none"
           />
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Príspevok bude automaticky zmazaný po 4 dňoch.
-          </p>
+          <div className="mt-2 space-y-1">
+            <label className="app-surface-muted flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-[color:var(--text-secondary)] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isIndefinite}
+                onChange={(e) => {
+                  triggerHaptic("light");
+                  setIsIndefinite(e.target.checked);
+                }}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>Inzerovať na neurčito (bez automatického zmazania)</span>
+            </label>
+            <p className="px-1 text-[10px] text-muted-foreground">
+              {isIndefinite
+                ? "Inzerát/profil bude viditeľný na neurčitý čas (až do manuálneho zmazania)."
+                : "Príspevok bude automaticky zmazaný po 4 dňoch."}
+            </p>
+          </div>
         </div>
 
         <ImageInput
