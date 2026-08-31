@@ -3,6 +3,7 @@ import { Loader2, Plus, Copy, Check, Shield, MapPin, UserCog, Trash2, Filter } f
 import { supabase } from "@/integrations/supabase/client";
 import type { ProfileRole } from "@/hooks/useCurrentUser";
 import { Input } from "@/components/ui/input";
+import { AdminElectionsToggle } from "@/components/admin/AdminElectionsToggle";
 
 type CodeRole = "Sused" | "Uradnik" | "Starosta" | "Farar";
 
@@ -63,6 +64,7 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
       </div>
 
       <div className="space-y-6">
+        <AdminElectionsToggle />
         <RoleAssigner />
         <InviteCodeManager />
         {isSuperAdmin && <MunicipalityManager />}
