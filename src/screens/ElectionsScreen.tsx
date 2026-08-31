@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Vote, Plus, MessageSquare, Award, Loader2, RefreshCw } from 'lucide-react';
+import { Vote, Award, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import CandidateCard, { Candidate } from '@/components/elections/CandidateCard';
 import CandidateModal from '@/components/elections/CandidateModal';
-import InquiryCard, { MayorInquiry } from '@/components/mayor/InquiryCard';
-import InquiryModal from '@/components/mayor/InquiryModal';
 import PollCard, { Poll } from '@/components/polls/PollCard';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
@@ -15,12 +13,10 @@ export function ElectionsScreen() {
   const { electionsEnabled, loading: settingsLoading } = useAppSettings();
   const { profile } = useCurrentUser();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [inquiries, setInquiries] = useState<MayorInquiry[]>([]);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candModalOpen, setCandModalOpen] = useState(false);
-  const [inqModalOpen, setInqModalOpen] = useState(false);
   const [posFilter, setPosFilter] = useState<'vsetko' | 'starosta' | 'poslanec'>('vsetko');
 
   const loadData = async () => {
@@ -28,8 +24,6 @@ export function ElectionsScreen() {
       setLoading(true);
       const { data: cData } = await supabase.from('election_candidates').select('*').eq('is_active', true);
       if (cData) setCandidates(cData as unknown as Candidate[]);
-      const { data: iData } = await supabase.from('mayor_inquiries').select('*, profiles:user_id(full_name, name)').limit(10);
-      if (iData) setInquiries(iData as unknown as MayorInquiry[]);
       const { data: pData } = await supabase.from('polls').select('*, options:poll_options(*)');
       if (pData) setPolls(pData as unknown as Poll[]);
     } catch (e) { console.error(e); } finally { setLoading(false); }
@@ -58,7 +52,7 @@ export function ElectionsScreen() {
           <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
             <Vote className="h-3.5 w-3.5" /> Voľby
           </span>
-          <h1 className="text-lg font-bold mt-1">Kandidáti a podnety</h1>
+          <h1 className="text-lg font-bold mt-1">Kandidáti na starostu a poslancov</h1>
         </div>
         <button type="button" onClick={() => { triggerHaptic('light'); void loadData(); }} className="p-2 bg-white/10 rounded-xl">
           <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
@@ -93,21 +87,7 @@ export function ElectionsScreen() {
         </div>
       )}
 
-      <div className="space-y-3 pt-3 border-t dark:border-slate-800">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold flex items-center gap-1.5"><MessageSquare className="h-4 w-4 text-emerald-500" /> Podnety</h2>
-          <button type="button" onClick={() => setInqModalOpen(true)} className="rounded-xl bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-            <Plus className="h-3.5 w-3.5 inline mr-1" /> Podnet
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          {inquiries.map((inq) => (<InquiryCard key={inq.id} inquiry={inq} />))}
-        </div>
-      </div>
-
       <CandidateModal candidate={selectedCandidate} isOpen={candModalOpen} onClose={() => setCandModalOpen(false)} />
-      <InquiryModal isOpen={inqModalOpen} onClose={() => setInqModalOpen(false)} onSuccess={loadData} />
     </div>
   );
 }

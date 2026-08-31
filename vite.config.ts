@@ -30,6 +30,7 @@ export default defineConfig({
         scope: "/",
       },
       workbox: {
+        dontCacheBustURLsMatching: /\-[a-zA-Z0-9_-]{8}\./,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
@@ -51,6 +52,9 @@ export default defineConfig({
   ],
   build: {
     outDir: "dist",
+    modulePreload: {
+      polyfill: false,
+    },
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {

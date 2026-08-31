@@ -19,6 +19,7 @@ import { uploadAnnouncementAudio } from "@/lib/upload-announcement-audio";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { isIosDevice } from "@/lib/pwa";
 import type { PostPriority } from "@/types";
+import { MayorInquiriesPanel } from "./mayor/MayorInquiriesPanel";
 
 type ReviewPost = {
   id: string;
@@ -824,6 +825,14 @@ export function RolePanels({ role }: { role: ProfileRole }) {
           }}
         />
       )}
+
+      {profile?.is_official && (
+        <div className="space-y-6">
+          {/* Samostatný panel pre Podnety od občanov */}
+          <MayorInquiriesPanel />
+        </div>
+      )}
+
     </div>
   );
 }

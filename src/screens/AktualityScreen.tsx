@@ -21,6 +21,7 @@ import {
   Church,
   Wrench,
   Vote,
+  MessageSquare,
   Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { triggerHaptic } from "@/lib/haptics";
 import { ElectionsScreen } from "@/screens/ElectionsScreen";
+import { InquiriesScreen } from "@/screens/InquiriesScreen";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
@@ -80,6 +82,7 @@ const PRIORITY_META: Record<Priority, { label: string; dot: string; ring: string
   };
 
 const TILES = [
+  { id: "podnety", label: "PODNETY", icon: <MessageSquare className="h-5 w-5" />, colorClass: "bg-emerald-600 text-white" },
   { id: "calendar", label: "Zdieľaný kalendár", icon: <CalendarDays className="h-5 w-5" />, colorClass: "bg-blue-500 text-white" },
   { id: "rss", label: "RSS oznamy obce", icon: <Rss className="h-5 w-5" />, colorClass: "bg-emerald-500 text-white" },
   { id: "odpad", label: "Kalendár zberu odpadu", icon: <Recycle className="h-5 w-5" />, colorClass: "bg-amber-800 text-white" },
@@ -349,6 +352,7 @@ export function AktualityScreen() {
 
             <div className="flex-1 pb-8">
             {activeTile === "elections" && <ElectionsScreen />}
+            {activeTile === "podnety" && <InquiriesScreen />}
             {activeTile === "calendar" && <SharedCalendar />}
             {activeTile === "odpad" && <SharedCalendar categoryFilter="odpad" />}
             {activeTile === "rss" && (
