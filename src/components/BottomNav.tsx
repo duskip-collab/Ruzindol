@@ -1,6 +1,7 @@
 import { MessageCircle, Megaphone, Newspaper, Package, User, Users } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
 
 export type Tab = "nastenka" | "aktuality" | "sklad" | "spravy" | "profil" | "susedia";
 
@@ -43,6 +44,7 @@ export function BottomNav({
               aria-selected={isActive}
               aria-label={tab.label}
               type="button"
+              onClick={() => triggerHaptic('light')}
               className={cn(
                 "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all",
                 isActive
@@ -90,6 +92,7 @@ export function BottomNav({
             aria-selected={isActive}
             aria-label={tab.label}
             type="button"
+            onClick={() => triggerHaptic('light')}
             className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
               isActive
                 ? "nav-tab-active"
@@ -116,3 +119,4 @@ export function BottomNav({
     </nav>
   );
 }
+

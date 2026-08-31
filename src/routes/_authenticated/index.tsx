@@ -13,6 +13,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useNotifications } from "@/context/NotificationContext";
 import { runStartupContentSync } from "@/lib/startup-sync";
+import { triggerHaptic } from "@/lib/haptics";
 
 export const Route = createFileRoute("/_authenticated/")({
   beforeLoad: () => {
@@ -67,6 +68,7 @@ export function AuthenticatedShell() {
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
+    triggerHaptic('light');
     const from = tabOrder.indexOf(activeTab);
     const to = tabOrder.indexOf(next);
     setDirection(to >= from ? 1 : -1);
