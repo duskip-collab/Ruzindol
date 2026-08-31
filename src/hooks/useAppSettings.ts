@@ -65,21 +65,23 @@ export function useAppSettings(): UseAppSettingsReturn {
   useEffect(() => {
     void fetchSettings();
 
-    // Subscribe to realtime changes on app_settings
+    // Unique channel topic name per hook instance to prevent duplicate channel collisions
+    const topic = `app_settings_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel('app_settings_changes')
+      .channel(topic)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.elections_enabled' },
         (payload) => {
           if (payload.new && 'value' in payload.new) {
-            const rawVal = payload.new.value;
+            const rawVal = (payload.new as { value: unknown }).value;
             const val = typeof rawVal === 'boolean' ? rawVal : rawVal === 'true' || rawVal === true;
             setElectionsEnabledState(Boolean(val));
           }
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
