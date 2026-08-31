@@ -798,144 +798,45 @@ function NotificationSettings({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="app-card rounded-3xl p-5 shadow-sm backdrop-blur-xl">
-      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface-hover)] px-3 py-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {darkMode ? (
-            <Moon className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <Sun className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Tmavý režim</p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {darkMode ? "Aktívny tmavý vzhľad" : "Aktívny svetlý vzhľad"}
-          </p>
-        </div>
-        <Switch
-          checked={darkMode}
-          onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
-          aria-label="Prepnúť tmavý režim"
-        />
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {muted ? (
-            <BellOff className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <Bell className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Vypnúť real-time notifikácie
-          </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Master prepínač – vypne všetky okamžité upozornenia.
-          </p>
-        </div>
-        <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
-      </div>
-
-      <div className="mt-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 dark:bg-white/10">
-          {pushEnabled ? (
-            <Bell className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          ) : (
-            <BellOff className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Push notifikácie do zariadenia
-          </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Bežné push správy budú rešpektovať toto nastavenie, kritické zostanú povolené.
-          </p>
-        </div>
-        <Switch
-          checked={pushEnabled}
-          onCheckedChange={(v) => void handlePushEnabledChange(v)}
-          disabled={pushLoading || pushSaving}
-          aria-label="Push notifications toggle"
-        />
-      </div>
-
-      <div className="mt-4 border-t border-[color:var(--border-card)] pt-3">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-              Veľkosť písma
-            </p>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              {fontScale === 1
-                ? "Štandardné písmo"
-                : fontScale === 2
-                  ? `Stredne zväčšené (${fontSizePx}px)`
-                  : `Veľké písmo (${fontSizePx}px)`}
-            </p>
+    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm divide-y divide-slate-100">
+      {/* Tmavý režim */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+            {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </div>
-          <span className="rounded-full border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2.5 py-1 text-xs font-semibold text-[color:var(--text-secondary)]">
-            {fontScale}
-          </span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Tmavý režim</span>
         </div>
+        <Switch checked={darkMode} onCheckedChange={(v) => setTheme(v ? "dark" : "light")} />
+      </div>
 
-        <Slider
-          value={[fontScale]}
-          min={1}
-          max={3}
-          step={1}
-          onValueChange={handleFontScaleChange}
-          aria-label="Veľkosť písma"
-          className="py-2"
+      {/* Push Notifikácie */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <Bell className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Push notifikácie</span>
+        </div>
+        <Switch 
+          checked={pushEnabled} 
+          onCheckedChange={(v) => void handlePushEnabledChange(v)} 
+          disabled={pushLoading || pushSaving} 
         />
+      </div>
 
-        <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
-          {FONT_SCALE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFontScale(option.value)}
-              className={`rounded-full px-2 py-1 transition ${
-                fontScale === option.value
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300"
-              }`}
-            >
-              {option.label} · {option.description}
-            </button>
-          ))}
+      {/* Odhlásenie */}
+      <button 
+        onClick={() => supabase.auth.signOut().then(() => window.location.href = "/auth")}
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
+            <LogOut className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-medium text-rose-600">Odhlásiť sa</span>
         </div>
-      </div>
-
-      <div className="mt-4 border-t border-[color:var(--border-card)] pt-3">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-500">
-          Kategórie
-        </p>
-        <ul className="space-y-2">
-          {NOTIF_CATEGORIES.map((c) => (
-            <li key={c.key} className="flex items-center gap-3">
-              <span
-                className={`flex-1 text-sm ${
-                  muted
-                    ? "text-neutral-400 dark:text-neutral-500"
-                    : "text-neutral-800 dark:text-neutral-200"
-                }`}
-              >
-                {c.label}
-              </span>
-              <Switch
-                checked={categories[c.key]}
-                onCheckedChange={(v) => setCategory(c.key, v)}
-                disabled={muted}
-                aria-label={c.label}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+      </button>
     </div>
   );
 }
