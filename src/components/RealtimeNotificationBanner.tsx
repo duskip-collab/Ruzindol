@@ -17,7 +17,7 @@ export function RealtimeNotificationBanner() {
         }}
         className="pointer-events-auto w-full max-w-md animate-in slide-in-from-top-4 fade-in duration-300 md:max-w-2xl xl:max-w-3xl"
       >
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-500 to-orange-500 p-3 pr-2 text-left shadow-2xl shadow-orange-500/30 backdrop-blur">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-500 p-3 pr-2 text-left shadow-md backdrop-blur">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25">
             <Megaphone className="h-5 w-5 text-white" />
           </div>

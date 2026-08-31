@@ -372,7 +372,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold leading-tight text-foreground">{item.title}</h3>
                   <span
-                    className={`shrink-0 rounded-full bg-gradient-to-r ${meta.accent} px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
+                    className={`shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
                   >
                     {priceLabel(item.price)}
                   </span>
@@ -497,7 +497,7 @@ function ListingDetailModal({
             <p className="text-xs text-muted-foreground">Detail inzerátu</p>
           </div>
           <span
-            className={`ml-auto shrink-0 rounded-full bg-gradient-to-r ${meta.accent} px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
+            className={`ml-auto shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm`}
           >
             {priceLabel}
           </span>
@@ -665,7 +665,7 @@ function PillarCard({
   return (
     <button
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-3xl border border-white/40 bg-gradient-to-br ${meta.accent} p-5 text-left text-white shadow-lg ring-1 ${meta.ring} transition hover:shadow-xl active:scale-[0.98]`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left text-neutral-900 shadow-sm transition hover:shadow-xl active:scale-[0.98]`}
     >
       <div className="flex items-center gap-4">
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur-md">
@@ -924,7 +924,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 py-3 text-sm font-semibold text-white shadow-md active:scale-[0.99] disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white shadow-sm active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               Odoslať urgentný dopyt

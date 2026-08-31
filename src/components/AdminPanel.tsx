@@ -47,7 +47,7 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
   void adminId;
 
   return (
-    <div className="w-full rounded-3xl border-2 border-indigo-300/60 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-400/30 dark:from-indigo-500/10 dark:to-transparent xl:p-6">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:p-6">
       <div className="mb-4 flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-600 text-white">
           <Shield className="h-4 w-4" />

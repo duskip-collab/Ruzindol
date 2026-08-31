@@ -53,7 +53,7 @@ export function BottomNav({
               <span
                 className={cn(
                   "grid h-9 w-9 place-items-center rounded-xl transition-all",
-                  isActive ? "bg-gradient-to-br from-brand/15 to-brand-glow/10" : "bg-transparent",
+                  isActive ? "bg-slate-200" : "bg-transparent",
                 )}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.4 : 1.9} />
@@ -98,7 +98,7 @@ export function BottomNav({
           >
             <span
               className={`grid h-8 w-14 place-items-center rounded-2xl transition-all ${
-                isActive ? "bg-gradient-to-br from-brand/15 to-brand-glow/10" : "bg-transparent"
+                isActive ? "bg-slate-200" : "bg-transparent"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />

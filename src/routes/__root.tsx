@@ -81,8 +81,7 @@ function RootComponent() {
         <FontScaleProvider>
           <AppModeProvider>
             <NotificationProvider>
-              <div className="relative min-h-screen bg-app-shell text-foreground">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.18))] dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.1),rgba(2,6,23,0.22))]" />
+              <div className="relative min-h-screen bg-slate-50 text-foreground">
                 <Splash />
                 <RealtimeNotificationBanner />
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

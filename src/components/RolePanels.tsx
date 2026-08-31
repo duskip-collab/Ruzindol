@@ -62,7 +62,7 @@ export function VipDashboard({
   }
 
   return (
-    <section className="rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm dark:border-amber-500/20 dark:from-amber-500/10 dark:to-white/5">
+    <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
       <PanelHeader
         icon={<Building2 className="h-4 w-4" />}
         title="Firemný panel"
@@ -169,7 +169,7 @@ export function PanelStarostu({
   }
 
   return (
-    <section className="rounded-3xl border border-blue-200/60 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm dark:border-blue-500/20 dark:from-blue-500/10 dark:to-white/5">
+    <section className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
       <PanelHeader
         icon={<ShieldAlert className="h-4 w-4" />}
         title="Panel Starostu"
@@ -466,7 +466,7 @@ export function DigitalnyRozhlas({
   }
 
   return (
-    <section className="rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
+    <section className="rounded-2xl border border-orange-200 bg-white p-5 shadow-sm">
       <PanelHeader
         icon={<Megaphone className="h-4 w-4" />}
         title="Digitálny Rozhlas"
@@ -691,7 +691,7 @@ export function FarskyUrad({
   }
 
   return (
-    <section className="rounded-3xl border border-purple-200/60 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm dark:border-purple-500/20 dark:from-purple-500/10 dark:to-white/5">
+    <section className="rounded-2xl border border-purple-200 bg-white p-5 shadow-sm">
       <PanelHeader
         icon={<Church className="h-4 w-4" />}
         title="Farský Úrad"
@@ -802,7 +802,7 @@ export function RolePanels({ role }: { role: ProfileRole }) {
         />
       )}
       {role === "Uradnik" && (
-        <section className="rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10 dark:to-white/5">
+        <section className="rounded-2xl border border-orange-200 bg-white p-5 shadow-sm">
           <PanelHeader
             icon={<Megaphone className="h-4 w-4" />}
             title="Digitálny Rozhlas"
