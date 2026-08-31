@@ -1,4 +1,4 @@
-﻿import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -92,16 +92,16 @@ const InviteRedeemSection = lazy(async () => {
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "pred chv├ş─żou";
+  if (s < 60) return "pred chvíľou";
   if (s < 3600) return `pred ${Math.floor(s / 60)} min`;
   if (s < 86400) return `pred ${Math.floor(s / 3600)} h`;
-  return `pred ${Math.floor(s / 86400)} d┼łami`;
+  return `pred ${Math.floor(s / 86400)} dňami`;
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
   trh: "Trh",
   darovanie: "Darovanie",
-  sklad_ponuka: "N├íradie",
+  sklad_ponuka: "Náradie",
   sklad_dopyt: "Dopyt",
 };
 
@@ -140,20 +140,20 @@ export function ProfilScreen() {
   }, []);
 
   async function deleteItem(id: string) {
-    if (!confirm("Naozaj vymaza┼ą tento inzer├ít?")) return;
+    if (!confirm("Naozaj vymazať tento inzerát?")) return;
     const item = items.find((entry) => entry.id === id);
     setBusyItemId(id);
     if (item?.image_path) {
       try {
         await removeBucketObject("warehouse", item.image_path);
       } catch (error) {
-        console.error("Nepodarilo sa zmaza┼ą fotku inzer├ítu zo Storage:", error);
+        console.error("Nepodarilo sa zmazať fotku inzerátu zo Storage:", error);
       }
     }
     const { error } = await supabase.from("warehouse_items").delete().eq("id", id);
     setBusyItemId(null);
     if (error) {
-      alert("Nepodarilo sa vymaza┼ą: " + error.message);
+      alert("Nepodarilo sa vymazať: " + error.message);
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -168,7 +168,7 @@ export function ProfilScreen() {
       .eq("id", id);
     setBusyItemId(null);
     if (error) {
-      alert("Nepodarilo sa pred─║┼żi┼ą platnos┼ą: " + error.message);
+      alert("Nepodarilo sa predĺžiť platnosť: " + error.message);
       return;
     }
     setItems((prev) =>
@@ -189,8 +189,8 @@ export function ProfilScreen() {
   if (!profile) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm font-medium text-neutral-700">Profil sa nepodarilo na─Ź├şta┼ą.</p>
-        <p className="text-xs text-neutral-500">Sk├║s obnovi┼ą str├ínku alebo sa znova prihl├ísi┼ą.</p>
+        <p className="text-sm font-medium text-neutral-700">Profil sa nepodarilo načítať.</p>
+        <p className="text-xs text-neutral-500">Skús obnoviť stránku alebo sa znova prihlásiť.</p>
       </div>
     );
   }
@@ -212,7 +212,7 @@ export function ProfilScreen() {
         <div
           className={`flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start ${isWideAdminSection ? "xl:hidden" : ""}`}
         >
-          {/* Header card ÔÇö always visible */}
+          {/* Header card — always visible */}
           <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-800 to-neutral-600 text-xl font-semibold text-white">
@@ -229,7 +229,7 @@ export function ProfilScreen() {
                 </h2>
                 <div className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{profile.street || "ÔÇö"}</span>
+                  <span className="truncate">{profile.street || "—"}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <span
@@ -257,13 +257,13 @@ export function ProfilScreen() {
           <BanBanner profile={profile} />
         </div>
 
-        {/* Collapsible sections ÔÇö iba jedna otvoren├í naraz */}
+        {/* Collapsible sections — iba jedna otvorená naraz */}
         <div className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4">
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="admin"
               title="Admin panel"
-              description="Spr├íva pou┼ż├şvate─żov, rol├ş, obsahu a nastaven├ş obce."
+              description="Správa používateľov, rolí, obsahu a nastavení obce."
               isActive={openSection === "admin"}
               onToggle={() => setOpenSection((prev) => (prev === "admin" ? "" : "admin"))}
               onClose={() => setOpenSection("")}
@@ -277,8 +277,8 @@ export function ProfilScreen() {
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="moderation"
-              title="Moder├ícia"
-              description="R├Żchle schva─żovanie, kontrola hl├ísen├ş a z├ísahy moder├ítora."
+              title="Moderácia"
+              description="Rýchle schvaľovanie, kontrola hlásení a zásahy moderátora."
               isActive={openSection === "moderation"}
               onToggle={() => setOpenSection((prev) => (prev === "moderation" ? "" : "moderation"))}
               onClose={() => setOpenSection("")}
@@ -296,8 +296,8 @@ export function ProfilScreen() {
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="aktuality-admin"
-              title="Administr├ícia aktual├şt sekci├ş"
-              description="Spr├íva sekci├ş DHZ, O┼áK, D├┤chodcovia, Farnos┼ą a Slu┼żby."
+              title="Administrácia aktualít sekcií"
+              description="Správa sekcií DHZ, OŠK, Dôchodcovia, Farnosť a Služby."
               isActive={openSection === "aktuality-admin"}
               onToggle={() =>
                 setOpenSection((prev) => (prev === "aktuality-admin" ? "" : "aktuality-admin"))
@@ -312,8 +312,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="edit"
-            title="├Üprava profilu"
-            description="Meno, ulica a z├íkladn├ę profilov├ę ├║daje."
+            title="Úprava profilu"
+            description="Meno, ulica a základné profilové údaje."
             isActive={openSection === "edit"}
             onToggle={() => setOpenSection((prev) => (prev === "edit" ? "" : "edit"))}
             onClose={() => setOpenSection("")}
@@ -328,8 +328,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="settings"
-            title="Vzh─żad & notifik├ície"
-            description="T├ęma, ve─żkos┼ą p├şsma, upozornenia a pr├ívne inform├ície."
+            title="Vzhľad & notifikácie"
+            description="Téma, veľkosť písma, upozornenia a právne informácie."
             isActive={openSection === "settings"}
             onToggle={() => setOpenSection((prev) => (prev === "settings" ? "" : "settings"))}
             onClose={() => setOpenSection("")}
@@ -343,8 +343,8 @@ export function ProfilScreen() {
           {isAdmin && (
             <AccordionSection
               value="role"
-              title="Prepn├║┼ą moju rolu (admin)"
-              description="Testovanie opr├ívnen├ş a panelov pod─ża roly pou┼ż├şvate─ża."
+              title="Prepnúť moju rolu (admin)"
+              description="Testovanie oprávnení a panelov podľa roly používateľa."
               isActive={openSection === "role"}
               onToggle={() => setOpenSection((prev) => (prev === "role" ? "" : "role"))}
               onClose={() => setOpenSection("")}
@@ -355,8 +355,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="panels"
-            title="Panely rol├ş"
-            description="Preh─żad dostupn├Żch panelov a komunitn├Żch n├ístrojov."
+            title="Panely rolí"
+            description="Prehľad dostupných panelov a komunitných nástrojov."
             isActive={openSection === "panels"}
             onToggle={() => setOpenSection((prev) => (prev === "panels" ? "" : "panels"))}
             onClose={() => setOpenSection("")}
@@ -374,8 +374,8 @@ export function ProfilScreen() {
           {!profile.is_active_neighbor && (
             <AccordionSection
               value="activate"
-              title="­čöĹ M├í┼í invite k├│d od suseda?"
-              description="Aktivuj susedsk├ę funkcie pomocou poz├Żvacieho k├│du."
+              title="🔑 Máš invite kód od suseda?"
+              description="Aktivuj susedské funkcie pomocou pozývacieho kódu."
               isActive={openSection === "activate"}
               onToggle={() => setOpenSection((prev) => (prev === "activate" ? "" : "activate"))}
               onClose={() => setOpenSection("")}
@@ -390,8 +390,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="invite-neighbor"
-            title="Pozva┼ą suseda"
-            description="Generovanie a zdie─żanie poz├Żvac├şch k├│dov pre nov├Żch susedov."
+            title="Pozvať suseda"
+            description="Generovanie a zdieľanie pozývacích kódov pre nových susedov."
             isActive={openSection === "invite-neighbor"}
             onToggle={() =>
               setOpenSection((prev) => (prev === "invite-neighbor" ? "" : "invite-neighbor"))
@@ -403,8 +403,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="items"
-            title={`Moje inzer├íty (${items.length})`}
-            description="Spr├íva tvojich akt├şvnych inzer├ítov, expir├ície a zmazanie."
+            title={`Moje inzeráty (${items.length})`}
+            description="Správa tvojich aktívnych inzerátov, expirácie a zmazanie."
             isActive={openSection === "items"}
             onToggle={() => setOpenSection((prev) => (prev === "items" ? "" : "items"))}
             onClose={() => setOpenSection("")}
@@ -415,7 +415,7 @@ export function ProfilScreen() {
               </div>
             ) : items.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-neutral-300 bg-white/60 p-6 text-center text-sm text-neutral-500 dark:border-white/15 dark:bg-white/5">
-                Zatia─ż ste nepridali ┼żiadny inzer├ít.
+                Zatiaľ ste nepridali žiadny inzerát.
               </div>
             ) : (
               <ul className="flex flex-col gap-2">
@@ -446,20 +446,20 @@ export function ProfilScreen() {
                             </span>
                             <span>{timeAgo(item.created_at)}</span>
                             <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
-                              Platnos┼ą {getWarehouseLifetimeLabel(item.type as WarehouseItemType)}
+                              Platnosť {getWarehouseLifetimeLabel(item.type as WarehouseItemType)}
                             </span>
                             <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
                               Do {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
                             </span>
                             {isExpired && (
                               <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                                Expirovan├Ż
+                                Expirovaný
                               </span>
                             )}
                           </div>
                         </div>
                         <span className="shrink-0 text-xs font-semibold text-neutral-700 dark:text-neutral-200">
-                          {item.price > 0 ? `${item.price} ÔéČ` : "Zadarmo"}
+                          {item.price > 0 ? `${item.price} €` : "Zadarmo"}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -474,7 +474,7 @@ export function ProfilScreen() {
                             ) : (
                               <RefreshCw className="h-3 w-3" />
                             )}
-                            Zaktivova┼ą
+                            Zaktivovať
                           </button>
                         )}
                         <button
@@ -487,7 +487,7 @@ export function ProfilScreen() {
                           ) : (
                             <Trash2 className="h-3 w-3" />
                           )}
-                          Vymaza┼ą
+                          Vymazať
                         </button>
                       </div>
                     </li>
@@ -499,8 +499,8 @@ export function ProfilScreen() {
 
           <AccordionSection
             value="account"
-            title="├Ü─Źet & odhl├ísenie"
-            description="Odhl├ísenie, spr├íva ├║─Źtu a trval├ę zmazanie ├║─Źtu."
+            title="Účet & odhlásenie"
+            description="Odhlásenie, správa účtu a trvalé zmazanie účtu."
             isActive={openSection === "account"}
             onToggle={() => setOpenSection((prev) => (prev === "account" ? "" : "account"))}
             onClose={() => setOpenSection("")}
@@ -596,7 +596,7 @@ function AccordionSection({
                     type="button"
                     onClick={onClose}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-200 dark:hover:bg-white/20"
-                    aria-label="Zavrie┼ą panel"
+                    aria-label="Zavrieť panel"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -665,7 +665,7 @@ function ProfileEditForm({
       }}
       className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl"
     >
-      <h3 className="text-sm font-semibold text-foreground">├Üprava profilu</h3>
+      <h3 className="text-sm font-semibold text-foreground">Úprava profilu</h3>
       <div className="mt-3 space-y-3">
         <label className="block">
           <span className="text-xs font-medium text-muted-foreground">Meno</span>
@@ -681,7 +681,7 @@ function ProfileEditForm({
           <input
             value={street}
             onChange={(e) => setStreet(e.target.value)}
-            placeholder="Napr. Hlavn├í 12"
+            placeholder="Napr. Hlavná 12"
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
           />
         </label>
@@ -699,7 +699,7 @@ function ProfileEditForm({
         ) : (
           <Save className="h-4 w-4" />
         )}
-        {ok ? "Ulo┼żen├ę" : "Ulo┼żi┼ą zmeny"}
+        {ok ? "Uložené" : "Uložiť zmeny"}
       </button>
     </form>
   );
@@ -727,7 +727,7 @@ function NotificationSettings({ userId }: { userId: string }) {
         .maybeSingle();
 
       if (error) {
-        console.error("Chyba pri na─Ź├ştan├ş user_settings.notifications_enabled:", error);
+        console.error("Chyba pri načítaní user_settings.notifications_enabled:", error);
       }
 
       if (!cancelled) {
@@ -735,7 +735,7 @@ function NotificationSettings({ userId }: { userId: string }) {
         setPushLoading(false);
       }
     })().catch((error) => {
-      console.error("Chyba pri na─Ź├ştan├ş push nastaven├ş:", error);
+      console.error("Chyba pri načítaní push nastavení:", error);
       if (!cancelled) setPushLoading(false);
     });
 
@@ -763,7 +763,7 @@ function NotificationSettings({ userId }: { userId: string }) {
     );
 
     if (error) {
-      console.error("Chyba pri ukladan├ş user_settings.notifications_enabled:", error);
+      console.error("Chyba pri ukladaní user_settings.notifications_enabled:", error);
       setPushEnabled(prevValue);
       setPushSaving(false);
       return;
@@ -771,7 +771,7 @@ function NotificationSettings({ userId }: { userId: string }) {
 
     if (nextValue && typeof Notification !== "undefined" && Notification.permission === "granted") {
       syncPushSubscriptionSilently().catch((syncError) => {
-        console.error("Chyba pri tichej synchroniz├ícii push subskripcie:", syncError);
+        console.error("Chyba pri tichej synchronizácii push subskripcie:", syncError);
       });
     }
 
@@ -789,15 +789,15 @@ function NotificationSettings({ userId }: { userId: string }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Tmav├Ż re┼żim</p>
+          <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Tmavý režim</p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {darkMode ? "Akt├şvny tmav├Ż vzh─żad" : "Akt├şvny svetl├Ż vzh─żad"}
+            {darkMode ? "Aktívny tmavý vzhľad" : "Aktívny svetlý vzhľad"}
           </p>
         </div>
         <Switch
           checked={darkMode}
           onCheckedChange={(v) => setTheme(v ? "dark" : "light")}
-          aria-label="Prepn├║┼ą tmav├Ż re┼żim"
+          aria-label="Prepnúť tmavý režim"
         />
       </div>
 
@@ -811,10 +811,10 @@ function NotificationSettings({ userId }: { userId: string }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Vypn├║┼ą real-time notifik├ície
+            Vypnúť real-time notifikácie
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Master prep├şna─Ź ÔÇô vypne v┼íetky okam┼żit├ę upozornenia.
+            Master prepínač – vypne všetky okamžité upozornenia.
           </p>
         </div>
         <Switch checked={muted} onCheckedChange={setMuted} aria-label="Master toggle" />
@@ -830,10 +830,10 @@ function NotificationSettings({ userId }: { userId: string }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Push notifik├ície do zariadenia
+            Push notifikácie do zariadenia
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Be┼żn├ę push spr├ívy bud├║ re┼ípektova┼ą toto nastavenie, kritick├ę zostan├║ povolen├ę.
+            Bežné push správy budú rešpektovať toto nastavenie, kritické zostanú povolené.
           </p>
         </div>
         <Switch
@@ -848,14 +848,14 @@ function NotificationSettings({ userId }: { userId: string }) {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-              Ve─żkos┼ą p├şsma
+              Veľkosť písma
             </p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
               {fontScale === 1
-                ? "┼átandardn├ę p├şsmo"
+                ? "Štandardné písmo"
                 : fontScale === 2
-                  ? `Stredne zv├Ą─Ź┼íen├ę (${fontSizePx}px)`
-                  : `Ve─żk├ę p├şsmo (${fontSizePx}px)`}
+                  ? `Stredne zväčšené (${fontSizePx}px)`
+                  : `Veľké písmo (${fontSizePx}px)`}
             </p>
           </div>
           <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900">
@@ -869,7 +869,7 @@ function NotificationSettings({ userId }: { userId: string }) {
           max={3}
           step={1}
           onValueChange={handleFontScaleChange}
-          aria-label="Ve─żkos┼ą p├şsma"
+          aria-label="Veľkosť písma"
           className="py-2"
         />
 
@@ -885,7 +885,7 @@ function NotificationSettings({ userId }: { userId: string }) {
                   : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-white/10 dark:text-neutral-300"
               }`}
             >
-              {option.label} ┬Ě {option.description}
+              {option.label} · {option.description}
             </button>
           ))}
         </div>
@@ -893,7 +893,7 @@ function NotificationSettings({ userId }: { userId: string }) {
 
       <div className="mt-4 border-t border-neutral-200/70 pt-3 dark:border-white/10">
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-500">
-          Kateg├│rie
+          Kategórie
         </p>
         <ul className="space-y-2">
           {NOTIF_CATEGORIES.map((c) => (
@@ -946,6 +946,7 @@ function NeighborInviteSection({
       .select("id, code, created_at, used_by, used_at, shared_at, shared_via")
       .eq("created_by", userId)
       .is("used_by", null)
+      .is("shared_at", null)
       .order("created_at", { ascending: true })
       .limit(maxCodes);
     if (error) {
@@ -970,7 +971,6 @@ function NeighborInviteSection({
       return;
     }
     setCodes((data as InviteCodeRow[] | null) ?? []);
-    await loadOwnCodes();
   }
 
   async function markCodeAsShared(inviteId: string, via: string) {
@@ -983,18 +983,7 @@ function NeighborInviteSection({
       return false;
     }
     if (!data) return false;
-    const sharedAt = new Date().toISOString();
-    setCodes((prev) =>
-      prev.map((c) =>
-        c.id === inviteId
-          ? {
-              ...c,
-              shared_at: sharedAt,
-              shared_via: via,
-            }
-          : c,
-      ),
-    );
+    setCodes((prev) => prev.filter((c) => c.id !== inviteId));
     return true;
   }
 
@@ -1023,7 +1012,7 @@ function NeighborInviteSection({
 
   function inviteMessage(code: string) {
     const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-    return `Ahoj, poz├Żvam ┼ąa do susedskej aplik├ície. Pou┼żi poz├Żvac├ş k├│d: ${code}. Odkaz: ${appUrl}`;
+    return `Ahoj, pozývam ťa do susedskej aplikácie. Použi pozývací kód: ${code}. Odkaz: ${appUrl}`;
   }
 
   async function shareNative(code: string) {
@@ -1036,7 +1025,7 @@ function NeighborInviteSection({
     }
     try {
       await navigator.share({
-        title: "Pozva┼ą suseda",
+        title: "Pozvať suseda",
         text: msg,
       });
       await markCodeAsShared(row.id, "native");
@@ -1048,10 +1037,10 @@ function NeighborInviteSection({
   async function shareAll() {
     const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
     const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-    const text = `Poz├Żvam ┼ąa do susedskej aplik├ície. Vyber si k├│d:\n${all}\nOdkaz: ${appUrl}`;
+    const text = `Pozývam ťa do susedskej aplikácie. Vyber si kód:\n${all}\nOdkaz: ${appUrl}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Pozva┼ą suseda", text });
+        await navigator.share({ title: "Pozvať suseda", text });
         await markAllCodesAsShared("native-bulk");
         return;
       } catch {
@@ -1070,7 +1059,7 @@ function NeighborInviteSection({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Pozva┼ą suseda",
+          title: "Pozvať suseda",
           text: msg,
         });
         await markCodeAsShared(inviteId, "messenger-native");
@@ -1089,23 +1078,23 @@ function NeighborInviteSection({
     <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Pozva┼ą suseda</h3>
+          <h3 className="text-sm font-semibold text-foreground">Pozvať suseda</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Vygeneruj alebo na─Ź├ştaj a┼ż {maxCodes} akt├şvnych k├│dov a po┼íli ich susedom.
+            Vygeneruj alebo načítaj až {maxCodes} aktívnych kódov a pošli ich susedom.
           </p>
         </div>
         <button
           onClick={() => void loadOwnCodes()}
           className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
         >
-          Obnovi┼ą
+          Obnoviť
         </button>
       </div>
 
       {!canUse ? (
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <Lock className="h-3.5 w-3.5" />
-          Poz├Żvanie je dostupn├ę pre akt├şvneho suseda s invite k├│dom alebo pre rolu admin/starosta.
+          Pozývanie je dostupné pre aktívneho suseda s invite kódom alebo pre rolu admin/starosta.
         </div>
       ) : (
         <>
@@ -1116,14 +1105,14 @@ function NeighborInviteSection({
               className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Z├şska┼ą {maxCodes} k├│dov
+              Získať {maxCodes} kódov
             </button>
             {codes.length > 0 && (
               <button
                 onClick={() => void shareAll()}
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
               >
-                <Share2 className="h-3.5 w-3.5" /> Zdie─ża┼ą v┼íetky
+                <Share2 className="h-3.5 w-3.5" /> Zdieľať všetky
               </button>
             )}
           </div>
@@ -1136,35 +1125,29 @@ function NeighborInviteSection({
 
           {loading ? (
             <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Na─Ź├ştavam poz├Żvacie k├│dy...
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Načítavam pozývacie kódy...
             </div>
           ) : codes.length === 0 ? (
             <p className="mt-3 text-xs text-neutral-500">
-              Zatia─ż nem├í┼í akt├şvne poz├Żvacie k├│dy. Klikni na ÔÇ×Z├şska┼ą {maxCodes} k├│dov".
+              Zatiaľ nemáš aktívne pozývacie kódy. Klikni na „Získať {maxCodes} kódov".
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
               {codes.map((row) => {
                 const code = row.code;
-                const isShared = Boolean(row.shared_at);
                 const whatsappText = encodeURIComponent(inviteMessage(code));
                 return (
                 <li
                   key={row.id}
                   className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
                 >
-                  <span className={`flex-1 font-mono text-sm tracking-wider ${isShared ? "text-neutral-400 line-through" : "text-foreground"}`}>
+                  <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
                     {code}
                   </span>
-                  {isShared && (
-                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800">
-                      K├│d odoslan├Ż
-                    </span>
-                  )}
                   <button
                     onClick={() => copy(code)}
                     className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    aria-label="Kop├şrova┼ą"
+                    aria-label="Kopírovať"
                   >
                     {copied === code ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -1174,54 +1157,40 @@ function NeighborInviteSection({
                   </button>
                     <button
                       onClick={() => void shareNative(code)}
-                      disabled={isShared}
                       className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
                     >
-                      <Share2 className="h-3 w-3" /> {isShared ? "Odoslan├Ż" : "Zdie─ża┼ą"}
+                      <Share2 className="h-3 w-3" /> Zdieľať
                     </button>
-                  {isShared ? (
-                    <span className="rounded-full bg-emerald-300 px-2.5 py-1 text-[11px] font-semibold text-white/90">
-                      WhatsApp
-                    </span>
-                  ) : (
-                    <a
-                        href={`https://wa.me/?text=${whatsappText}`}
-                      onClick={() => {
-                        void markCodeAsShared(row.id, "whatsapp");
-                      }}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
-                    >
-                      WhatsApp
-                    </a>
-                  )}
+                  <a
+                      href={`https://wa.me/?text=${whatsappText}`}
+                    onClick={() => {
+                      void markCodeAsShared(row.id, "whatsapp");
+                    }}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                  >
+                    WhatsApp
+                  </a>
                   <button
                     type="button"
                     onClick={() => void shareMessenger(code, row.id)}
-                    disabled={isShared}
-                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                    title="Otvor├ş Messenger. Ak nat├şvne zdie─żanie nie je dostupn├ę, text sa skop├şruje do schr├ínky."
+                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    title="Otvorí Messenger. Ak natívne zdieľanie nie je dostupné, text sa skopíruje do schránky."
                   >
-                    {isShared ? "Messenger ┬Ě odoslan├Ż" : "Messenger"}
+                    Messenger
                   </button>
-                  {row.shared_at && (
-                    <span className="text-[10px] text-neutral-500">
-                      {row.shared_via ? `${row.shared_via} ┬Ě ` : ""}
-                      {new Date(row.shared_at).toLocaleDateString("sk-SK")}
-                    </span>
-                  )}
                 </li>
                 );
               })}
             </ul>
           )}
           <p className="mt-2 text-[11px] text-neutral-500">
-            Pri zdie─żan├ş cez Messenger sa pri nepodporovanom nat├şvnom zdie─żan├ş text automaticky
-            skop├şruje do schr├ínky.
+            Pri zdieľaní cez Messenger sa pri nepodporovanom natívnom zdieľaní text automaticky
+            skopíruje do schránky.
           </p>
           {copied === "__all__" && (
-            <p className="mt-2 text-[11px] text-emerald-700">Text so v┼íetk├Żmi k├│dmi je v schr├ínke.</p>
+            <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
           )}
         </>
       )}
@@ -1231,13 +1200,13 @@ function NeighborInviteSection({
 
 function mapInviteError(message: string) {
   if (/get_or_create_neighbor_invite_codes/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
-    return "V datab├íze e┼íte ch├Żba funkcia pre generovanie k├│dov. Spus┼ą najnov┼íiu Supabase migr├íciu a sk├║s znova.";
+    return "V databáze ešte chýba funkcia pre generovanie kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
   }
   if (/mark_invite_code_shared/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
-    return "V datab├íze e┼íte ch├Żba funkcia pre ozna─Źenie zdie─żan├Żch k├│dov. Spus┼ą najnov┼íiu Supabase migr├íciu a sk├║s znova.";
+    return "V databáze ešte chýba funkcia pre označenie zdieľaných kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
   }
   if (/forbidden|permission|42501/i.test(message)) {
-    return "Na generovanie pozv├ínok zatia─ż nem├í┼í opr├ívnenie. Potrebn├Ż je akt├şvny sused s invite k├│dom alebo rola admin/starosta.";
+    return "Na generovanie pozvánok zatiaľ nemáš oprávnenie. Potrebný je aktívny sused s invite kódom alebo rola admin/starosta.";
   }
   return message;
 }
@@ -1278,14 +1247,14 @@ function AccountActions({ userId }: { userId: string }) {
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-medium text-foreground shadow-sm hover:bg-accent/60"
         >
           <LogOut className="h-4 w-4" />
-          Odhl├ísi┼ą sa
+          Odhlásiť sa
         </button>
         <button
           onClick={() => setConfirmOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
         >
           <Trash2 className="h-4 w-4" />
-          Zmaza┼ą ├║─Źet
+          Zmazať účet
         </button>
         {err && <p className="text-center text-xs text-rose-600">{err}</p>}
       </div>
@@ -1293,14 +1262,14 @@ function AccountActions({ userId }: { userId: string }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Zmaza┼ą ├║─Źet natrvalo?</AlertDialogTitle>
+            <AlertDialogTitle>Zmazať účet natrvalo?</AlertDialogTitle>
             <AlertDialogDescription>
-              T├íto akcia je nezvratn├í. Odstr├íni sa tvoj prihlasovac├ş ├║─Źet aj naviazan├ę profily,
-              inzer├íty, spr├ívy a ─Ćal┼íie pou┼ż├şvate─żsk├ę d├íta, ktor├ę s├║ na ├║─Źet technicky naviazan├ę.
+              Táto akcia je nezvratná. Odstráni sa tvoj prihlasovací účet aj naviazané profily,
+              inzeráty, správy a ďalšie používateľské dáta, ktoré sú na účet technicky naviazané.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Zru┼íi┼ą</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>Zrušiť</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
@@ -1314,7 +1283,7 @@ function AccountActions({ userId }: { userId: string }) {
               ) : (
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
-              Vymaza┼ą
+              Vymazať
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1326,11 +1295,11 @@ function AccountActions({ userId }: { userId: string }) {
 // ---------- Role switcher (demo / role assignment) ----------
 
 const ROLE_OPTIONS: { value: ProfileRole; label: string; emoji: string }[] = [
-  { value: "Sused", label: "Sused", emoji: "­čĹĄ" },
-  { value: "VIP_Firma", label: "VIP Firma", emoji: "­čĆó" },
-  { value: "Starosta", label: "Starosta", emoji: "­čŤí´ŞĆ" },
-  { value: "Uradnik", label: "├Üradn├şk", emoji: "­čôó" },
-  { value: "Farar", label: "Far├ír", emoji: "ÔŤ¬" },
+  { value: "Sused", label: "Sused", emoji: "👤" },
+  { value: "VIP_Firma", label: "VIP Firma", emoji: "🏢" },
+  { value: "Starosta", label: "Starosta", emoji: "🛡️" },
+  { value: "Uradnik", label: "Úradník", emoji: "📢" },
+  { value: "Farar", label: "Farár", emoji: "⛪" },
 ];
 
 function RoleSwitcher({
@@ -1377,7 +1346,7 @@ function RoleSwitcher({
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">Rola v komunite</p>
-          <p className="text-xs text-muted-foreground">Odomkne ┼ípecializovan├Ż panel ni┼ż┼íie.</p>
+          <p className="text-xs text-muted-foreground">Odomkne špecializovaný panel nižšie.</p>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-5 gap-1.5">
@@ -1394,7 +1363,7 @@ function RoleSwitcher({
                   : "border-border bg-background text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground"
               } disabled:opacity-40`}
             >
-              <span className="text-base leading-none">{busy === o.value ? "ÔÇŽ" : o.emoji}</span>
+              <span className="text-base leading-none">{busy === o.value ? "…" : o.emoji}</span>
               {o.label}
             </button>
           );
