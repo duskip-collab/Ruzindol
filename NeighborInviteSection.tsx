@@ -1,0 +1,314 @@
+  userId: string;
+  canUse: boolean;
+  maxCodes: number;
+}) {
+  const [codes, setCodes] = useState<InviteCodeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function loadOwnCodes() {
+    setLoading(true);
+    setErr(null);
+    const { data, error } = await supabase
+      .from("invite_codes")
+      .select("id, code, created_at, used_by, used_at, shared_at, shared_via")
+      .eq("created_by", userId)
+      .is("used_by", null)
+      .order("created_at", { ascending: true })
+      .limit(maxCodes);
+    if (error) {
+      setErr(error.message);
+      setLoading(false);
+      return;
+    }
+    setCodes((data as InviteCodeRow[] | null) ?? []);
+    setLoading(false);
+  }
+
+  async function ensureCodes() {
+    if (!canUse) return;
+    setBusy(true);
+    setErr(null);
+    const { data, error } = await supabase.rpc("get_or_create_neighbor_invite_codes", {
+      _count: maxCodes,
+    });
+    setBusy(false);
+    if (error) {
+      setErr(mapInviteError(error.message));
+      return;
+    }
+    setCodes((data as InviteCodeRow[] | null) ?? []);
+    await loadOwnCodes();
+  }
+
+  async function markCodeAsShared(inviteId: string, via: string) {
+    const { data, error } = await supabase.rpc("mark_invite_code_shared", {
+      _invite_id: inviteId,
+      _via: via,
+    });
+    if (error) {
+      setErr(mapInviteError(error.message));
+      return false;
+    }
+    if (!data) return false;
+    const sharedAt = new Date().toISOString();
+    setCodes((prev) =>
+      prev.map((c) =>
+        c.id === inviteId
+          ? {
+              ...c,
+              shared_at: sharedAt,
+              shared_via: via,
+            }
+          : c,
+      ),
+    );
+    return true;
+  }
+
+  async function markAllCodesAsShared(via: string) {
+    const ids = codes.map((c) => c.id);
+    for (const id of ids) {
+      await markCodeAsShared(id, via);
+    }
+  }
+
+  useEffect(() => {
+    if (canUse) {
+      void ensureCodes();
+    } else {
+      void loadOwnCodes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, canUse, maxCodes]);
+
+  function copy(code: string) {
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(code);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  }
+
+  function inviteMessage(code: string) {
+    const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+    return `Ahoj, poz+Øvam +πa do susedskej aplik+Ìcie. Pou+øi poz+Øvac+∫ k+-d: ${code}. Odkaz: ${appUrl}`;
+  }
+
+  async function shareNative(code: string) {
+    const row = codes.find((c) => c.code === code);
+    if (!row) return;
+    const msg = inviteMessage(code);
+    if (!navigator.share) {
+      copy(msg);
+      return;
+    }
+    try {
+      await navigator.share({
+        title: "Pozva+π suseda",
+        text: msg,
+      });
+      await markCodeAsShared(row.id, "native");
+    } catch {
+      // User may cancel the native share sheet.
+    }
+  }
+
+  async function shareAll() {
+    const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
+    const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
+    const text = `Poz+Øvam +πa do susedskej aplik+Ìcie. Vyber si k+-d:\n${all}\nOdkaz: ${appUrl}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Pozva+π suseda", text });
+        await markAllCodesAsShared("native-bulk");
+        return;
+      } catch {
+        // User may cancel the native share sheet.
+      }
+    }
+    await navigator.clipboard?.writeText(text);
+    await markAllCodesAsShared("clipboard-bulk");
+    setCopied("__all__");
+    setTimeout(() => setCopied(null), 1500);
+  }
+
+  async function shareMessenger(code: string, inviteId: string) {
+    const msg = inviteMessage(code);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Pozva+π suseda",
+          text: msg,
+        });
+        await markCodeAsShared(inviteId, "messenger-native");
+        return;
+      } catch {
+        // User may cancel native share sheet.
+      }
+    }
+
+    await navigator.clipboard?.writeText(msg);
+    window.open("https://www.messenger.com/", "_blank", "noopener,noreferrer");
+    await markCodeAsShared(inviteId, "messenger");
+  }
+
+  return (
+    <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Pozva+π suseda</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Vygeneruj alebo na¶è+∫taj a+ø {maxCodes} akt+∫vnych k+-dov a po+Ìli ich susedom.
+          </p>
+        </div>
+        <button
+          onClick={() => void loadOwnCodes()}
+          className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
+        >
+          Obnovi+π
+        </button>
+      </div>
+
+      {!canUse ? (
+        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <Lock className="h-3.5 w-3.5" />
+          Poz+Øvanie je dostupn+Í pre akt+∫vneho suseda s invite k+-dom alebo pre rolu admin/starosta.
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => void ensureCodes()}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Z+∫ska+π {maxCodes} k+-dov
+            </button>
+            {codes.length > 0 && (
+              <button
+                onClick={() => void shareAll()}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Zdie¶øa+π v+Ìetky
+              </button>
+            )}
+          </div>
+
+          {err && (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {err}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Na¶è+∫tavam poz+Øvacie k+-dy...
+            </div>
+          ) : codes.length === 0 ? (
+            <p className="mt-3 text-xs text-neutral-500">
+              Zatia¶ø nem+Ì+Ì akt+∫vne poz+Øvacie k+-dy. Klikni na ‘«◊Z+∫ska+π {maxCodes} k+-dov".
+            </p>
+          ) : (
+            <ul className="mt-3 flex flex-col gap-2">
+              {codes.map((row) => {
+                const code = row.code;
+                const isShared = Boolean(row.shared_at);
+                const whatsappText = encodeURIComponent(inviteMessage(code));
+                return (
+                <li
+                  key={row.id}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
+                >
+                  <span className={`flex-1 font-mono text-sm tracking-wider ${isShared ? "text-neutral-400 line-through" : "text-foreground"}`}>
+                    {code}
+                  </span>
+                  {isShared && (
+                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800">
+                      K+-d odoslan+Ø
+                    </span>
+                  )}
+                  <button
+                    onClick={() => copy(code)}
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Kop+∫rova+π"
+                  >
+                    {copied === code ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                    <button
+                      onClick={() => void shareNative(code)}
+                      disabled={isShared}
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
+                    >
+                      <Share2 className="h-3 w-3" /> {isShared ? "Odoslan+Ø" : "Zdie¶øa+π"}
+                    </button>
+                  {isShared ? (
+                    <span className="rounded-full bg-emerald-300 px-2.5 py-1 text-[11px] font-semibold text-white/90">
+                      WhatsApp
+                    </span>
+                  ) : (
+                    <a
+                        href={`https://wa.me/?text=${whatsappText}`}
+                      onClick={() => {
+                        void markCodeAsShared(row.id, "whatsapp");
+                      }}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    >
+                      WhatsApp
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void shareMessenger(code, row.id)}
+                    disabled={isShared}
+                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Otvor+∫ Messenger. Ak nat+∫vne zdie¶øanie nie je dostupn+Í, text sa skop+∫ruje do schr+Ìnky."
+                  >
+                    {isShared ? "Messenger TÃ odoslan+Ø" : "Messenger"}
+                  </button>
+                  {row.shared_at && (
+                    <span className="text-[10px] text-neutral-500">
+                      {row.shared_via ? `${row.shared_via} TÃ ` : ""}
+                      {new Date(row.shared_at).toLocaleDateString("sk-SK")}
+                    </span>
+                  )}
+                </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="mt-2 text-[11px] text-neutral-500">
+            Pri zdie¶øan+∫ cez Messenger sa pri nepodporovanom nat+∫vnom zdie¶øan+∫ text automaticky
+            skop+∫ruje do schr+Ìnky.
+          </p>
+          {copied === "__all__" && (
+            <p className="mt-2 text-[11px] text-emerald-700">Text so v+Ìetk+Ømi k+-dmi je v schr+Ìnke.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function mapInviteError(message: string) {
+  if (/get_or_create_neighbor_invite_codes/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+    return "V datab+Ìze e+Ìte ch+Øba funkcia pre generovanie k+-dov. Spus+π najnov+Ìiu Supabase migr+Ìciu a sk+¶s znova.";
+  }
+  if (/mark_invite_code_shared/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+    return "V datab+Ìze e+Ìte ch+Øba funkcia pre ozna¶èenie zdie¶øan+Øch k+-dov. Spus+π najnov+Ìiu Supabase migr+Ìciu a sk+¶s znova.";
+  }
+  if (/forbidden|permission|42501/i.test(message)) {
+    return "Na generovanie pozv+Ìnok zatia¶ø nem+Ì+Ì opr+Ìvnenie. Potrebn+Ø je akt+∫vny sused s invite k+-dom alebo rola admin/starosta.";
+  }
+  return message;
+}
+
