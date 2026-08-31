@@ -367,7 +367,7 @@ function ListingList({ type, meta }: { type: ItemType; meta: (typeof SECTION_MET
               <article
                 key={item.id}
                 onClick={() => void navigate({ to: "/sklad/$itemId", params: { itemId: item.id } })}
-                className="app-card cursor-pointer rounded-2xl p-4 shadow-sm backdrop-blur-xl"
+                className="bg-white border border-slate-100 cursor-pointer rounded-2xl p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold leading-tight text-foreground">{item.title}</h3>

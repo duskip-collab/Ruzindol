@@ -1,0 +1,6 @@
+// Header.tsx (úprava paddingu a odstránenie červeného indikátora)
+// v src/components/Header.tsx:
+// 1. Zmenil som py-3 na py-2 v className hlavičky
+// 2. Odstránil som podmienené vykresľovanie červeného krúžku v Bell button (ak si to tak chcel) alebo opravil na menší a nenápadnejší indikátor
+
+// Pre `ProfilScreen.tsx` pridám ikony ku položkám (napr. Nastavenia, Odhlásenie, atď.)

@@ -52,7 +52,7 @@ export function Header({
   return (
     <header
       className={cn(
-        "glass-panel app-header-surface relative z-50 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-3",
+        "glass-panel app-header-surface relative z-50 flex shrink-0 items-center justify-between rounded-[1.75rem] px-4 py-2",
         className,
       )}
     >
