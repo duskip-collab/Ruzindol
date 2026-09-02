@@ -1,15 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Pencil } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
+import { WarehouseItemEditForm } from "@/components/WarehouseItemEditForm";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   formatWarehouseExpiry,
   getWarehouseLifetimeLabel,
   getWarehouseRemainingLabel,
   type WarehouseItemType,
 } from "@/lib/warehouse";
+import { z } from "zod";
+
+const detailSearchSchema = z.object({
+  returnTo: z.enum(["profil"]).optional(),
+  section: z.enum(["items"]).optional(),
+});
 
 type WarehouseItemDetail = {
   id: string;
@@ -18,6 +27,13 @@ type WarehouseItemDetail = {
   description: string;
   price: number;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
+  image_url_4: string | null;
+  image_path: string | null;
+  image_path_2: string | null;
+  image_path_3: string | null;
+  image_path_4: string | null;
   created_at: string;
   expires_at: string | null;
   profiles: {
@@ -28,18 +44,23 @@ type WarehouseItemDetail = {
 };
 
 export const Route = createFileRoute("/_authenticated/sklad/$itemId")({
+  validateSearch: detailSearchSchema,
   component: WarehouseItemDetailScreen,
 });
 
 function WarehouseItemDetailScreen() {
   const { itemId } = Route.useParams();
-  const { data: item, error, isLoading } = useQuery({
+  const { returnTo, section } = Route.useSearch();
+  const backToProfile = returnTo === "profil" && section === "items";
+  const { userId } = useCurrentUser();
+  const [editing, setEditing] = useState(false);
+  const { data: item, error, isLoading, refetch } = useQuery({
     queryKey: ["warehouse-item", itemId],
     queryFn: async () => {
       const { data, error: queryError } = await supabase
         .from("warehouse_items")
         .select(
-          "id, type, title, description, price, image_url, created_at, expires_at, profiles(name, street, is_active_neighbor)",
+          "id, user_id, type, title, description, price, image_url, image_url_2, image_url_3, image_url_4, image_path, image_path_2, image_path_3, image_path_4, created_at, expires_at, profiles(name, street, is_active_neighbor)",
         )
         .eq("id", itemId)
         .maybeSingle();
@@ -57,9 +78,7 @@ function WarehouseItemDetailScreen() {
     return (
       <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">Položku sa nepodarilo načítať.</p>
-        <Link to="/sklad" className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium">
-          <ArrowLeft className="h-4 w-4" /> Späť do Skladu
-        </Link>
+        <BackLink backToProfile={backToProfile} />
       </div>
     );
   }
@@ -69,11 +88,13 @@ function WarehouseItemDetailScreen() {
 
   return (
     <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto p-4 pb-24 md:px-6 md:py-6">
-      <Link to="/sklad" className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium">
-        <ArrowLeft className="h-4 w-4" /> Späť do Skladu
-      </Link>
+      <BackLink backToProfile={backToProfile} />
       <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
-        {item.image_url && <img src={item.image_url} alt={item.title} className="max-h-[52vh] w-full rounded-2xl object-cover" />}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[item.image_url, item.image_url_2, item.image_url_3, item.image_url_4]
+            .filter((url): url is string => Boolean(url))
+            .map((url) => <img key={url} src={url} alt={item.title} className="max-h-[52vh] w-full rounded-2xl object-cover" />)}
+        </div>
         <div className="mt-5 flex items-start justify-between gap-4">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{item.title}</h1>
           <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">{priceLabel}</span>
@@ -92,7 +113,45 @@ function WarehouseItemDetailScreen() {
           {item.profiles?.street && <p className="mt-1 text-sm text-muted-foreground">{item.profiles.street}</p>}
         </div>
         <p className="mt-5 text-xs text-muted-foreground">Expiruje {formatWarehouseExpiry(itemType, item.created_at, item.expires_at)}</p>
+        {userId === item.user_id && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="btn-primary-glow mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+          >
+            <Pencil className="h-4 w-4" /> Upraviť inzerát
+          </button>
+        )}
       </article>
+      {editing && (
+        <WarehouseItemEditForm
+          item={item}
+          onClose={() => setEditing(false)}
+          onSaved={async () => {
+            await refetch();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function BackLink({ backToProfile }: { backToProfile: boolean }) {
+  if (backToProfile) {
+    return (
+      <Link
+        to="/profil"
+        search={{ section: "items" }}
+        className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium"
+      >
+        <ArrowLeft className="h-4 w-4" /> Späť do Profilu
+      </Link>
+    );
+  }
+
+  return (
+    <Link to="/sklad" className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium">
+      <ArrowLeft className="h-4 w-4" /> Späť do Skladu
+    </Link>
   );
 }

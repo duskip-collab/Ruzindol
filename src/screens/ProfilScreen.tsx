@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "@tanstack/react-router";
 import {
   MapPin,
   Shield,
@@ -63,6 +64,9 @@ type Item = {
   created_at: string;
   expires_at: string | null;
   image_path: string | null;
+  image_path_2: string | null;
+  image_path_3: string | null;
+  image_path_4: string | null;
 };
 
 type InviteCodeRow = {
@@ -129,18 +133,22 @@ const CATEGORY_LABEL: Record<string, string> = {
 export function ProfilScreen() {
   const { profile, userId, loading, refresh } = useCurrentUser();
   const { isAdmin } = useIsAdmin(userId);
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<Item[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
-  const [openSection, setOpenSection] = useState<string>("");
+  const [openSection, setOpenSection] = useState<string>(() => {
+    const section = new URLSearchParams(window.location.search).get("section");
+    return section === "items" ? section : "";
+  });
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   async function loadItems(uid: string) {
     setItemsLoading(true);
     const { data } = await supabase
       .from("warehouse_items")
-      .select("id, type, title, price, created_at, expires_at, image_path")
+      .select("id, type, title, price, created_at, expires_at, image_path, image_path_2, image_path_3, image_path_4")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     setItems((data as Item[] | null) ?? []);
@@ -164,9 +172,13 @@ export function ProfilScreen() {
     if (!confirm("Naozaj vymazať tento inzerát?")) return;
     const item = items.find((entry) => entry.id === id);
     setBusyItemId(id);
-    if (item?.image_path) {
+    if (item) {
       try {
-        await removeBucketObject("warehouse", item.image_path);
+        await Promise.all(
+          [item.image_path, item.image_path_2, item.image_path_3, item.image_path_4].map((path) =>
+            removeBucketObject("warehouse", path),
+          ),
+        );
       } catch (error) {
         console.error("Nepodarilo sa zmazať fotku inzerátu zo Storage:", error);
       }
@@ -463,6 +475,25 @@ export function ProfilScreen() {
                   return (
                     <li
                       key={item.id}
+                      onClick={() =>
+                        void navigate({
+                          to: "/sklad/$itemId",
+                          params: { itemId: item.id },
+                          search: { returnTo: "profil", section: "items" },
+                        })
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          void navigate({
+                            to: "/sklad/$itemId",
+                            params: { itemId: item.id },
+                            search: { returnTo: "profil", section: "items" },
+                          });
+                        }
+                      }}
+                      role="link"
+                      tabIndex={0}
                       className="flex flex-col gap-2 rounded-2xl border border-neutral-200/60 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
                     >
                       <div className="flex items-start gap-3">
@@ -498,7 +529,10 @@ export function ProfilScreen() {
                       <div className="flex flex-wrap gap-2">
                         {isExpired && (
                           <button
-                            onClick={() => void reactivateItem(item.id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void reactivateItem(item.id);
+                            }}
                             disabled={busy}
                             className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
                           >
@@ -511,7 +545,10 @@ export function ProfilScreen() {
                           </button>
                         )}
                         <button
-                          onClick={() => void deleteItem(item.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteItem(item.id);
+                          }}
                           disabled={busy}
                           className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-transparent"
                         >
