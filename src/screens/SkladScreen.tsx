@@ -133,9 +133,14 @@ export function SkladScreen() {
   const { profile } = useCurrentUser();
   const isActive = profile?.is_active_neighbor ?? false;
   const { counts, loading: countsLoading } = useActiveWarehouseCounts();
-  const [section, setSection] = useState<Section | null>(null);
+  const [section, setSection] = useState<Section | null>(() => {
+    const value = new URLSearchParams(window.location.search).get("section");
+    return value === "trh" || value === "darovanie" || value === "poziciovna" ? value : null;
+  });
   const [formOpen, setFormOpen] = useState(false);
-  const [pozTab, setPozTab] = useState<PoziciovnaTab>("ponuka");
+  const [pozTab, setPozTab] = useState<PoziciovnaTab>(() =>
+    new URLSearchParams(window.location.search).get("tab") === "dopyt" ? "dopyt" : "ponuka",
+  );
 
   if (section === null) {
     return (
@@ -363,7 +368,17 @@ function ListingList({ type }: { type: ItemType; meta: (typeof SECTION_META)[Sec
             return (
               <article
                 key={item.id}
-                onClick={() => void navigate({ to: "/sklad/$itemId", params: { itemId: item.id } })}
+                onClick={() =>
+                  void navigate({
+                    to: "/sklad/$itemId",
+                    params: { itemId: item.id },
+                    search: {
+                      returnTo: "sklad",
+                      section: type === "trh" || type === "darovanie" ? type : "poziciovna",
+                      tab: type === "sklad_ponuka" ? "ponuka" : undefined,
+                    },
+                  })
+                }
                 className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/90"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -561,6 +576,7 @@ function ListingDetailModal({
 }
 
 function DopytList() {
+  const navigate = useNavigate();
   const { items, loading } = useItems("sklad_dopyt");
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
@@ -604,6 +620,15 @@ function DopytList() {
         return (
           <article
             key={d.id}
+            onClick={() =>
+              void navigate({
+                to: "/sklad/$itemId",
+                params: { itemId: d.id },
+                search: { returnTo: "sklad", section: "poziciovna", tab: "dopyt" },
+              })
+            }
+            role="link"
+            tabIndex={0}
             className="rounded-2xl border-2 border-amber-300/70 bg-amber-50/70 p-4 shadow-sm backdrop-blur-xl dark:border-amber-500/40 dark:bg-amber-950/40"
           >
             <div className="mb-2 flex items-center justify-between gap-2">

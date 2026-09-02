@@ -16,8 +16,9 @@ import {
 import { z } from "zod";
 
 const detailSearchSchema = z.object({
-  returnTo: z.enum(["profil"]).optional(),
-  section: z.enum(["items"]).optional(),
+  returnTo: z.enum(["profil", "sklad"]).optional(),
+  section: z.enum(["items", "trh", "darovanie", "poziciovna"]).optional(),
+  tab: z.enum(["ponuka", "dopyt"]).optional(),
 });
 
 type WarehouseItemDetail = {
@@ -51,8 +52,9 @@ export const Route = createFileRoute("/_authenticated/sklad/$itemId")({
 
 function WarehouseItemDetailScreen() {
   const { itemId } = Route.useParams();
-  const { returnTo, section } = Route.useSearch();
+  const { returnTo, section, tab } = Route.useSearch();
   const backToProfile = returnTo === "profil" && section === "items";
+  const backToWarehouse = returnTo === "sklad" && Boolean(section);
   const { userId } = useCurrentUser();
   const [editing, setEditing] = useState(false);
   const { data: item, error, isLoading, refetch } = useQuery({
@@ -83,7 +85,7 @@ function WarehouseItemDetailScreen() {
     return (
       <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Položku sa nepodarilo načítať.</p>
-        <BackLink backToProfile={backToProfile} />
+        <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
       </div>
     );
   }
@@ -94,7 +96,7 @@ function WarehouseItemDetailScreen() {
   return (
     <div className="fixed inset-0 z-[200] overflow-y-auto bg-background text-foreground">
       <div className="mx-auto min-h-full w-full max-w-5xl p-4 pb-24 md:px-8 md:py-8">
-        <BackLink backToProfile={backToProfile} />
+        <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
         <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
         <div className="grid gap-3 sm:grid-cols-2">
           {[item.image_url, item.image_url_2, item.image_url_3, item.image_url_4]
@@ -143,7 +145,17 @@ function WarehouseItemDetailScreen() {
   );
 }
 
-function BackLink({ backToProfile }: { backToProfile: boolean }) {
+function BackLink({
+  backToProfile,
+  backToWarehouse,
+  section,
+  tab,
+}: {
+  backToProfile: boolean;
+  backToWarehouse: boolean;
+  section?: "items" | "trh" | "darovanie" | "poziciovna";
+  tab?: "ponuka" | "dopyt";
+}) {
   if (backToProfile) {
     return (
       <Link
@@ -152,6 +164,18 @@ function BackLink({ backToProfile }: { backToProfile: boolean }) {
         className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium"
       >
         <ArrowLeft className="h-4 w-4" /> Späť do Profilu
+      </Link>
+    );
+  }
+
+  if (backToWarehouse && section && section !== "items") {
+    return (
+      <Link
+        to="/sklad"
+        search={{ section, tab: section === "poziciovna" ? tab ?? "ponuka" : undefined }}
+        className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium"
+      >
+        <ArrowLeft className="h-4 w-4" /> Späť do Skladu
       </Link>
     );
   }
