@@ -6,9 +6,11 @@ type Props = {
   value: CompressedImage | null;
   onChange: (img: CompressedImage | null) => void;
   label?: string;
+  multiple?: boolean;
+  onChangeMany?: (images: CompressedImage[]) => void;
 };
 
-export function ImageInput({ value, onChange, label = "Fotka" }: Props) {
+export function ImageInput({ value, onChange, label = "Fotka", multiple = false, onChangeMany }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +37,20 @@ export function ImageInput({ value, onChange, label = "Fotka" }: Props) {
     }
   }
 
+  async function handleFiles(files: FileList) {
+    setError(null);
+    setBusy(true);
+    try {
+      const compressed = await Promise.all(Array.from(files).map((file) => compressImage(file)));
+      onChangeMany?.(compressed);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kompresia zlyhala.");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
   const kb = (n: number) => `${(n / 1024).toFixed(0)} KB`;
 
   return (
@@ -45,10 +61,15 @@ export function ImageInput({ value, onChange, label = "Fotka" }: Props) {
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple={multiple}
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void handleFile(f);
+          if (multiple && e.target.files?.length) {
+            void handleFiles(e.target.files);
+          } else {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+          }
         }}
       />
 

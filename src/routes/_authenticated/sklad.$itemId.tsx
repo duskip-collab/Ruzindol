@@ -22,6 +22,7 @@ const detailSearchSchema = z.object({
 
 type WarehouseItemDetail = {
   id: string;
+  user_id: string;
   type: WarehouseItemType;
   title: string;
   description: string;

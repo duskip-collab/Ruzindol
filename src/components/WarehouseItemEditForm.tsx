@@ -52,15 +52,18 @@ export function WarehouseItemEditForm({
   const [saved, setSaved] = useState(false);
 
   const photoCount = storedPhotos.length + newPhotos.length;
-  const addPhoto = (photo: CompressedImage | null) => {
-    if (!photo) return;
-    if (photoCount >= MAX_PHOTOS) {
-      URL.revokeObjectURL(photo.previewUrl);
-      setError("Inzerát môže obsahovať najviac 4 fotky.");
-      return;
-    }
-    setError(null);
-    setNewPhotos((current) => [...current, photo]);
+  const addPhotos = (images: CompressedImage[]) => {
+    setNewPhotos((current) => {
+      const available = Math.max(0, MAX_PHOTOS - storedPhotos.length - current.length);
+      const accepted = images.slice(0, available);
+      images.slice(available).forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      if (accepted.length < images.length) {
+        setError("Inzerát môže obsahovať najviac 4 fotky.");
+      } else {
+        setError(null);
+      }
+      return [...current, ...accepted];
+    });
   };
 
   async function submit(event: React.FormEvent) {
@@ -141,7 +144,15 @@ export function WarehouseItemEditForm({
                 <div key={photo.previewUrl} className="relative"><img src={photo.previewUrl} alt="Nová fotka" className="h-28 w-full rounded-xl object-cover" /><button type="button" onClick={() => { URL.revokeObjectURL(photo.previewUrl); setNewPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index)); }} aria-label="Odstrániť fotku" className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"><X className="h-4 w-4" /></button></div>
               ))}
             </div>
-            {photoCount < MAX_PHOTOS && <ImageInput value={null} onChange={addPhoto} label="Pridať fotografiu" />}
+            {photoCount < MAX_PHOTOS && (
+              <ImageInput
+                value={null}
+                onChange={(image) => image && addPhotos([image])}
+                onChangeMany={addPhotos}
+                multiple
+                label="Pridať fotografie"
+              />
+            )}
           </div>
           {item.type !== "darovanie" && <label className="text-sm font-medium">Cena (€)<input type="number" min={0} step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm" /></label>}
           {error && <p className="text-sm text-rose-600">{error}</p>}

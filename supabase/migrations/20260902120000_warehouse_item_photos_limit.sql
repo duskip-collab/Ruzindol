@@ -1,5 +1,30 @@
 BEGIN;
 
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('warehouse', 'warehouse', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS warehouse_images_read ON storage.objects;
+CREATE POLICY warehouse_images_read
+  ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'warehouse');
+
+DROP POLICY IF EXISTS warehouse_images_insert ON storage.objects;
+CREATE POLICY warehouse_images_insert
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'warehouse'
+    AND owner = auth.uid()
+  );
+
+DROP POLICY IF EXISTS warehouse_images_delete ON storage.objects;
+CREATE POLICY warehouse_images_delete
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'warehouse'
+    AND owner = auth.uid()
+  );
+
 ALTER TABLE public.warehouse_items
   ADD COLUMN IF NOT EXISTS image_url_2 TEXT,
   ADD COLUMN IF NOT EXISTS image_url_3 TEXT,
