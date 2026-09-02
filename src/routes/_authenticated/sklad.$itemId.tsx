@@ -71,12 +71,16 @@ function WarehouseItemDetailScreen() {
   });
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background text-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   if (error || !item) {
     return (
-      <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Položku sa nepodarilo načítať.</p>
         <BackLink backToProfile={backToProfile} />
       </div>
@@ -87,9 +91,10 @@ function WarehouseItemDetailScreen() {
   const priceLabel = item.price > 0 ? `${item.price} €` : "Zadarmo";
 
   return (
-    <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto p-4 pb-24 md:px-6 md:py-6">
-      <BackLink backToProfile={backToProfile} />
-      <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
+    <div className="fixed inset-0 z-[200] overflow-y-auto bg-background text-foreground">
+      <div className="mx-auto min-h-full w-full max-w-5xl p-4 pb-24 md:px-8 md:py-8">
+        <BackLink backToProfile={backToProfile} />
+        <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
         <div className="grid gap-3 sm:grid-cols-2">
           {[item.image_url, item.image_url_2, item.image_url_3, item.image_url_4]
             .filter((url): url is string => Boolean(url))
@@ -122,7 +127,8 @@ function WarehouseItemDetailScreen() {
             <Pencil className="h-4 w-4" /> Upraviť inzerát
           </button>
         )}
-      </article>
+        </article>
+      </div>
       {editing && (
         <WarehouseItemEditForm
           item={item}
