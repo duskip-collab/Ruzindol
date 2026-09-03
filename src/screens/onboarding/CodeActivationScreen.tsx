@@ -15,6 +15,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   const [code, setCode] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   async function submit(raw?: string) {
     const val = (raw ?? code).trim();
@@ -34,41 +35,48 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white pt-safe pb-safe px-safe overflow-hidden">
+    <div className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white overflow-hidden" style={{
+      paddingTop: 'max(env(safe-area-inset-top), 0px)',
+      paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
+      paddingLeft: 'max(env(safe-area-inset-left), 0px)',
+      paddingRight: 'max(env(safe-area-inset-right), 0px)',
+    }}>
       {/* Horná Hlavička s Tlačidlom "Späť" */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 sm:py-4 border-b border-white/5 flex-shrink-0">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur hover:bg-white/20 transition-colors active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium backdrop-blur hover:bg-white/20 transition-colors active:scale-95"
           aria-label="Späť"
         >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Späť</span>
+          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden xs:inline">Späť</span>
         </button>
-        <span className="text-xs font-semibold tracking-widest text-emerald-400 uppercase">POZÝVACÍ KÓD</span>
-        <div className="w-[72px]" />
+        <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-emerald-400 uppercase">POZÝVACÍ KÓD</span>
+        <div className="w-[64px] sm:w-[72px]" />
       </div>
 
-      {/* Hlavný Obsah — Centrovaný */}
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-6">
+      {/* Hlavný Obsah — Centrovaný, Scrollovateľný na Android */}
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 sm:py-6 overflow-y-auto">
         {/* Mode Switcher: QR vs. Ručne */}
-        <div className="mb-8 flex justify-center w-full">
+        <div className={`mb-6 sm:mb-8 flex justify-center w-full transition-all ${keyboardOpen ? 'mb-4' : ''}`}>
           <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur gap-1">
             <button
               onClick={() => setMode("qr")}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 transition font-medium ${
+              className={`flex items-center gap-1.5 rounded-full px-3 sm:px-4 py-2 transition font-medium ${
                 mode === "qr" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
               }`}
             >
-              <QrCode className="h-3.5 w-3.5" /> QR kód
+              <QrCode className="h-3.5 w-3.5" /> 
+              <span className="hidden xs:inline">QR kód</span>
             </button>
             <button
               onClick={() => setMode("manual")}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 transition font-medium ${
+              className={`flex items-center gap-1.5 rounded-full px-3 sm:px-4 py-2 transition font-medium ${
                 mode === "manual" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
               }`}
             >
-              <Keyboard className="h-3.5 w-3.5" /> Ručne
+              <Keyboard className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Ručne</span>
             </button>
           </div>
         </div>
@@ -109,7 +117,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               transition={{ duration: 0.3 }}
               className="w-full max-w-[320px] text-center"
             >
-              <h2 className="text-xl font-bold tracking-tight text-white mb-2">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white mb-2">
                 Aktivácia účtu
               </h2>
               <p className="text-xs text-slate-400 mb-6 leading-relaxed">
@@ -118,10 +126,18 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onFocus={() => setKeyboardOpen(true)}
+                onBlur={() => setKeyboardOpen(false)}
                 placeholder="XXXX-XXXXX"
                 maxLength={20}
                 autoComplete="off"
-                className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-xl tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
+                inputMode="text"
+                className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-base sm:text-xl tracking-[0.15em] sm:tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
+                style={{
+                  fontSize: '16px', // Prevencia Android zoom pri focus
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                }}
               />
             </motion.div>
           )}
@@ -134,17 +150,17 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-6 flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-xs text-rose-200 border border-rose-500/30"
+              className="mt-4 sm:mt-6 flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-xs text-rose-200 border border-rose-500/30"
             >
-              <X className="h-3.5 w-3.5" />
-              {err}
+              <X className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{err}</span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Spodné Tlačidlo — Fixované nad Bottom Nav */}
-      <div className="w-full px-4 py-4 border-t border-white/5 flex-shrink-0 bg-gradient-to-t from-slate-950 to-transparent">
+      {/* Spodné Tlačidlo — Fixované, Bezpečné pre Android Nav Bar */}
+      <div className="w-full px-4 py-3 sm:py-4 border-t border-white/5 flex-shrink-0 bg-gradient-to-t from-slate-950 to-transparent">
         <button
           onClick={() => void submit()}
           disabled={busy || (mode === "manual" && code.trim().length < 4)}
