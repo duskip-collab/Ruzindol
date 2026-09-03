@@ -52,6 +52,12 @@ type SubscribeToPushOptions = {
 async function savePushSubscription(subscription: PushSubscription, userId: string) {
   const subJson = subscription.toJSON();
 
+  // Overenie, že userId je dostupný
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    console.error("Chyba: userId nie je dostupný alebo je neplatný!");
+    return false;
+  }
+
   if (!subscription.endpoint) {
     console.error("Subscription neobsahuje endpoint!");
     return false;
@@ -134,14 +140,20 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       return false;
     }
 
-    const saved = await savePushSubscription(subscription, session.user.id);
+    const userId = session.user.id;
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      console.error("Chyba: session.user.id nie je dostupný alebo je neplatný!");
+      return false;
+    }
+
+    const saved = await savePushSubscription(subscription, userId);
     if (saved) return true;
 
     // Backward-compatible fallback for older schema (single subscription per user).
     const serializedSubscription = subscription.toJSON();
     const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
       {
-        user_id: session.user.id,
+        user_id: userId,
         subscription: serializedSubscription,
       },
       { onConflict: "user_id" },

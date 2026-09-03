@@ -209,7 +209,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUserId(session?.user?.id ?? null);
-      if (!session?.user) {
+      if (!session?.user || !session.user.id) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
         setNotifications([]);
