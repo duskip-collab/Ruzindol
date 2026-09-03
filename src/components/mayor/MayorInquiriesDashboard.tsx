@@ -240,7 +240,7 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                     e.stopPropagation();
                     onClose();
                   }}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm border border-slate-200 dark:border-slate-700"
                   aria-label="Zatvoriť"
                 >
                   <X className="h-5 w-5" />

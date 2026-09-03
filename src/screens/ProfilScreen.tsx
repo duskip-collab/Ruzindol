@@ -347,9 +347,7 @@ export function ProfilScreen() {
               onClose={() => setOpenSection("")}
             >
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                onClick={() => {
                   setIsDashboardOpen(true);
                 }}
                 className="w-full inline-flex items-center justify-between rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-semibold hover:bg-emerald-700 transition-colors active:scale-95"
