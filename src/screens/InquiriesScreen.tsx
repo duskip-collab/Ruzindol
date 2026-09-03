@@ -44,6 +44,22 @@ export function InquiriesScreen() {
 
   useEffect(() => {
     void loadInquiries();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('mayor-inquiries-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'mayor_inquiries' },
+        () => {
+          void loadInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   const filteredInquiries = inquiries.filter((inq) => {

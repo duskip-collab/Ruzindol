@@ -826,12 +826,11 @@ export function RolePanels({ role }: { role: ProfileRole }) {
         />
       )}
 
-      {profile?.is_official && (
+      {/* {profile?.is_official && (
         <div className="space-y-6">
-          {/* Samostatný panel pre Podnety od občanov */}
           <MayorInquiriesPanel />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
