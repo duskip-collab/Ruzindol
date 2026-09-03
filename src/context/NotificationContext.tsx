@@ -147,7 +147,7 @@ function classifyAnnouncementPriority(priority: string | null): NotifCategory {
   return "obecne";
 }
 
-export function NotificationProvider({ children }: { children: ReactNode }) {
+function NotificationProvider({ children }: { children: ReactNode }) {
   const [muted, setMutedState] = useState<boolean>(getInitialMuted);
   const [categories, setCategories] =
     useState<Record<NotifCategory, boolean>>(getInitialCategories);
@@ -161,6 +161,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const catsRef = useRef(categories);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationChannelRef = useRef<RealtimeChannel | null>(null);
+  
+  // ✅ POISTKA PROTI SÚBEHU — Deduplicate push sync pri multiple auth events
+  const isPushSyncInProgressRef = useRef(false);
+  const lastPushSyncTimeRef = useRef(0);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -218,7 +222,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Monitoruj zmeny autentifikácie (login/logout/token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       // Bezpečné získanie userId z session
       const userId = session?.user?.id;
       if (userId && typeof userId === "string") {
@@ -233,14 +237,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
         setNotifications([]);
+        isPushSyncInProgressRef.current = false; // Reset flag
         return;
       }
 
+      // ✅ DEDUPLICATE LOGIKA — Max 1x za 3 sekundy
       // Ak sú push notifikácie dostupné a povolené, synchronizuj subskripciu
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        syncPushSubscriptionSilently().catch((error) => {
-          console.error("[NotificationContext] Push sync chyba:", error);
-        });
+      const now = Date.now();
+      if (
+        typeof Notification !== "undefined" && 
+        Notification.permission === "granted" &&
+        !isPushSyncInProgressRef.current &&
+        now - lastPushSyncTimeRef.current > 3000
+      ) {
+        isPushSyncInProgressRef.current = true;
+        lastPushSyncTimeRef.current = now;
+        
+        syncPushSubscriptionSilently()
+          .catch((error) => {
+            console.error("[NotificationContext] Push sync chyba:", error);
+          })
+          .finally(() => {
+            isPushSyncInProgressRef.current = false;
+          });
       }
     });
 

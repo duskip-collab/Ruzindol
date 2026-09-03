@@ -4,6 +4,12 @@ import { isIosDevice, isStandaloneMode } from "@/lib/pwa";
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
 let swPushMessageListenerAttached = false;
 
+// ✅ POISTKA PROTI SÚBEHU — Bráni paralelným upsertom a getSubscription()
+let isSavingSubscription = false;
+let isGettingSubscription = false;
+let cachedSubscription: PushSubscription | null = null;
+let subscriptionCacheTime = 0;
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -50,69 +56,210 @@ type SubscribeToPushOptions = {
 };
 
 async function savePushSubscription(subscription: PushSubscription, userId: string) {
-  const subJson = subscription.toJSON();
-
-  // Overenie, že userId je dostupný
-  if (!userId || typeof userId !== "string" || userId.trim() === "") {
-    console.error("Chyba: userId nie je dostupný alebo je neplatný!");
+  // ✅ POISTKA — Ak už jedno ukladanie prebieha, ignorujeme ďalšie volanie
+  if (isSavingSubscription) {
+    console.info("[Push] Ukladanie už prebieha, paralelné volanie je ignorované");
     return false;
   }
 
-  if (!subscription.endpoint) {
-    console.error("Subscription neobsahuje endpoint!");
-    return false;
-  }
+  isSavingSubscription = true;
 
-  const payload = {
-    user_id: userId,
-    endpoint: subscription.endpoint,
-    p256dh: subJson.keys?.p256dh || null,
-    auth: subJson.keys?.auth || null,
-    subscription: subJson,
-    user_agent: navigator.userAgent,
-    last_seen_at: new Date().toISOString(),
-  };
+  try {
+    const subJson = subscription.toJSON();
 
-  // Upsert s (user_id, endpoint) unique constraint
-  const { error } = await (supabase as any)
-    .from("user_push_subscriptions")
-    .upsert(payload, { 
-      onConflict: "user_id,endpoint"  // ← Composite key na upsert
-    });
-
-  if (error) {
-    console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-    // Fallback: skúsiť DELETE a INSERT
-    try {
-      await supabase
-        .from("user_push_subscriptions")
-        .delete()
-        .eq("user_id", userId)
-        .eq("endpoint", subscription.endpoint);
-
-      const { error: insertError } = await supabase
-        .from("user_push_subscriptions")
-        .insert(payload);
-
-      if (insertError) {
-        console.error("Fallback INSERT zlyhalo:", insertError);
-        return false;
-      }
-      console.log("Push subskripcia úspešne uložená cez fallback (DELETE+INSERT).");
-      return true;
-    } catch (fallbackError) {
-      console.error("Fallback stratégia zlyhala:", fallbackError);
+    // Overenie, že userId je dostupný
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
+      console.error("Chyba: userId nie je dostupný alebo je neplatný!");
       return false;
     }
-  }
 
-  console.log("Push subskripcia úspešne uložená.");
-  return true;
+    if (!subscription.endpoint) {
+      console.error("Subscription neobsahuje endpoint!");
+      return false;
+    }
+
+    const payload = {
+      user_id: userId,
+      endpoint: subscription.endpoint,
+      p256dh: subJson.keys?.p256dh || null,
+      auth: subJson.keys?.auth || null,
+      subscription: subJson,
+      user_agent: navigator.userAgent,
+      last_seen_at: new Date().toISOString(),
+    };
+
+    // ✅ Upsert s (user_id, endpoint) unique constraint — Správny composite key!
+    const { error } = await (supabase as any)
+      .from("user_push_subscriptions")
+      .upsert(payload, { 
+        onConflict: "user_id,endpoint"  // ← Composite UNIQUE constraint (user_id + endpoint)
+      });
+
+    if (error) {
+      console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
+      // Fallback: skúsiť DELETE a INSERT
+      try {
+        await (supabase as any)
+          .from("user_push_subscriptions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("endpoint", subscription.endpoint);
+
+        const { error: insertError } = await (supabase as any)
+          .from("user_push_subscriptions")
+          .insert(payload);
+
+        if (insertError) {
+          console.error("Fallback INSERT zlyhalo:", insertError);
+          return false;
+        }
+        console.log("Push subskripcia úspešne uložená cez fallback (DELETE+INSERT).");
+        return true;
+      } catch (fallbackError) {
+        console.error("Fallback stratégia zlyhala:", fallbackError);
+        return false;
+      }
+    }
+
+    console.log("Push subskripcia úspešne uložená.");
+    return true;
+  } finally {
+    // ✅ Vždy resetni flag, aj keď dôjde k chybe
+    isSavingSubscription = false;
+  }
 }
 
 export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
   try {
     const { requestPermission = true } = options;
+
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
+      return false;
+    }
+
+    if (!PUBLIC_VAPID_KEY) {
+      console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
+      return false;
+    }
+
+    if (typeof Notification === "undefined") {
+      console.warn("Notification API nie je podporované v tomto prehliadači.");
+      return false;
+    }
+
+    if (requestPermission && isIosDevice() && !isStandaloneMode()) {
+      console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
+      return false;
+    }
+
+    const permission = requestPermission
+      ? await Notification.requestPermission()
+      : Notification.permission;
+
+    if (permission !== "granted") {
+      console.warn("Používateľ nepovolil notifikácie.");
+      return false;
+    }
+
+    const registration = await getPushServiceWorkerRegistration();
+    await navigator.serviceWorker.ready;
+    ensurePushMessageListener();
+
+    // ✅ DEDUPLICATE LOGIKA pre getSubscription() — max 1x za sekundu
+    const now = Date.now();
+    if (isGettingSubscription || (cachedSubscription && now - subscriptionCacheTime < 1000)) {
+      console.info("[Push] Používam cached subscription, paralelné getSubscription ignorované");
+      const subscription = cachedSubscription;
+      
+      if (!subscription) {
+        console.error("[Push] Cached subscription je null, nemôžeme pokračovať");
+        return false;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        console.warn("[Push] Session nie je dostupná pre cached subscription");
+        return false;
+      }
+
+      return await savePushSubscription(subscription, session.user.id);
+    }
+
+    isGettingSubscription = true;
+    try {
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
+        });
+      }
+
+      // Cache subscription na 1 sekundu
+      cachedSubscription = subscription;
+      subscriptionCacheTime = Date.now();
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.warn("[Push] Žiadna session dostupná");
+        return false;
+      }
+
+      if (!session.user) {
+        console.warn("[Push] Session existuje, ale nemá user objekt");
+        return false;
+      }
+
+      const userId = session.user.id;
+
+      // Triple validation userId
+      if (!userId) {
+        console.error("[Push] Chyba: session.user.id je undefined alebo null");
+        return false;
+      }
+
+      if (typeof userId !== "string") {
+        console.error("[Push] Chyba: session.user.id nie je string, je:", typeof userId);
+        return false;
+      }
+
+      if (userId.trim() === "") {
+        console.error("[Push] Chyba: session.user.id je prázdny string");
+        return false;
+      }
+
+      const saved = await savePushSubscription(subscription, userId);
+      if (saved) return true;
+
+      // Backward-compatible fallback for older schema (single subscription per user).
+      const serializedSubscription = subscription.toJSON();
+      const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
+        {
+          user_id: userId,
+          subscription: serializedSubscription,
+        },
+        { onConflict: "user_id" },
+      );
+
+      if (error && !isMissingEndpointColumnOrConstraint(error)) {
+        console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
+        return false;
+      }
+
+      if (error) return false;
+      console.log("Push notifikácie úspešne aktivované a uložené!");
+      return true;
+    } finally {
+      isGettingSubscription = false;
+    }
+  } catch (error) {
+    console.error("Neočakávaná chyba pri subscribeToPush:", error);
+    return false;
+  }
+}
 
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
