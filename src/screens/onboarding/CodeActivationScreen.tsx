@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { QrCode, Keyboard, Check, Loader2, X } from "lucide-react";
+import { QrCode, Keyboard, Check, Loader2, X, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppMode } from "@/context/AppModeContext";
 
@@ -10,7 +10,6 @@ type Props = {
 };
 
 export function CodeActivationScreen({ onClose, onActivated }: Props) {
-  // Keep local AppMode in sync for legacy UI (invite generator etc.)
   const { activateCode } = useAppMode();
   const [mode, setMode] = useState<"qr" | "manual">("manual");
   const [code, setCode] = useState("");
@@ -19,22 +18,14 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
 
   async function submit(raw?: string) {
     const val = (raw ?? code).trim();
-    if (!val) {
-      setErr("Zadaj kód.");
-      return;
-    }
-    setBusy(true);
-    setErr(null);
+    if (!val) { setErr("Zadaj kód."); return; }
+    setBusy(true); setErr(null);
     try {
-      const { data, error } = await supabase.rpc("redeem_invite_code", {
-        _code: val,
-      });
+      const { data, error } = await supabase.rpc("redeem_invite_code", { _code: val });
       if (error) throw new Error(mapError(error.message));
       if (!data) throw new Error("Neplatný pozývací kód.");
-      // Mirror to local AppMode so legacy UI reflects verified state.
       activateCode(val);
-      if (onActivated) await onActivated();
-      else if (onClose) onClose();
+      if (onActivated) await onActivated(); else if (onClose) onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Aktivácia zlyhala.");
     } finally {
@@ -43,45 +34,26 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end bg-[#0e0e0e]/90 p-0 text-white md:items-center md:justify-center md:p-6">
-      <div className="flex h-full w-full flex-col justify-between overflow-y-auto bg-[#121212] p-6 md:h-auto md:max-h-[92vh] md:max-w-xl md:rounded-[2rem] md:border md:border-white/10 md:shadow-2xl">
-        <div className="flex items-center justify-between px-2 pt-4 md:px-4 md:pt-6">
-          <span className="text-xs font-medium tracking-wider text-white/60">AKTIVÁCIA</span>
-          {onClose ? (
-            <button
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 backdrop-blur hover:bg-white/20"
-              aria-label="Zavrieť"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : (
-            <span className="w-9" />
-          )}
-        </div>
+    <div className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white pt-safe pb-safe overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/5">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur hover:bg-white/20 transition-colors active:scale-95"
+          aria-label="Späť"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Späť</span>
+        </button>
+        <span className="text-xs font-semibold tracking-widest text-emerald-400 uppercase">POZÝVACÍ KÓD</span>
+        <div className="w-[72px]" />
+      </div>
 
-        <div className="mt-4 flex justify-center">
+      <div className="flex flex-1 flex-col items-center justify-between p-6 max-w-md mx-auto w-full">
+        <div className="mt-2 flex justify-center w-full">
           <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur">
             <button
               onClick={() => setMode("qr")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
-                mode === "qr" ? "bg-white text-neutral-900" : "text-white/80"
-              }`}
-            >
-              <QrCode className="h-3.5 w-3.5" /> QR kód
-            </button>
-            <button
-              onClick={() => setMode("manual")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
-                mode === "manual" ? "bg-white text-neutral-900" : "text-white/80"
-              }`}
-            >
-              <Keyboard className="h-3.5 w-3.5" /> Ručne
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-1 flex-col items-center justify-center px-2 pb-10 pt-2 md:px-6 md:pb-12">
+        <div className="flex w-full flex-1 flex-col items-center justify-center my-auto py-6">
           {mode === "qr" ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -98,7 +70,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
                 animate={{ top: ["12%", "88%", "12%"] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               />
-              <div className="absolute inset-x-0 bottom-2 text-center text-[10px] text-white/60">
+              <div className="absolute inset-x-0 bottom-3 text-center text-[10px] text-white/60 font-medium">
                 Nasmeruj kameru na QR pozývačku
               </div>
             </motion.div>
@@ -106,50 +78,42 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-sm"
+              className="w-full text-center"
             >
-              <label className="text-xs font-medium tracking-wider text-white/60">
-                POZÝVACÍ KÓD
-              </label>
+              <h2 className="text-xl font-bold tracking-tight text-white mb-2">
+                Aktivácia účtu
+              </h2>
+              <p className="text-xs text-slate-400 mb-6 max-w-[280px] mx-auto leading-relaxed">
+                Zadaj 10-miestny kód, ktorý ti poskytol tvoj sused, starosta alebo administrátor.
+              </p>
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="XXXX-XXXXX"
                 maxLength={20}
                 autoComplete="off"
-                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-4 text-center font-mono text-lg tracking-[0.3em] text-white placeholder:text-white/30 focus:border-white/60 focus:outline-none"
+                className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-xl tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
               />
-              <p className="mt-2 text-center text-[11px] text-white/50">
-                Kód, ktorý ti dal sused, starosta alebo admin.
-              </p>
             </motion.div>
           )}
 
           {err && (
-            <div className="mt-4 flex items-center gap-2 rounded-full bg-rose-500/20 px-3 py-1.5 text-xs text-rose-100">
-              <X className="h-3 w-3" />
+            <div className="mt-6 flex items-center gap-2 rounded-full bg-rose-500/20 px-4 py-2 text-xs text-rose-200 border border-rose-500/30">
+              <X className="h-3.5 w-3.5" />
               {err}
             </div>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 px-2 pb-6 md:px-6 md:pb-8">
+        <div className="w-full pt-2 pb-4">
           <button
             onClick={() => void submit()}
             disabled={busy || (mode === "manual" && code.trim().length < 4)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-semibold text-neutral-900 shadow-lg disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 disabled:opacity-50 hover:bg-emerald-400 transition-all active:scale-[0.98]"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Aktivovať prístup
           </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="w-full rounded-2xl border border-white/20 bg-transparent py-3 text-sm font-medium text-white/80 hover:bg-white/10"
-            >
-              ← Späť
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -162,3 +126,21 @@ function mapError(msg: string): string {
   if (/authenticat/i.test(msg)) return "Prihlás sa a skús znova.";
   return msg;
 }
+
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 transition font-medium ${
+                mode === "qr" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
+              }`}
+            >
+              <QrCode className="h-3.5 w-3.5" /> QR kód
+            </button>
+            <button
+              onClick={() => setMode("manual")}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 transition font-medium ${
+                mode === "manual" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
+              }`}
+            >
+              <Keyboard className="h-3.5 w-3.5" /> Ručne
+            </button>
+          </div>
+        </div>
+
