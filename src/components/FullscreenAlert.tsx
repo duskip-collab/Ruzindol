@@ -66,21 +66,40 @@ export function FullscreenAlert() {
       showAlert((data?.[0] as Alert | undefined) ?? null);
     })();
 
-    const channel = supabase
-      .channel("fullscreen-critical-alerts")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "announcements", filter: "priority=eq.vystraha" },
-        (payload) => {
-          const row = payload.new as Alert;
-          showAlert(row);
-        },
-      )
-      .subscribe();
+    let channel: any = null;
+
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel("fullscreen-critical-alerts", {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel.on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "announcements", filter: "priority=eq.vystraha" },
+          (payload) => {
+            const row = payload.new as Alert;
+            showAlert(row);
+          }
+        );
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('Alert realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up alert realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
       mounted = false;
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, []);
 

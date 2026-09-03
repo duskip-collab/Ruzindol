@@ -243,18 +243,38 @@ export function NastenkaScreen() {
   }, [loadPosts]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("nastenka-posts-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        void loadPosts();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, () => {
-        void loadPosts();
-      })
-      .subscribe();
+    let channel: any = null;
+
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel("nastenka-posts-sync", {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel
+          .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
+            void loadPosts();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, () => {
+            void loadPosts();
+          });
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('Nastenka realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up nastenka realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [loadPosts]);
 

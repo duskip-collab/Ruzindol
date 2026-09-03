@@ -183,20 +183,46 @@ export function MojeSpravyScreen() {
   // Realtime: new chats / new messages → refresh list.
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`inbox-${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chats" }, (payload) => {
-        const row = payload.new as ChatRow;
-        if (row.buyer_id === userId || row.seller_id === userId) void load();
-      })
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => void load(),
-      )
-      .subscribe();
+    
+    let channel: any = null;
+    
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel(`inbox-${userId}`, {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chats" },
+            (payload) => {
+              const row = payload.new as ChatRow;
+              if (row.buyer_id === userId || row.seller_id === userId) void load();
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "messages" },
+            () => void load()
+          );
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('Inbox realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up inbox realtime:', err);
+      }
+    };
+
+    void setupRealtime();
+
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [userId, load]);
 

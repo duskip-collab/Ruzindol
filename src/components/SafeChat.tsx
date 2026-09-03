@@ -53,21 +53,40 @@ export function SafeChat({
       setLoading(false);
     })();
 
-    const channel = supabase
-      .channel(`chat-${chatId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
-        (payload) => {
-          const m = payload.new as ChatMessage;
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-        },
-      )
-      .subscribe();
+    let channel: any = null;
+
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel(`chat-${chatId}`, {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel.on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
+          (payload) => {
+            const m = payload.new as ChatMessage;
+            setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+          }
+        );
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('Chat realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up chat realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
       mounted = false;
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [chatId]);
 

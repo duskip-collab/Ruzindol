@@ -66,25 +66,44 @@ export function useAppSettings(): UseAppSettingsReturn {
     void fetchSettings();
 
     // Unique channel topic name per hook instance to prevent duplicate channel collisions
+    let channel: any = null;
     const topic = `app_settings_${Math.random().toString(36).substring(2, 9)}`;
-    const channel = supabase
-      .channel(topic)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.elections_enabled' },
-        (payload) => {
-          if (payload.new && 'value' in payload.new) {
-            const rawVal = (payload.new as { value: unknown }).value;
-            const val = typeof rawVal === 'boolean' ? rawVal : rawVal === 'true' || rawVal === true;
-            setElectionsEnabledState(Boolean(val));
-          }
-        }
-      );
 
-    channel.subscribe();
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel(topic, {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'app_settings', filter: 'key=eq.elections_enabled' },
+            (payload) => {
+              if (payload.new && 'value' in payload.new) {
+                const rawVal = (payload.new as { value: unknown }).value;
+                const val = typeof rawVal === 'boolean' ? rawVal : rawVal === 'true' || rawVal === true;
+                setElectionsEnabledState(Boolean(val));
+              }
+            }
+          );
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('App settings realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up app settings realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, []);
 

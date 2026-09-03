@@ -318,23 +318,6 @@ export function ProfilScreen() {
 
         {/* Collapsible sections — iba jedna otvorená naraz */}
         <div className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4">
-          {(isAdmin || profile.role === "Starosta") && (
-            <AccordionSection
-              value="admin"
-              title="Admin panel"
-              description="Správa používateľov, rolí, obsahu a nastavení obce."
-              icon={<Building2 className="h-4 w-4" />}
-              iconClass="bg-indigo-600"
-              isActive={openSection === "admin"}
-              onToggle={() => setOpenSection((prev) => (prev === "admin" ? "" : "admin"))}
-              onClose={() => setOpenSection("")}
-              itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
-              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
-            >
-              {openSection === "admin" && <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />}
-            </AccordionSection>
-          )}
-
           {(isAdmin || profile.role === "Starosta" || profile.role === "Uradnik") && (
             <AccordionSection
               value="inquiries"

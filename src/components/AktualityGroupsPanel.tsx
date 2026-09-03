@@ -313,25 +313,55 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
   }, [loadData]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("aktuality-groups-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_announcements" },
-        () => {
-          void loadData();
-        },
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "group_admins" }, () => {
-        void loadData();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        void loadData();
-      })
-      .subscribe();
+    let channel: any = null;
+
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel("aktuality-groups-realtime", {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "group_announcements" },
+            () => {
+              void loadData();
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "group_admins" },
+            () => {
+              void loadData();
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "profiles" },
+            () => {
+              void loadData();
+            }
+          );
+
+        await channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Aktuality groups realtime subscribed');
+          } else if (status !== 'SUBSCRIBING') {
+            console.warn('Aktuality realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up aktuality realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, [loadData]);
 

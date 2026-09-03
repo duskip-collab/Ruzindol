@@ -46,19 +46,39 @@ export function InquiriesScreen() {
     void loadInquiries();
 
     // Realtime subscription
-    const channel = supabase
-      .channel('mayor-inquiries-live')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'mayor_inquiries' },
-        () => {
-          void loadInquiries();
-        }
-      )
-      .subscribe();
+    let channel: any = null;
+    
+    const setupRealtime = async () => {
+      try {
+        channel = supabase.channel('mayor-inquiries-live', {
+          config: { broadcast: { ack: true } }
+        });
+        
+        channel
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'mayor_inquiries' },
+            () => {
+              void loadInquiries();
+            }
+          );
+
+        await channel.subscribe((status: string) => {
+          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
+            console.warn('Inquiries realtime status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up inquiries realtime:', err);
+      }
+    };
+
+    void setupRealtime();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, []);
 

@@ -427,21 +427,32 @@ function RoleAssigner() {
       void load();
     }, 0);
 
-    let channel: any;
+    let channel: any = null;
 
     const setupChannel = async () => {
-      // Create and subscribe to the channel
-      channel = supabase.channel("admin-users-live");
-      
-      channel
-        .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-          void load();
-        })
-        .subscribe((status) => {
-           if (status !== 'SUBSCRIBED') {
-             console.warn('Realtime subscription status:', status);
-           }
+      try {
+        channel = supabase.channel("admin-users-live", {
+          config: { broadcast: { ack: true } }
         });
+        
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => {
+            void load();
+          }
+        );
+
+        await channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Admin panel realtime subscribed');
+          } else if (status !== 'SUBSCRIBING') {
+            console.warn('Realtime subscription status:', status);
+          }
+        });
+      } catch (err) {
+        console.error('Error setting up realtime channel:', err);
+      }
     };
 
     void setupChannel();
