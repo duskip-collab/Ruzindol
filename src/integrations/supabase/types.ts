@@ -424,6 +424,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      mayor_inquiries: {
+        Row: {
+          answer: string | null;
+          answered_at: string | null;
+          answered_by: string | null;
+          body: string;
+          category: string;
+          created_at: string;
+          id: string;
+          image_url: string | null;
+          is_anonymous_public: boolean;
+          is_public: boolean;
+          latitude: number | null;
+          longitude: number | null;
+          status: string;
+          title: string;
+          user_id: string;
+        };
+        Insert: {
+          answer?: string | null;
+          answered_at?: string | null;
+          answered_by?: string | null;
+          body: string;
+          category: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          is_anonymous_public?: boolean;
+          is_public?: boolean;
+          latitude?: number | null;
+          longitude?: number | null;
+          status?: string;
+          title: string;
+          user_id: string;
+        };
+        Update: {
+          answer?: string | null;
+          answered_at?: string | null;
+          answered_by?: string | null;
+          body?: string;
+          category?: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          is_anonymous_public?: boolean;
+          is_public?: boolean;
+          latitude?: number | null;
+          longitude?: number | null;
+          status?: string;
+          title?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mayor_inquiries_answered_by_fkey";
+            columns: ["answered_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mayor_inquiries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       posts: {
         Row: {
           category: string | null;

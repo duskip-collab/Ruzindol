@@ -19,8 +19,7 @@ export interface MayorInquiry {
   answered_by?: string | null;
   created_at: string;
   profiles?: {
-    full_name?: string | null;
-    name?: string | null;
+    name: string;
   } | null;
 }
 
@@ -187,8 +186,8 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
         <span>Odoslané: {formatDate(inquiry.created_at)}</span>
         {inquiry.is_anonymous_public && inquiry.is_public ? (
           <span>Autor: Overený občan</span>
-        ) : inquiry.profiles?.name || inquiry.profiles?.full_name ? (
-          <span>Autor: {inquiry.profiles.name || inquiry.profiles.full_name}</span>
+        ) : inquiry.profiles?.name ? (
+          <span>Autor: {inquiry.profiles.name}</span>
         ) : null}
       </div>
     </div>

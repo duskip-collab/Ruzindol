@@ -30,18 +30,23 @@ export function InquiriesScreen() {
 
       const { data, error } = await supabase
         .from('mayor_inquiries')
-        .select('*, profiles:user_id(full_name, name)')
+        .select('*, profiles:user_id(name)')
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Supabase chyba pri načítaní podnetov:', error.message, error.details, error.hint);
+        console.error('❌ Supabase chyba pri načítaní verejných podnetov:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         setInquiries([]);
         return;
       }
 
       if (data) {
-        setInquiries(data as unknown as MayorInquiry[]);
+        setInquiries(data);
       } else {
         setInquiries([]);
       }
