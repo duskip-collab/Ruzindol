@@ -244,39 +244,52 @@ export function NastenkaScreen() {
 
   useEffect(() => {
     let channel: any = null;
+    let isMounted = true;
 
     const setupRealtime = async () => {
       try {
-        channel = supabase.channel("nastenka-posts-sync", {
+        // Unikátne meno kanála s timestamp
+        const channelName = `nastenka-live-${Date.now()}`;
+        channel = supabase.channel(channelName, {
           config: { broadcast: { ack: true } }
         });
         
+        // Všetky .on() PRED .subscribe()
         channel
           .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-            void loadPosts();
+            if (isMounted) {
+              void loadPosts();
+            }
           })
           .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, () => {
-            void loadPosts();
+            if (isMounted) {
+              void loadPosts();
+            }
           });
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
             console.warn('Nastenka realtime status:', status);
           }
         });
       } catch (err) {
-        console.error('Error setting up nastenka realtime:', err);
+        if (isMounted) {
+          console.error('Error setting up nastenka realtime:', err);
+        }
       }
     };
 
     void setupRealtime();
 
+    // Bezpečný cleanup - odpojenie kanála
     return () => {
+      isMounted = false;
       if (channel) {
         void supabase.removeChannel(channel);
       }
     };
-  }, [loadPosts]);
+  }, []);
 
   async function toggleLike(postId: string) {
     if (!userId) return;
