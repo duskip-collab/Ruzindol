@@ -155,17 +155,27 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user) throw new Error('Musíte byť prihlásený.');
 
-      // Check if inquiries are enabled in app settings
-      const { data: settings, error: settingsError } = await supabase
-        .from('app_settings')
-        .select('inquiries_enabled')
-        .single();
+      // Check if inquiries are enabled in app settings (with fallback)
+      let inquiriesEnabled = true;
+      try {
+        const { data: settings, error: settingsError } = await supabase
+          .from('app_settings')
+          .select('inquiries_enabled')
+          .maybeSingle();
 
-      if (settingsError) {
-        console.warn('Warning fetching app_settings:', settingsError);
+        if (settingsError && settingsError.code !== 'PGRST116') {
+          // Log unexpected errors (but not "no rows" errors)
+          console.warn('Warning fetching app_settings:', settingsError);
+        }
+
+        // If settings exist and inquiries_enabled is explicitly false, disable
+        inquiriesEnabled = settings?.inquiries_enabled !== false;
+      } catch (err) {
+        // Fallback to enabled if any error occurs
+        console.warn('Error checking inquiries_enabled, using fallback (true):', err);
+        inquiriesEnabled = true;
       }
 
-      const inquiriesEnabled = settings?.inquiries_enabled !== false;
       if (!inquiriesEnabled) {
         throw new Error('Podnety sú v tejto chvíli vypnuté.');
       }

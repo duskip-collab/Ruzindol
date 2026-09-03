@@ -28,6 +28,7 @@ import {
   RefreshCw,
   X,
   ChevronDown,
+  MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
@@ -37,6 +38,7 @@ import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
 import { AdminPanel } from "@/components/AdminPanel";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
+import { MayorInquiriesDashboard } from "@/components/mayor/MayorInquiriesDashboard";
 import { useTheme } from "@/context/ThemeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
@@ -143,6 +145,8 @@ export function ProfilScreen() {
     return section === "items" ? section : "";
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [showInquiriesDashboard, setShowInquiriesDashboard] = useState(false);
+  const [pendingInquiriesCount, setPendingInquiriesCount] = useState(0);
 
   async function loadItems(uid: string) {
     setItemsLoading(true);
@@ -167,6 +171,28 @@ export function ProfilScreen() {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, []);
+
+  // Load pending inquiries count for admin/starosta
+  useEffect(() => {
+    if (!profile || !['admin', 'starosta', 'uradnik'].includes((profile.role || '').toLowerCase())) {
+      return;
+    }
+
+    const loadPendingCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('mayor_inquiries')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        setPendingInquiriesCount(count || 0);
+      } catch (err) {
+        console.error('Error loading pending inquiries count:', err);
+      }
+    };
+
+    void loadPendingCount();
+  }, [profile]);
 
   async function deleteItem(id: string) {
     if (!confirm("Naozaj vymazať tento inzerát?")) return;
@@ -292,6 +318,51 @@ export function ProfilScreen() {
 
         {/* Collapsible sections — iba jedna otvorená naraz */}
         <div className="flex w-full flex-col gap-2 overflow-visible pb-24 pr-1 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-y-contain md:pb-28 xl:min-h-[28rem] xl:pb-4">
+          {(isAdmin || profile.role === "Starosta") && (
+            <AccordionSection
+              value="admin"
+              title="Admin panel"
+              description="Správa používateľov, rolí, obsahu a nastavení obce."
+              icon={<Building2 className="h-4 w-4" />}
+              iconClass="bg-indigo-600"
+              isActive={openSection === "admin"}
+              onToggle={() => setOpenSection((prev) => (prev === "admin" ? "" : "admin"))}
+              onClose={() => setOpenSection("")}
+              itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
+              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
+            >
+              {openSection === "admin" && <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />}
+            </AccordionSection>
+          )}
+
+          {(isAdmin || profile.role === "Starosta" || profile.role === "Uradnik") && (
+            <AccordionSection
+              value="inquiries"
+              title="Podnety od občanov"
+              description="Správa a odpovede na podnety od komunity."
+              icon={<MessageSquare className="h-4 w-4" />}
+              iconClass="bg-emerald-600"
+              isActive={openSection === "inquiries"}
+              onToggle={() => setOpenSection((prev) => (prev === "inquiries" ? "" : "inquiries"))}
+              onClose={() => setOpenSection("")}
+            >
+              <button
+                onClick={() => setShowInquiriesDashboard(true)}
+                className="w-full inline-flex items-center justify-between rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-semibold hover:bg-emerald-700 transition-colors active:scale-95"
+              >
+                <span className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Otvoriť dashboard
+                </span>
+                {pendingInquiriesCount > 0 && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-white text-emerald-600 h-6 w-6 text-xs font-bold">
+                    {pendingInquiriesCount}
+                  </span>
+                )}
+              </button>
+            </AccordionSection>
+          )}
+
           {(isAdmin || profile.role === "Starosta") && (
             <AccordionSection
               value="admin"
@@ -579,6 +650,12 @@ export function ProfilScreen() {
           </AccordionSection>
         </div>
       </div>
+
+      {/* Mayor Inquiries Dashboard */}
+      <MayorInquiriesDashboard
+        isOpen={showInquiriesDashboard}
+        onClose={() => setShowInquiriesDashboard(false)}
+      />
     </div>
   );
 }
