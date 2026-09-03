@@ -40,6 +40,7 @@ import { LegalInfoPanel } from "@/components/LegalDocuments";
 import { AdminPanel } from "@/components/AdminPanel";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { MayorInquiriesDashboard } from "@/components/mayor/MayorInquiriesDashboard";
+import { CodeActivationScreen } from "@/screens/onboarding/CodeActivationScreen";
 import { useTheme } from "@/context/ThemeContext";
 import { FONT_SCALE_OPTIONS, useFontScale } from "@/context/FontScaleContext";
 import { useNotifications, NOTIF_CATEGORIES } from "@/context/NotificationContext";
@@ -144,6 +145,10 @@ export function ProfilScreen() {
   const [openSection, setOpenSection] = useState<string>(() => {
     const section = new URLSearchParams(window.location.search).get("section");
     return section === "items" ? section : "";
+  });
+  const [showActivation, setShowActivation] = useState(() => {
+    const activation = new URLSearchParams(window.location.search).get("activation");
+    return activation === "1";
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -672,6 +677,41 @@ export function ProfilScreen() {
         isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
       />
+
+      {/* Code Activation Modal */}
+      {createPortal && createPortal(
+        <AnimatePresence>
+          {showActivation && (
+            <motion.div
+              key="activation-modal"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 260 }}
+              className="fixed inset-0 z-[110]"
+            >
+              <CodeActivationScreen
+                onClose={() => {
+                  setShowActivation(false);
+                  // Clean up URL param
+                  const url = new URL(window.location);
+                  url.searchParams.delete("activation");
+                  window.history.replaceState({}, "", url);
+                }}
+                onActivated={async () => {
+                  await refresh();
+                  setShowActivation(false);
+                  // Clean up URL param
+                  const url = new URL(window.location);
+                  url.searchParams.delete("activation");
+                  window.history.replaceState({}, "", url);
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

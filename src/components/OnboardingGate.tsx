@@ -1,18 +1,18 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { Eye, KeyRound } from "lucide-react";
 import { useAppMode } from "@/context/AppModeContext";
 import { WelcomeScreen } from "@/screens/onboarding/WelcomeScreen";
 import { GeoWizard } from "@/screens/onboarding/GeoWizard";
-import { CodeActivationScreen } from "@/screens/onboarding/CodeActivationScreen";
 
 type Phase = "welcome" | "geo" | "gate" | "app";
 
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const { onboarded, isVerified } = useAppMode();
   const [phaseState, setPhase] = useState<Phase>(onboarded ? "app" : "welcome");
-  const [showActivation, setShowActivation] = useState(false);
+  const navigate = useNavigate();
   const canUseDom = typeof document !== "undefined";
   const phase: Phase = onboarded ? "app" : phaseState;
 
@@ -41,7 +41,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
             <GeoWizard onDone={() => setPhase("gate")} />
           </motion.div>
         )}
-        {phase === "gate" && !isVerified && !showActivation && (
+        {phase === "gate" && !isVerified && (
           <motion.div
             key="gate"
             initial={{ opacity: 0 }}
@@ -50,7 +50,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
             className="absolute inset-0"
           >
             <PostGeoLanding
-              onEnterCode={() => setShowActivation(true)}
+              onEnterCode={() => navigate({ to: "/profil?activation=1" })}
               onSkip={() => setPhase("app")}
             />
           </motion.div>
@@ -58,30 +58,6 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       {phase === "app" && <div className="relative flex h-full flex-col">{children}</div>}
-
-      {canUseDom &&
-        createPortal(
-          <AnimatePresence>
-            {showActivation && (
-              <motion.div
-                key="activation-modal"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 260 }}
-                className="fixed inset-0 z-[110]"
-              >
-                <CodeActivationScreen
-                  onClose={() => {
-                    setShowActivation(false);
-                    if (phase === "gate") setPhase("app");
-                  }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>,
-          document.body,
-        )}
     </>
   );
 }
