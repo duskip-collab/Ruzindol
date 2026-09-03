@@ -47,6 +47,7 @@ export function InquiriesScreen() {
 
     // Realtime subscription
     let channel: any = null;
+    let isMounted = true;
     
     const setupRealtime = async () => {
       try {
@@ -59,23 +60,28 @@ export function InquiriesScreen() {
             'postgres_changes',
             { event: '*', schema: 'public', table: 'mayor_inquiries' },
             () => {
+              if (!isMounted) return;
               void loadInquiries();
             }
           );
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
             console.warn('Inquiries realtime status:', status);
           }
         });
       } catch (err) {
-        console.error('Error setting up inquiries realtime:', err);
+        if (isMounted) {
+          console.error('Error setting up inquiries realtime:', err);
+        }
       }
     };
 
     void setupRealtime();
 
     return () => {
+      isMounted = false;
       if (channel) {
         void supabase.removeChannel(channel);
       }

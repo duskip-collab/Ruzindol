@@ -314,6 +314,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
 
   useEffect(() => {
     let channel: any = null;
+    let isMounted = true;
 
     const setupRealtime = async () => {
       try {
@@ -326,6 +327,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
             "postgres_changes",
             { event: "*", schema: "public", table: "group_announcements" },
             () => {
+              if (!isMounted) return;
               void loadData();
             }
           )
@@ -333,6 +335,7 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
             "postgres_changes",
             { event: "*", schema: "public", table: "group_admins" },
             () => {
+              if (!isMounted) return;
               void loadData();
             }
           )
@@ -340,11 +343,13 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
             "postgres_changes",
             { event: "*", schema: "public", table: "profiles" },
             () => {
+              if (!isMounted) return;
               void loadData();
             }
           );
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status === 'SUBSCRIBED') {
             console.log('Aktuality groups realtime subscribed');
           } else if (status !== 'SUBSCRIBING') {
@@ -352,13 +357,16 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
           }
         });
       } catch (err) {
-        console.error('Error setting up aktuality realtime:', err);
+        if (isMounted) {
+          console.error('Error setting up aktuality realtime:', err);
+        }
       }
     };
 
     void setupRealtime();
 
     return () => {
+      isMounted = false;
       if (channel) {
         void supabase.removeChannel(channel);
       }

@@ -428,6 +428,7 @@ function RoleAssigner() {
     }, 0);
 
     let channel: any = null;
+    let isMounted = true;
 
     const setupChannel = async () => {
       try {
@@ -439,11 +440,13 @@ function RoleAssigner() {
           "postgres_changes",
           { event: "*", schema: "public", table: "profiles" },
           () => {
+            if (!isMounted) return;
             void load();
           }
         );
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status === 'SUBSCRIBED') {
             console.log('Admin panel realtime subscribed');
           } else if (status !== 'SUBSCRIBING') {
@@ -451,13 +454,16 @@ function RoleAssigner() {
           }
         });
       } catch (err) {
-        console.error('Error setting up realtime channel:', err);
+        if (isMounted) {
+          console.error('Error setting up realtime channel:', err);
+        }
       }
     };
 
     void setupChannel();
 
     return () => {
+      isMounted = false;
       window.clearTimeout(id);
       if (channel) {
         void supabase.removeChannel(channel);

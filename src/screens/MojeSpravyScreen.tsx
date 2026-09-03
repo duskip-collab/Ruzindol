@@ -186,10 +186,13 @@ export function MojeSpravyScreen() {
     
     let isMounted = true;
     let channel: any = null;
-    const channelName = `inbox-live-${userId}-${Math.random().toString(36).substring(2, 7)}`;
     
     const setupRealtime = async () => {
       try {
+        // Generuj channel name VO VNÚTRI setupRealtime - NE v hlavnom tele!
+        const randomSuffix = Math.random().toString(36).substring(2, 7);
+        const channelName = `inbox-live-${userId}-${randomSuffix}`;
+        
         channel = supabase.channel(channelName, {
           config: { broadcast: { ack: true } }
         });
@@ -231,7 +234,7 @@ export function MojeSpravyScreen() {
         void supabase.removeChannel(channel);
       }
     };
-  }, [userId, load]);
+  }, [userId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
