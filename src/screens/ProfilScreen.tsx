@@ -150,6 +150,7 @@ export function ProfilScreen() {
     const activation = new URLSearchParams(window.location.search).get("activation");
     return activation === "1";
   });
+  const [inviteActivationComplete, setInviteActivationComplete] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [pendingInquiriesCount, setPendingInquiriesCount] = useState(0);
@@ -506,7 +507,7 @@ export function ProfilScreen() {
             )}
           </AccordionSection>
 
-          {!profile.is_active_neighbor && (
+          {(!profile.is_active_neighbor || inviteActivationComplete) && (
             <AccordionSection
               value="activate"
               title="🔑 Máš invite kód od suseda?"
@@ -517,7 +518,12 @@ export function ProfilScreen() {
             >
               {openSection === "activate" && (
                 <Suspense fallback={<SectionLoader />}>
-                  <InviteRedeemSection onActivated={refresh} />
+                  <InviteRedeemSection
+                    onActivated={async () => {
+                      setInviteActivationComplete(true);
+                      await refresh();
+                    }}
+                  />
                 </Suspense>
               )}
             </AccordionSection>
