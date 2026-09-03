@@ -370,7 +370,7 @@ function ListingList({ type }: { type: ItemType; meta: (typeof SECTION_META)[Sec
                 key={item.id}
                 onClick={() =>
                   void navigate({
-                    to: "/sklad/$itemId",
+                    to: "/warehouse/$itemId",
                     params: { itemId: item.id },
                     search: {
                       returnTo: "sklad",
@@ -622,7 +622,7 @@ function DopytList() {
             key={d.id}
             onClick={() =>
               void navigate({
-                to: "/sklad/$itemId",
+                to: "/warehouse/$itemId",
                 params: { itemId: d.id },
                 search: { returnTo: "sklad", section: "poziciovna", tab: "dopyt" },
               })

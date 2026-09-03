@@ -21,6 +21,7 @@ import { Route as AuthenticatedSpravyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSusediaRouteImport } from './routes/_authenticated/susedia'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthenticatedSkladItemIdRouteImport } from './routes/_authenticated/sklad.$itemId'
+import { Route as AuthenticatedWarehouseItemIdRouteImport } from './routes/_authenticated/warehouse.$itemId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -82,6 +83,12 @@ const AuthenticatedSkladItemIdRoute =
     path: '/$itemId',
     getParentRoute: () => AuthenticatedSkladRoute,
   } as any)
+const AuthenticatedWarehouseItemIdRoute =
+  AuthenticatedWarehouseItemIdRouteImport.update({
+    id: '/warehouse/$itemId',
+    path: '/warehouse/$itemId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/susedia': typeof AuthenticatedSusediaRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
+  '/warehouse/$itemId': typeof AuthenticatedWarehouseItemIdRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -108,6 +116,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
   '/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
+  '/warehouse/$itemId': typeof AuthenticatedWarehouseItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sklad/$itemId': typeof AuthenticatedSkladItemIdRoute
+  '/_authenticated/warehouse/$itemId': typeof AuthenticatedWarehouseItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/susedia'
     | '/auth/callback'
     | '/sklad/$itemId'
+    | '/warehouse/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/'
     | '/sklad/$itemId'
+    | '/warehouse/$itemId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -165,6 +177,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/_authenticated/'
     | '/_authenticated/sklad/$itemId'
+    | '/_authenticated/warehouse/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -259,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSkladItemIdRouteImport
       parentRoute: typeof AuthenticatedSkladRoute
     }
+    '/_authenticated/warehouse/$itemId': {
+      id: '/_authenticated/warehouse/$itemId'
+      path: '/warehouse/$itemId'
+      fullPath: '/warehouse/$itemId'
+      preLoaderRoute: typeof AuthenticatedWarehouseItemIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -281,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSpravyRoute: typeof AuthenticatedSpravyRoute
   AuthenticatedSusediaRoute: typeof AuthenticatedSusediaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedWarehouseItemIdRoute: typeof AuthenticatedWarehouseItemIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -291,6 +312,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSpravyRoute: AuthenticatedSpravyRoute,
   AuthenticatedSusediaRoute: AuthenticatedSusediaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedWarehouseItemIdRoute: AuthenticatedWarehouseItemIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

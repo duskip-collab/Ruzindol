@@ -477,7 +477,7 @@ export function ProfilScreen() {
                       key={item.id}
                       onClick={() =>
                         void navigate({
-                          to: "/sklad/$itemId",
+                          to: "/warehouse/$itemId",
                           params: { itemId: item.id },
                           search: { returnTo: "profil", section: "items" },
                         })
@@ -486,7 +486,7 @@ export function ProfilScreen() {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           void navigate({
-                            to: "/sklad/$itemId",
+                            to: "/warehouse/$itemId",
                             params: { itemId: item.id },
                             search: { returnTo: "profil", section: "items" },
                           });
