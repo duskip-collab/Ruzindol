@@ -73,13 +73,37 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
     last_seen_at: new Date().toISOString(),
   };
 
+  // Upsert s (user_id, endpoint) unique constraint
   const { error } = await (supabase as any)
     .from("user_push_subscriptions")
-    .upsert(payload, { onConflict: "endpoint" });
+    .upsert(payload, { 
+      onConflict: "user_id,endpoint"  // ← Composite key na upsert
+    });
 
   if (error) {
     console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-    return false;
+    // Fallback: skúsiť DELETE a INSERT
+    try {
+      await supabase
+        .from("user_push_subscriptions")
+        .delete()
+        .eq("user_id", userId)
+        .eq("endpoint", subscription.endpoint);
+
+      const { error: insertError } = await supabase
+        .from("user_push_subscriptions")
+        .insert(payload);
+
+      if (insertError) {
+        console.error("Fallback INSERT zlyhalo:", insertError);
+        return false;
+      }
+      console.log("Push subskripcia úspešne uložená cez fallback (DELETE+INSERT).");
+      return true;
+    } catch (fallbackError) {
+      console.error("Fallback stratégia zlyhala:", fallbackError);
+      return false;
+    }
   }
 
   console.log("Push subskripcia úspešne uložená.");
