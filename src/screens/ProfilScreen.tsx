@@ -33,6 +33,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { withTimeout, retryAsync } from "@/lib/async-guard";
 import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
@@ -150,13 +151,30 @@ export function ProfilScreen() {
 
   async function loadItems(uid: string) {
     setItemsLoading(true);
-    const { data } = await supabase
-      .from("warehouse_items")
-      .select("id, type, title, price, created_at, expires_at, image_path, image_path_2, image_path_3, image_path_4")
-      .eq("user_id", uid)
-      .order("created_at", { ascending: false });
-    setItems((data as Item[] | null) ?? []);
-    setItemsLoading(false);
+    try {
+      const result = await withTimeout(
+        () =>
+          retryAsync<any>(
+            async () => {
+              return supabase
+                .from("warehouse_items")
+                .select("id, type, title, price, created_at, expires_at, image_path, image_path_2, image_path_3, image_path_4")
+                .eq("user_id", uid)
+                .order("created_at", { ascending: false });
+            },
+            { retries: 2, delayMs: 500 },
+          ),
+        8000,
+        "Načítavanie položiek trvalo príliš dlho",
+      );
+      const data = result?.data;
+      setItems((data as Item[] | null) ?? []);
+    } catch (err) {
+      console.error("[ProfilScreen] loadItems chyba:", err);
+      setItems([]);
+    } finally {
+      setItemsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -180,14 +198,25 @@ export function ProfilScreen() {
 
     const loadPendingCount = async () => {
       try {
-        const { count } = await (supabase
-          .from('mayor_inquiries' as any)
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending') as any);
+        const result = await withTimeout(
+          () =>
+            retryAsync<any>(
+              async () => {
+                return supabase
+                  .from('mayor_inquiries' as any)
+                  .select('id', { count: 'exact', head: true })
+                  .eq('status', 'pending') as any;
+              },
+              { retries: 1, delayMs: 300 },
+            ),
+          5000,
+          "Načítavanie počtu podnetov trvalo príliš dlho",
+        );
 
-        setPendingInquiriesCount(count || 0);
+        setPendingInquiriesCount(result?.count || 0);
       } catch (err) {
-        console.error('Error loading pending inquiries count:', err);
+        console.error('[ProfilScreen] loadPendingCount chyba:', err);
+        setPendingInquiriesCount(0);
       }
     };
 
