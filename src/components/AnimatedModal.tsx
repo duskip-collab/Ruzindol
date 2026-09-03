@@ -92,7 +92,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             aria-labelledby={title ? 'modal-title' : undefined}
             aria-describedby={description ? 'modal-description' : undefined}
             className={cn(
-              'relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-colors',
+              'relative z-10 w-full max-w-lg max-h-[90vh] rounded-2xl border border-slate-200 bg-white shadow-2xl transition-colors flex flex-col',
               'dark:border-slate-800 dark:bg-slate-900 dark:text-white',
               className
             )}
@@ -101,7 +101,8 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             exit={{ opacity: 0, scale: 0.92, y: 12 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           >
-            <div className="flex items-start justify-between gap-4">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 shrink-0 p-6 border-b border-slate-100 dark:border-slate-800">
               {title && (
                 <h3
                   id="modal-title"
@@ -115,7 +116,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors focus:outline-none"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors focus:outline-none shrink-0"
                   aria-label="Zatvoriť"
                 >
                   <X className="h-4 w-4" />
@@ -123,22 +124,26 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
               )}
             </div>
 
-            {description && (
-              <p
-                id="modal-description"
-                className="mt-2 text-sm text-slate-600 dark:text-slate-400"
-              >
-                {description}
-              </p>
-            )}
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {description && (
+                <p
+                  id="modal-description"
+                  className="text-sm text-slate-600 dark:text-slate-400"
+                >
+                  {description}
+                </p>
+              )}
 
-            {children && <div className="mt-4">{children}</div>}
+              {children && <div className={cn(description ? 'mt-4' : '')}>{children}</div>}
+            </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            {/* Footer Buttons */}
+            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-6 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors active:scale-95"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800 transition-colors active:scale-95"
               >
                 {cancelText}
               </button>
