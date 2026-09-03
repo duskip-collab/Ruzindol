@@ -184,11 +184,13 @@ export function MojeSpravyScreen() {
   useEffect(() => {
     if (!userId) return;
     
+    let isMounted = true;
     let channel: any = null;
+    const channelName = `inbox-live-${userId}-${Math.random().toString(36).substring(2, 7)}`;
     
     const setupRealtime = async () => {
       try {
-        channel = supabase.channel(`inbox-${userId}`, {
+        channel = supabase.channel(channelName, {
           config: { broadcast: { ack: true } }
         });
         
@@ -196,7 +198,8 @@ export function MojeSpravyScreen() {
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chats" },
-            (payload) => {
+            (payload: any) => {
+              if (!isMounted) return;
               const row = payload.new as ChatRow;
               if (row.buyer_id === userId || row.seller_id === userId) void load();
             }
@@ -204,10 +207,13 @@ export function MojeSpravyScreen() {
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "messages" },
-            () => void load()
+            () => {
+              if (isMounted) void load();
+            }
           );
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
             console.warn('Inbox realtime status:', status);
           }
@@ -220,6 +226,7 @@ export function MojeSpravyScreen() {
     void setupRealtime();
 
     return () => {
+      isMounted = false;
       if (channel) {
         void supabase.removeChannel(channel);
       }

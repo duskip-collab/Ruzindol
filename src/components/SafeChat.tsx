@@ -54,23 +54,30 @@ export function SafeChat({
     })();
 
     let channel: any = null;
+    let isMounted = true;
 
     const setupRealtime = async () => {
       try {
-        channel = supabase.channel(`chat-${chatId}`, {
+        // Generuj náhodný suffix IBA VO VNÚTRI setupRealtime - NE v hlavnom tele!
+        const randomSuffix = Math.random().toString(36).substring(2, 7);
+        const channelName = `chat-${chatId}-${randomSuffix}`;
+        
+        channel = supabase.channel(channelName, {
           config: { broadcast: { ack: true } }
         });
         
         channel.on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
-          (payload) => {
+          (payload: any) => {
+            if (!isMounted) return;
             const m = payload.new as ChatMessage;
             setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           }
         );
 
         await channel.subscribe((status: string) => {
+          if (!isMounted) return;
           if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
             console.warn('Chat realtime status:', status);
           }
@@ -84,6 +91,7 @@ export function SafeChat({
 
     return () => {
       mounted = false;
+      isMounted = false;
       if (channel) {
         void supabase.removeChannel(channel);
       }
