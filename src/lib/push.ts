@@ -40,23 +40,11 @@ function ensurePushMessageListener() {
   swPushMessageListenerAttached = true;
 }
 
-function isMissingEndpointColumnOrConstraint(error: unknown) {
-  const err = error as { message?: string; code?: string } | null;
-  const message = String(err?.message ?? "").toLowerCase();
-  return (
-    err?.code === "42703" ||
-    err?.code === "42P10" ||
-    message.includes("endpoint") ||
-    message.includes("constraint")
-  );
-}
-
 type SubscribeToPushOptions = {
   requestPermission?: boolean;
 };
 
 async function savePushSubscription(subscription: PushSubscription, userId: string) {
-  // ✅ POISTKA — Ak už jedno ukladanie prebieha, ignorujeme ďalšie volanie
   if (isSavingSubscription) {
     console.info("[Push] Ukladanie už prebieha, paralelné volanie je ignorované");
     return false;
@@ -67,7 +55,6 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
   try {
     const subJson = subscription.toJSON();
 
-    // Overenie, že userId je dostupný
     if (!userId || typeof userId !== "string" || userId.trim() === "") {
       console.error("[Push] Chyba: userId nie je dostupný alebo je neplatný!");
       return false;
@@ -78,6 +65,19 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
       return false;
     }
 
+    // 1. Skúsime najskôr použiť RPC funkciu (obchádza RLS 403 pri prepise endpointu)
+    const { error: rpcError } = await supabase.rpc("save_push_subscription", {
+      p_endpoint: subscription.endpoint,
+      p_p256dh: subJson.keys?.p256dh || null,
+      p_auth: subJson.keys?.auth || null,
+    });
+
+    if (!rpcError) {
+      console.log("[Push] Push subskripcia úspešne uložená cez RPC.");
+      return true;
+    }
+
+    // 2. Fallback na priamy upsert ak RPC neexistuje alebo zlyhá
     const payload = {
       user_id: userId,
       endpoint: subscription.endpoint,
@@ -88,23 +88,20 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
       last_seen_at: new Date().toISOString(),
     };
 
-    // ✅ Upsert s UNIQUE(endpoint) constraint — Správny single-column key!
-    // DB tabuľka má UNIQUE constraint na 'endpoint' kolúne
-    const { error } = await (supabase as any)
+    const { error: upsertError } = await (supabase as any)
       .from("user_push_subscriptions")
       .upsert(payload, { 
-        onConflict: "endpoint"  // ← UNIQUE(endpoint) — presne zodpovedá DB constraintu
+        onConflict: "endpoint"
       });
 
-    if (error) {
-      console.error("[Push] Chyba pri upsert: endpoint conflict:", error);
+    if (upsertError) {
+      console.error("[Push] Chyba pri upsert/RPC:", upsertError);
       return false;
     }
 
-    console.log("Push subskripcia úspešne uložená.");
+    console.log("[Push] Push subskripcia úspešne uložená cez upsert.");
     return true;
   } finally {
-    // ✅ Vždy resetni flag, aj keď dôjde k chybe
     isSavingSubscription = false;
   }
 }
@@ -146,7 +143,6 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
     await navigator.serviceWorker.ready;
     ensurePushMessageListener();
 
-    // ✅ DEDUPLICATE LOGIKA pre getSubscription() — max 1x za sekundu
     const now = Date.now();
     if (isGettingSubscription || (cachedSubscription && now - subscriptionCacheTime < 1000)) {
       console.info("[Push] Používam cached subscription, paralelné getSubscription ignorované");
@@ -177,37 +173,20 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
         });
       }
 
-      // Cache subscription na 1 sekundu
       cachedSubscription = subscription;
       subscriptionCacheTime = Date.now();
 
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) {
-        console.warn("[Push] Žiadna session dostupná");
-        return false;
-      }
-
-      if (!session.user) {
-        console.warn("[Push] Session existuje, ale nemá user objekt");
+      if (!session?.user?.id) {
+        console.warn("[Push] Žiadna platná session alebo user.id nedostupné");
         return false;
       }
 
       const userId = session.user.id;
 
-      // Triple validation userId
-      if (!userId) {
-        console.error("[Push] Chyba: session.user.id je undefined alebo null");
-        return false;
-      }
-
-      if (typeof userId !== "string") {
-        console.error("[Push] Chyba: session.user.id nie je string, je:", typeof userId);
-        return false;
-      }
-
-      if (userId.trim() === "") {
-        console.error("[Push] Chyba: session.user.id je prázdny string");
+      if (typeof userId !== "string" || userId.trim() === "") {
+        console.error("[Push] Chyba: session.user.id je neplatný string");
         return false;
       }
 
@@ -217,7 +196,6 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
         return true;
       }
 
-      // Ak savePushSubscription zlyhalo, vráti false
       console.warn("[Push] savePushSubscription vrátilo false, zastavujem sa");
       return false;
     } finally {
@@ -229,7 +207,6 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
   }
 }
 
-// Public helper aligned with standard frontend Web Push onboarding flow.
 export async function enableNotifications() {
   return subscribeToPush({ requestPermission: true });
 }
