@@ -43,7 +43,7 @@ export function ReadonlyBanner() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 260 }}
-            className="absolute inset-0 z-40"
+            className="fixed inset-0 z-[110]"
           >
             <CodeActivationScreen
               onClose={() => setOpen(false)}
