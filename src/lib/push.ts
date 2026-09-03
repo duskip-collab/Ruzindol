@@ -69,12 +69,12 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
 
     // Overenie, že userId je dostupný
     if (!userId || typeof userId !== "string" || userId.trim() === "") {
-      console.error("Chyba: userId nie je dostupný alebo je neplatný!");
+      console.error("[Push] Chyba: userId nie je dostupný alebo je neplatný!");
       return false;
     }
 
     if (!subscription.endpoint) {
-      console.error("Subscription neobsahuje endpoint!");
+      console.error("[Push] Subscription neobsahuje endpoint!");
       return false;
     }
 
@@ -88,37 +88,17 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
       last_seen_at: new Date().toISOString(),
     };
 
-    // ✅ Upsert s (user_id, endpoint) unique constraint — Správny composite key!
+    // ✅ Upsert s UNIQUE(endpoint) constraint — Správny single-column key!
+    // DB tabuľka má UNIQUE constraint na 'endpoint' kolúne
     const { error } = await (supabase as any)
       .from("user_push_subscriptions")
       .upsert(payload, { 
-        onConflict: "user_id,endpoint"  // ← Composite UNIQUE constraint (user_id + endpoint)
+        onConflict: "endpoint"  // ← UNIQUE(endpoint) — presne zodpovedá DB constraintu
       });
 
     if (error) {
-      console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-      // Fallback: skúsiť DELETE a INSERT
-      try {
-        await (supabase as any)
-          .from("user_push_subscriptions")
-          .delete()
-          .eq("user_id", userId)
-          .eq("endpoint", subscription.endpoint);
-
-        const { error: insertError } = await (supabase as any)
-          .from("user_push_subscriptions")
-          .insert(payload);
-
-        if (insertError) {
-          console.error("Fallback INSERT zlyhalo:", insertError);
-          return false;
-        }
-        console.log("Push subskripcia úspešne uložená cez fallback (DELETE+INSERT).");
-        return true;
-      } catch (fallbackError) {
-        console.error("Fallback stratégia zlyhala:", fallbackError);
-        return false;
-      }
+      console.error("[Push] Chyba pri upsert: endpoint conflict:", error);
+      return false;
     }
 
     console.log("Push subskripcia úspešne uložená.");
@@ -232,131 +212,17 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       }
 
       const saved = await savePushSubscription(subscription, userId);
-      if (saved) return true;
-
-      // Backward-compatible fallback for older schema (single subscription per user).
-      const serializedSubscription = subscription.toJSON();
-      const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
-        {
-          user_id: userId,
-          subscription: serializedSubscription,
-        },
-        { onConflict: "user_id" },
-      );
-
-      if (error && !isMissingEndpointColumnOrConstraint(error)) {
-        console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-        return false;
+      if (saved) {
+        console.log("[Push] Push notifikácie úspešne aktivované a uložené!");
+        return true;
       }
 
-      if (error) return false;
-      console.log("Push notifikácie úspešne aktivované a uložené!");
-      return true;
+      // Ak savePushSubscription zlyhalo, vráti false
+      console.warn("[Push] savePushSubscription vrátilo false, zastavujem sa");
+      return false;
     } finally {
       isGettingSubscription = false;
     }
-  } catch (error) {
-    console.error("Neočakávaná chyba pri subscribeToPush:", error);
-    return false;
-  }
-}
-
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      console.warn("Push notifikácie nie sú podporované v tomto prehliadači.");
-      return false;
-    }
-
-    if (!PUBLIC_VAPID_KEY) {
-      console.error("VITE_PUBLIC_VAPID_KEY nie je nastavený v .env súbore!");
-      return false;
-    }
-
-    if (typeof Notification === "undefined") {
-      console.warn("Notification API nie je podporované v tomto prehliadači.");
-      return false;
-    }
-
-    if (requestPermission && isIosDevice() && !isStandaloneMode()) {
-      console.warn("Na iOS je možné povoliť notifikácie až po pridaní aplikácie na plochu.");
-      return false;
-    }
-
-    const permission = requestPermission
-      ? await Notification.requestPermission()
-      : Notification.permission;
-
-    if (permission !== "granted") {
-      console.warn("Používateľ nepovolil notifikácie.");
-      return false;
-    }
-
-    const registration = await getPushServiceWorkerRegistration();
-    await navigator.serviceWorker.ready;
-    ensurePushMessageListener();
-
-    let subscription = await registration.pushManager.getSubscription();
-
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
-      });
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    
-    // Bezpečné získanie session — detailný logging
-    if (!session) {
-      console.warn("[Push] Žiadna session dostupná");
-      return false;
-    }
-    
-    if (!session.user) {
-      console.warn("[Push] Session existuje, ale nemá user objekt");
-      return false;
-    }
-
-    const userId = session.user.id;
-    
-    // Triple validation userId
-    if (!userId) {
-      console.error("[Push] Chyba: session.user.id je undefined alebo null");
-      return false;
-    }
-    
-    if (typeof userId !== "string") {
-      console.error("[Push] Chyba: session.user.id nie je string, je:", typeof userId);
-      return false;
-    }
-    
-    if (userId.trim() === "") {
-      console.error("[Push] Chyba: session.user.id je prázdny string");
-      return false;
-    }
-
-    const saved = await savePushSubscription(subscription, userId);
-    if (saved) return true;
-
-    // Backward-compatible fallback for older schema (single subscription per user).
-    const serializedSubscription = subscription.toJSON();
-    const { error } = await (supabase as any).from("user_push_subscriptions").upsert(
-      {
-        user_id: userId,
-        subscription: serializedSubscription,
-      },
-      { onConflict: "user_id" },
-    );
-
-    if (error && !isMissingEndpointColumnOrConstraint(error)) {
-      console.error("Chyba pri ukladaní subskripcie do Supabase:", error);
-      return false;
-    }
-
-    if (error) return false;
-    console.log("Push notifikácie úspešne aktivované a uložené!");
-    return true;
   } catch (error) {
     console.error("Neočakávaná chyba pri subscribeToPush:", error);
     return false;
