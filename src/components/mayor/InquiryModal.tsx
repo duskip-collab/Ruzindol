@@ -3,6 +3,7 @@ import { Image, Lock, Globe, AlertCircle, MapPin, Camera, Loader2, X } from 'luc
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { triggerHaptic } from '@/lib/haptics';
+import { compressImage } from '@/lib/compress-image';
 import { cn } from '@/lib/utils';
 
 export interface InquiryModalProps {
@@ -34,8 +35,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
   const [locationLoading, setLocationLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Lock body overflow when modal is open
   useEffect(() => {
@@ -47,24 +50,33 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
     }
   }, [isOpen]);
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 5MB)
+    // Validate file size (max 5MB for original)
     if (file.size > 5 * 1024 * 1024) {
       triggerHaptic('error');
       setErrorMessage('Fotka nesmie byť väčšia ako 5 MB.');
       return;
     }
 
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    setErrorMessage(null);
+    setCompressing(true);
+    try {
+      const compressed = await compressImage(file);
+      setImageFile(compressed.file);
+      setImagePreview(compressed.previewUrl);
+      setImageUrl('');
+      setErrorMessage(null);
+      triggerHaptic('success');
+    } catch (err) {
+      triggerHaptic('error');
+      setErrorMessage(err instanceof Error ? err.message : 'Kompresia fotky zlyhala.');
+    } finally {
+      setCompressing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
   };
 
   const handleRemoveImage = () => {
@@ -311,39 +323,77 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                     <button
                       type="button"
                       onClick={handleRemoveImage}
-                      disabled={submitting || uploading}
+                      disabled={submitting || uploading || compressing}
                       className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 disabled:opacity-50"
                     >
                       <X className="h-4 w-4" />
                     </button>
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-[10px]">
-                      Fotka pripravená k odoslaniu
+                      Fotka pripravená k odoslaniu (komprimovaná)
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={submitting || uploading}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors disabled:opacity-50"
-                      >
-                        <Camera className="h-4 w-4" />
-                        Nahrať fotku
-                      </button>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleImageSelect}
-                      disabled={submitting || uploading}
-                      className="hidden"
-                    />
+                  <div className="flex gap-2">
+                    {/* Gallery Button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={submitting || uploading || compressing}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors disabled:opacity-50"
+                    >
+                      {compressing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Komprimám…
+                        </>
+                      ) : (
+                        <>
+                          <Image className="h-4 w-4" />
+                          Galéria
+                        </>
+                      )}
+                    </button>
+
+                    {/* Camera Button */}
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={submitting || uploading || compressing}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors disabled:opacity-50"
+                    >
+                      {compressing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Komprimám…
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="h-4 w-4" />
+                          Fotit
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={submitting || uploading || compressing}
+                  className="hidden"
+                />
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageSelect}
+                  disabled={submitting || uploading || compressing}
+                  className="hidden"
+                />
 
                 {/* Legacy URL input (fallback) */}
                 <div className="mt-2">
@@ -352,7 +402,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     placeholder="Alebo vložte URL fotky..."
-                    disabled={submitting || uploading || !!imagePreview}
+                    disabled={submitting || uploading || compressing || !!imagePreview}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
                   />
                 </div>

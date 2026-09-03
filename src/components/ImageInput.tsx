@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, X, Camera } from "lucide-react";
 import { compressImage, type CompressedImage } from "@/lib/compress-image";
 
 type Props = {
@@ -11,7 +11,8 @@ type Props = {
 };
 
 export function ImageInput({ value, onChange, label = "Fotka", multiple = false, onChangeMany }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +34,8 @@ export function ImageInput({ value, onChange, label = "Fotka", multiple = false,
       setError(e instanceof Error ? e.message : "Kompresia zlyhala.");
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   }
 
@@ -47,7 +49,8 @@ export function ImageInput({ value, onChange, label = "Fotka", multiple = false,
       setError(e instanceof Error ? e.message : "Kompresia zlyhala.");
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   }
 
@@ -57,8 +60,9 @@ export function ImageInput({ value, onChange, label = "Fotka", multiple = false,
     <div>
       <label className="text-sm font-medium text-neutral-700">{label}</label>
 
+      {/* Hidden file inputs - one for gallery, one for camera */}
       <input
-        ref={inputRef}
+        ref={fileInputRef}
         type="file"
         accept="image/*"
         multiple={multiple}
@@ -70,6 +74,18 @@ export function ImageInput({ value, onChange, label = "Fotka", multiple = false,
             const f = e.target.files?.[0];
             if (f) void handleFile(f);
           }
+        }}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple={false}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
         }}
       />
 
@@ -102,30 +118,53 @@ export function ImageInput({ value, onChange, label = "Fotka", multiple = false,
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-          className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white/60 px-3 py-3 text-sm font-medium text-neutral-700 backdrop-blur transition hover:bg-white disabled:cursor-wait disabled:opacity-70"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Optimalizujem fotku…
-            </>
-          ) : (
-            <>
-              <ImagePlus className="h-4 w-4" />
-              Pridať fotku
-            </>
-          )}
-        </button>
+        <div className="mt-1 flex gap-2">
+          {/* Button for gallery / file picker */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white/60 px-3 py-3 text-sm font-medium text-neutral-700 backdrop-blur transition hover:bg-white disabled:cursor-wait disabled:opacity-70"
+          >
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Optimalizujem…
+              </>
+            ) : (
+              <>
+                <ImagePlus className="h-4 w-4" />
+                Galéria
+              </>
+            )}
+          </button>
+
+          {/* Button for camera capture */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => cameraInputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white/60 px-3 py-3 text-sm font-medium text-neutral-700 backdrop-blur transition hover:bg-white disabled:cursor-wait disabled:opacity-70"
+          >
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Optimalizujem…
+              </>
+            ) : (
+              <>
+                <Camera className="h-4 w-4" />
+                Fotit
+              </>
+            )}
+          </button>
+        </div>
       )}
 
       {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
       {!error && !busy && !value && (
         <p className="mt-1 text-xs text-neutral-500">
-          Fotka sa v prehliadači zmenší (max 800 px, JPEG 70 %) — šetríme miesto.
+          Fotka sa v prehliadači automaticky zmenší (max 800 px, JPEG 70 %) — šetríme miesto.
         </p>
       )}
     </div>
