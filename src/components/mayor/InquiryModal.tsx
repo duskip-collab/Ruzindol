@@ -1,10 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Lock, Globe, AlertCircle, MapPin, Camera, Loader2, X } from 'lucide-react';
+import { Image, Lock, Globe, AlertCircle, MapPin, Camera, Loader2, X, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { triggerHaptic } from '@/lib/haptics';
 import { compressImage } from '@/lib/compress-image';
 import { cn } from '@/lib/utils';
+
+// Rovnaké pravidlo ako RLS politika "podnety_insert": pridávať podnet smie iba
+// overený sused s aktivovaným invite kódom, alebo úradník/starosta/admin.
+const OFFICIAL_ROLES = ['Starosta', 'Uradnik'] as const;
+
+function canSubmitInquiry(profile: {
+  is_active_neighbor?: boolean;
+  role?: string;
+} | null): boolean {
+  if (!profile) return false;
+  if (profile.is_active_neighbor) return true;
+  if (profile.role && (OFFICIAL_ROLES as readonly string[]).includes(profile.role)) return true;
+  return false;
+}
 
 export interface InquiryModalProps {
   isOpen: boolean;
@@ -22,6 +37,8 @@ const CATEGORIES = [
 ] as const;
 
 export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { profile, loading: profileLoading } = useCurrentUser();
+  const isEligible = canSubmitInquiry(profile);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]['id']>('odpad');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -142,6 +159,12 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
   };
 
   const handleSubmit = async () => {
+    if (!isEligible) {
+      triggerHaptic('error');
+      setErrorMessage('Podnet môže odoslať iba overený sused s aktivovaným invite kódom.');
+      return;
+    }
+
     if (!title.trim() || !body.trim()) {
       triggerHaptic('error');
       setErrorMessage('Vyplňte prosím názov a text.');
@@ -268,6 +291,16 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
 
             {/* SCROLLABLE CONTENT */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
+              {!profileLoading && !isEligible && (
+                <div className="flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>
+                    Podnety môže odoslať iba overený sused s aktivovaným invite kódom. Aktivujte si
+                    kód v profile alebo počkajte na schválenie.
+                  </span>
+                </div>
+              )}
+
               {errorMessage && (
                 <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-950 dark:text-rose-200">
                   <AlertCircle className="h-4 w-4 shrink-0" />
@@ -520,7 +553,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || uploading}
+                disabled={submitting || uploading || !isEligible}
                 className="rounded-xl px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors active:scale-95 disabled:opacity-50"
               >
                 {submitting || uploading ? (uploading ? 'Nahrávam fotku...' : 'Odosielam...') : 'Odoslať'}

@@ -27,9 +27,12 @@ export function InquiriesScreen() {
   const loadInquiries = async () => {
     try {
       setLoading(true);
+      // Verejný modal smie zobrazovať iba verejné podnety (je_verejny/is_public = true).
+      // Neverejné podnety patria výhradne do "Podnety od občanov" v Profile (MayorInquiriesDashboard).
       const { data, error } = await supabase
         .from('mayor_inquiries')
         .select('*, profiles:user_id(full_name, name)')
+        .eq('is_public', true)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
