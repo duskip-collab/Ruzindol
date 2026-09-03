@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, Pencil } from "lucide-react";
 
@@ -75,30 +74,28 @@ function WarehouseItemDetailScreen() {
   });
 
   if (isLoading) {
-    return createPortal(
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background text-foreground">
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>,
-      document.body,
+      </div>
     );
   }
 
   if (error || !item) {
-    return createPortal(
-      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Položku sa nepodarilo načítať.</p>
         <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
-      </div>,
-      document.body,
+      </div>
     );
   }
 
   const itemType = item.type as WarehouseItemType;
   const priceLabel = item.price > 0 ? `${item.price} €` : "Zadarmo";
 
-  return createPortal(
-    <div className="fixed inset-0 z-[200] overflow-y-auto bg-background text-foreground">
-      <div className="mx-auto min-h-full w-full max-w-5xl p-4 pb-24 md:px-8 md:py-8">
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto w-full max-w-5xl p-4 pb-24 md:px-8 md:py-8">
         <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
         <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -144,8 +141,7 @@ function WarehouseItemDetailScreen() {
           }}
         />
       )}
-    </div>,
-    document.body,
+    </div>
   );
 }
 
