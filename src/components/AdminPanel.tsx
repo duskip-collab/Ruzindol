@@ -48,16 +48,16 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
   void adminId;
 
   return (
-    <div className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:p-6">
+    <div className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:p-6">
       <div className="mb-4 flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-600 text-white">
           <Shield className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
             Administrácia používateľov
           </h3>
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Starosta aj Admin môžu spravovať roly susedov.
           </p>
         </div>
@@ -759,32 +759,32 @@ function MunicipalityManager() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Názov obce"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+          className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
         />
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder="slug (napr. ruzindol)"
           required
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+          className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
         />
         <input
           value={region}
           onChange={(e) => setRegion(e.target.value)}
           placeholder="Kraj / okres"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+          className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
         />
         <input
           value={mayorName}
           onChange={(e) => setMayorName(e.target.value)}
           placeholder="Meno starostu"
-          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+          className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
         />
         <input
           value={logoUrl}
           onChange={(e) => setLogoUrl(e.target.value)}
           placeholder="URL loga / erbu (voliteľné)"
-          className="col-span-2 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 dark:border-neutral-400 dark:bg-neutral-200 dark:text-neutral-900 dark:placeholder:text-neutral-600"
+          className="col-span-2 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
         />
         <button
           type="submit"
