@@ -70,12 +70,16 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
       p_endpoint: subscription.endpoint,
       p_p256dh: subJson.keys?.p256dh || null,
       p_auth: subJson.keys?.auth || null,
+      p_subscription: subJson,
+      p_user_agent: navigator.userAgent
     });
 
     if (!rpcError) {
       console.log("[Push] Push subskripcia úspešne uložená cez RPC.");
       return true;
     }
+
+    console.warn("[Push] Chyba pri volaní RPC funkcie, skúšam fallback upsert:", rpcError);
 
     // 2. Fallback na priamy upsert ak RPC neexistuje alebo zlyhá
     const payload = {
