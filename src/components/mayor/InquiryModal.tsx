@@ -7,18 +7,32 @@ import { triggerHaptic } from '@/lib/haptics';
 import { compressImage } from '@/lib/compress-image';
 import { cn } from '@/lib/utils';
 
-// Rovnaké pravidlo ako RLS politika "podnety_insert": pridávať podnet smie iba
-// overený sused s aktivovaným invite kódom, alebo úradník/starosta/admin.
+// Rovnaké pravidlo ako RLS politika v databáze: pridávať podnet smie iba
+// overený sused s aktivovaným invite kódom, alebo úradník / starosta / admin.
 const OFFICIAL_ROLES = ['Starosta', 'Uradnik'] as const;
 
 function canSubmitInquiry(profile: {
   is_active_neighbor?: boolean;
+  invite_code?: string | null;
   role?: string;
+  is_admin?: boolean;
+  is_official?: boolean;
 } | null): boolean {
   if (!profile) return false;
-  if (profile.is_active_neighbor) return true;
-  if (profile.role && (OFFICIAL_ROLES as readonly string[]).includes(profile.role)) return true;
-  return false;
+
+  // Kontrola, či ide o manažéra / úradníka / admina
+  const isManager = 
+    profile.is_admin === true || 
+    profile.is_official === true || 
+    (!!profile.role && (OFFICIAL_ROLES as readonly string[]).includes(profile.role));
+
+  // Kontrola, či ide o plne overeného suseda s platným invite kódom
+  const isVerifiedNeighbor = 
+    profile.is_active_neighbor === true && 
+    typeof profile.invite_code === 'string' && 
+    profile.invite_code.trim() !== '';
+
+  return isManager || isVerifiedNeighbor;
 }
 
 export interface InquiryModalProps {
@@ -187,14 +201,11 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
           .maybeSingle();
 
         if (settingsError && settingsError.code !== 'PGRST116') {
-          // Log unexpected errors (but not "no rows" errors)
           console.warn('Warning fetching app_settings:', settingsError);
         }
 
-        // If settings exist and inquiries_enabled is explicitly false, disable
         inquiriesEnabled = settings?.inquiries_enabled !== false;
       } catch (err) {
-        // Fallback to enabled if any error occurs
         console.warn('Error checking inquiries_enabled, using fallback (true):', err);
         inquiriesEnabled = true;
       }
@@ -498,7 +509,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                     onClick={() => {
                       triggerHaptic('light');
                       setIsPublic(!isPublic);
-                      if (!isPublic) setIsAnonymousPublic(false); // Reset anonymous if switching to private
+                      if (!isPublic) setIsAnonymousPublic(false);
                     }}
                     disabled={submitting || uploading}
                     className={cn(
