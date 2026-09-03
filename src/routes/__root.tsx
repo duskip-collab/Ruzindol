@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { AppSettingsProvider } from "../context/AppSettingsContext";
 import { AppModeProvider } from "../context/AppModeContext";
 import { FontScaleProvider } from "../context/FontScaleContext";
 import { NotificationProvider } from "../context/NotificationContext";
@@ -79,16 +80,18 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <FontScaleProvider>
-          <AppModeProvider>
-            <NotificationProvider>
-              <div className="relative min-h-screen bg-slate-50 text-foreground">
-                <Splash />
-                <RealtimeNotificationBanner />
-                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                <Outlet />
-              </div>
-            </NotificationProvider>
-          </AppModeProvider>
+          <AppSettingsProvider>
+            <AppModeProvider>
+              <NotificationProvider>
+                <div className="relative min-h-screen bg-slate-50 text-foreground">
+                  <Splash />
+                  <RealtimeNotificationBanner />
+                  {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                  <Outlet />
+                </div>
+              </NotificationProvider>
+            </AppModeProvider>
+          </AppSettingsProvider>
         </FontScaleProvider>
       </ThemeProvider>
     </QueryClientProvider>
