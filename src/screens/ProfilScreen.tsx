@@ -343,7 +343,9 @@ export function ProfilScreen() {
               icon={<MessageSquare className="h-4 w-4" />}
               iconClass="bg-emerald-600"
               isActive={openSection === "inquiries"}
-              onToggle={() => setOpenSection((prev) => (prev === "inquiries" ? "" : "inquiries"))}
+              onToggle={() => {
+                setIsDashboardOpen(true);
+              }}
               onClose={() => setOpenSection("")}
             >
               <button
