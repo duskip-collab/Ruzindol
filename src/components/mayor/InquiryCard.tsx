@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle, Lock, Globe, Building2 } from 'lucide-react';
+import { MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle, Lock, Globe, Building2, MapPin, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface MayorInquiry {
@@ -10,6 +10,9 @@ export interface MayorInquiry {
   body: string;
   image_url?: string | null;
   is_public: boolean;
+  is_anonymous_public?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
   answer?: string | null;
   answered_at?: string | null;
@@ -102,7 +105,7 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
           >
             {inquiry.is_public ? (
               <>
-                <Globe className="h-3 w-3 text-slate-400" /> Verejný
+                <Globe className="h-3 w-3 text-emerald-500" /> Verejný
               </>
             ) : (
               <>
@@ -110,6 +113,12 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
               </>
             )}
           </span>
+
+          {inquiry.is_anonymous_public && inquiry.is_public && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              <User className="h-3 w-3 text-blue-500" /> Anonymný
+            </span>
+          )}
         </div>
 
         {getStatusBadge()}
@@ -123,6 +132,24 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
       <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed mb-4">
         {inquiry.body}
       </p>
+
+      {/* GPS Location if available */}
+      {inquiry.latitude && inquiry.longitude && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 p-2 border border-blue-200 dark:border-blue-800">
+          <MapPin className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+          <span className="text-xs text-blue-700 dark:text-blue-300">
+            Poloha: {inquiry.latitude.toFixed(4)}, {inquiry.longitude.toFixed(4)}
+          </span>
+          <a
+            href={`https://maps.google.com/?q=${inquiry.latitude},${inquiry.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Mapa
+          </a>
+        </div>
+      )}
 
       {/* Image if available */}
       {inquiry.image_url && (
@@ -156,9 +183,11 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
       )}
 
       {/* Footer Meta */}
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
         <span>Odoslané: {formatDate(inquiry.created_at)}</span>
-        {inquiry.profiles?.name || inquiry.profiles?.full_name ? (
+        {inquiry.is_anonymous_public && inquiry.is_public ? (
+          <span>Autor: Overený občan</span>
+        ) : inquiry.profiles?.name || inquiry.profiles?.full_name ? (
           <span>Autor: {inquiry.profiles.name || inquiry.profiles.full_name}</span>
         ) : null}
       </div>
