@@ -19,14 +19,22 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
 
   async function submit(raw?: string) {
     const val = (raw ?? code).trim();
-    if (!val) { setErr("Zadaj kód."); return; }
-    setBusy(true); setErr(null);
+    if (!val) { 
+      setErr("Zadaj kód."); 
+      return; 
+    }
+    setBusy(true); 
+    setErr(null);
     try {
       const { data, error } = await supabase.rpc("redeem_invite_code", { _code: val });
       if (error) throw new Error(mapError(error.message));
       if (!data) throw new Error("Neplatný pozývací kód.");
       activateCode(val);
-      if (onActivated) await onActivated(); else if (onClose) onClose();
+      if (onActivated) {
+        await onActivated();
+      } else if (onClose) {
+        onClose();
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Aktivácia zlyhala.");
     } finally {
@@ -35,12 +43,15 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white overflow-hidden" style={{
-      paddingTop: 'max(env(safe-area-inset-top), 0px)',
-      paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
-      paddingLeft: 'max(env(safe-area-inset-left), 0px)',
-      paddingRight: 'max(env(safe-area-inset-right), 0px)',
-    }}>
+    <div 
+      className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white overflow-hidden h-[100dvh] w-screen"
+      style={{
+        paddingTop: 'max(env(safe-area-inset-top), 0px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
+        paddingLeft: 'max(env(safe-area-inset-left), 0px)',
+        paddingRight: 'max(env(safe-area-inset-right), 0px)',
+      }}
+    >
       {/* Horná Hlavička s Tlačidlom "Späť" */}
       <div className="flex items-center justify-between px-4 py-3 sm:py-4 border-b border-white/5 flex-shrink-0">
         <button
@@ -49,16 +60,16 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
           aria-label="Späť"
         >
           <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden xs:inline">Späť</span>
+          <span>Späť</span>
         </button>
         <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-emerald-400 uppercase">POZÝVACÍ KÓD</span>
         <div className="w-[64px] sm:w-[72px]" />
       </div>
 
-      {/* Hlavný Obsah — Centrovaný, Scrollovateľný na Android */}
+      {/* Hlavný Obsah — Centrovaný, Scrollovateľný */}
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 sm:py-6 overflow-y-auto">
         {/* Mode Switcher: QR vs. Ručne */}
-        <div className={`mb-6 sm:mb-8 flex justify-center w-full transition-all ${keyboardOpen ? 'mb-4' : ''}`}>
+        <div className={`mb-6 sm:mb-8 flex justify-center w-full transition-all ${keyboardOpen ? 'mb-2' : ''}`}>
           <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur gap-1">
             <button
               onClick={() => setMode("qr")}
@@ -67,7 +78,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               }`}
             >
               <QrCode className="h-3.5 w-3.5" /> 
-              <span className="hidden xs:inline">QR kód</span>
+              <span>QR kód</span>
             </button>
             <button
               onClick={() => setMode("manual")}
@@ -76,7 +87,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               }`}
             >
               <Keyboard className="h-3.5 w-3.5" />
-              <span className="hidden xs:inline">Ručne</span>
+              <span>Ručne</span>
             </button>
           </div>
         </div>
@@ -121,7 +132,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
                 Aktivácia účtu
               </h2>
               <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                Zadaj 10-miestny kód, ktorý ti poskytol tvoj sused, starosta alebo administrátor.
+                Zadaj pozývací kód, ktorý ti poskytol tvoj sused, starosta alebo administrátor.
               </p>
               <input
                 value={code}
@@ -129,12 +140,12 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
                 onFocus={() => setKeyboardOpen(true)}
                 onBlur={() => setKeyboardOpen(false)}
                 placeholder="XXXX-XXXXX"
-                maxLength={20}
+                maxLength={30}
                 autoComplete="off"
                 inputMode="text"
                 className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-base sm:text-xl tracking-[0.15em] sm:tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
                 style={{
-                  fontSize: '16px', // Prevencia Android zoom pri focus
+                  fontSize: '16px', // Prevencia Android/iOS zoomu pri focus
                   WebkitUserSelect: 'none',
                   userSelect: 'none',
                 }}
@@ -159,11 +170,11 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Spodné Tlačidlo — Fixované, Bezpečné pre Android Nav Bar */}
+      {/* Spodné Tlačidlo — Fixované */}
       <div className="w-full px-4 py-3 sm:py-4 border-t border-white/5 flex-shrink-0 bg-gradient-to-t from-slate-950 to-transparent">
         <button
           onClick={() => void submit()}
-          disabled={busy || (mode === "manual" && code.trim().length < 4)}
+          disabled={busy || (mode === "manual" && code.trim().length < 2)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 px-4 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-400 active:scale-[0.98] transition-all"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
