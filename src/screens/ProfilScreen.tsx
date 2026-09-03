@@ -145,7 +145,7 @@ export function ProfilScreen() {
     return section === "items" ? section : "";
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [showInquiriesDashboard, setShowInquiriesDashboard] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [pendingInquiriesCount, setPendingInquiriesCount] = useState(0);
 
   async function loadItems(uid: string) {
@@ -180,10 +180,10 @@ export function ProfilScreen() {
 
     const loadPendingCount = async () => {
       try {
-        const { count } = await supabase
-          .from('mayor_inquiries')
+        const { count } = await (supabase
+          .from('mayor_inquiries' as any)
           .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', 'pending') as any);
 
         setPendingInquiriesCount(count || 0);
       } catch (err) {
@@ -347,7 +347,11 @@ export function ProfilScreen() {
               onClose={() => setOpenSection("")}
             >
               <button
-                onClick={() => setShowInquiriesDashboard(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDashboardOpen(true);
+                }}
                 className="w-full inline-flex items-center justify-between rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-semibold hover:bg-emerald-700 transition-colors active:scale-95"
               >
                 <span className="flex items-center gap-2">
@@ -653,8 +657,8 @@ export function ProfilScreen() {
 
       {/* Mayor Inquiries Dashboard */}
       <MayorInquiriesDashboard
-        isOpen={showInquiriesDashboard}
-        onClose={() => setShowInquiriesDashboard(false)}
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
       />
     </div>
   );

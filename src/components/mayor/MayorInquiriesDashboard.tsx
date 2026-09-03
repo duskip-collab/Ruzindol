@@ -211,7 +211,11 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
           />
 
           {/* Fullscreen Dashboard */}
@@ -231,7 +235,11 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                   </p>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   aria-label="Zatvoriť"
                 >
