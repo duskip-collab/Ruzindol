@@ -147,7 +147,7 @@ function classifyAnnouncementPriority(priority: string | null): NotifCategory {
   return "obecne";
 }
 
-function NotificationProvider({ children }: { children: ReactNode }) {
+export function NotificationProvider({ children }: { children: ReactNode }) {
   const [muted, setMutedState] = useState<boolean>(getInitialMuted);
   const [categories, setCategories] =
     useState<Record<NotifCategory, boolean>>(getInitialCategories);
@@ -161,8 +161,8 @@ function NotificationProvider({ children }: { children: ReactNode }) {
   const catsRef = useRef(categories);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationChannelRef = useRef<RealtimeChannel | null>(null);
-  
-  // ✅ POISTKA PROTI SÚBEHU — Deduplicate push sync pri multiple auth events
+
+  // Poistka proti súbežným požiadavkám (Race Condition Lock)
   const isPushSyncInProgressRef = useRef(false);
   const lastPushSyncTimeRef = useRef(0);
 
@@ -173,6 +173,32 @@ function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     catsRef.current = categories;
   }, [categories]);
+
+  // Bezpečná deduplikovaná funkcia na synchronizáciu Push subskripcie
+  const safeSyncPushSubscription = useCallback(async () => {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+      return;
+    }
+
+    const now = Date.now();
+    if (
+      isPushSyncInProgressRef.current ||
+      now - lastPushSyncTimeRef.current < 3000
+    ) {
+      return;
+    }
+
+    isPushSyncInProgressRef.current = true;
+    lastPushSyncTimeRef.current = now;
+
+    try {
+      await syncPushSubscriptionSilently();
+    } catch (error) {
+      console.error("[NotificationContext] Push sync chyba:", error);
+    } finally {
+      isPushSyncInProgressRef.current = false;
+    }
+  }, []);
 
   const setMuted = useCallback((v: boolean) => {
     setMutedState(v);
@@ -204,62 +230,36 @@ function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    
-    // Inicializácia: Získaj aktuálneho users bez čakania na async
-    supabase.auth.getUser().then(({ data }) => {
-      if (!mounted) return;
-      const userId = data.user?.id;
-      if (userId && typeof userId === "string") {
-        setCurrentUserId(userId);
-      } else {
-        setCurrentUserId(null);
-      }
-    }).catch((err) => {
-      console.warn("[NotificationContext] getUser() chyba:", err);
-      if (mounted) setCurrentUserId(null);
-    });
 
-    // Monitoruj zmeny autentifikácie (login/logout/token refresh)
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!mounted) return;
+        const userId = data.user?.id;
+        if (userId && typeof userId === "string") {
+          setCurrentUserId(userId);
+        } else {
+          setCurrentUserId(null);
+        }
+      })
+      .catch((err) => {
+        console.warn("[NotificationContext] getUser() chyba:", err);
+        if (mounted) setCurrentUserId(null);
+      });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // Bezpečné získanie userId z session
       const userId = session?.user?.id;
       if (userId && typeof userId === "string") {
         setCurrentUserId(userId);
+        safeSyncPushSubscription();
       } else {
-        // User nie je prihlásený alebo je prihlásenie neplatné
         setCurrentUserId(null);
-      }
-
-      // Ak user nie je prihlásený, vyčisti všetko
-      if (!userId) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
         setNotifications([]);
-        isPushSyncInProgressRef.current = false; // Reset flag
-        return;
-      }
-
-      // ✅ DEDUPLICATE LOGIKA — Max 1x za 3 sekundy
-      // Ak sú push notifikácie dostupné a povolené, synchronizuj subskripciu
-      const now = Date.now();
-      if (
-        typeof Notification !== "undefined" && 
-        Notification.permission === "granted" &&
-        !isPushSyncInProgressRef.current &&
-        now - lastPushSyncTimeRef.current > 3000
-      ) {
-        isPushSyncInProgressRef.current = true;
-        lastPushSyncTimeRef.current = now;
-        
-        syncPushSubscriptionSilently()
-          .catch((error) => {
-            console.error("[NotificationContext] Push sync chyba:", error);
-          })
-          .finally(() => {
-            isPushSyncInProgressRef.current = false;
-          });
+        isPushSyncInProgressRef.current = false;
       }
     });
 
@@ -267,7 +267,7 @@ function NotificationProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [safeSyncPushSubscription]);
 
   useEffect(() => {
     const channel = supabase
@@ -511,21 +511,19 @@ function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!currentUserId) return;
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission !== "granted") return;
 
-    const syncCurrentPushSubscription = () => syncPushSubscriptionSilently().catch((error) => {
-      console.error("Chyba pri synchronizácii push subskripcie:", error);
-    });
+    safeSyncPushSubscription();
 
-    // Re-check the browser subscription on every app/page activation.
-    syncCurrentPushSubscription();
-    window.addEventListener("pageshow", syncCurrentPushSubscription);
+    const handlePageShow = () => {
+      safeSyncPushSubscription();
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
 
     return () => {
-      window.removeEventListener("pageshow", syncCurrentPushSubscription);
+      window.removeEventListener("pageshow", handlePageShow);
     };
-  }, [currentUserId]);
+  }, [currentUserId, safeSyncPushSubscription]);
 
   const unreadCount = useMemo(
     () => notifications.reduce((acc, n) => acc + (n.is_read ? 0 : 1), 0),
