@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowRight, BadgeCheck, Chrome, Mail, Sparkles, Loader2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Chrome, Mail, Sparkles, Loader2, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LegalDocumentsDialog, LegalLinkButton, type LegalSection } from "@/components/LegalDocuments";
 import { supabase } from "@/integrations/supabase/client";
-import { InviteRedeemSection } from "@/components/InviteRedeemSection";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RouteErrorView } from "@/components/RouteErrorView";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -15,40 +15,22 @@ export const Route = createFileRoute("/auth")({
   errorComponent: RouteErrorView,
 });
 
-type MuniOpt = { id: string; name: string; region: string | null; slug: string };
-
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [viewMode, setViewMode] = useState<"select" | "email">("select");
+  const [authAction, setAuthAction] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [street, setStreet] = useState("");
-  const [municipalityId, setMunicipalityId] = useState<string>("");
-  const [municipalities, setMunicipalities] = useState<MuniOpt[]>([]);
+  
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [legalDialogOpen, setLegalDialogOpen] = useState(false);
   const [legalDialogSection, setLegalDialogSection] = useState<LegalSection>("terms");
 
-  useEffect(() => {
-    // Načítanie obcí
-    supabase
-      .from("municipalities")
-      .select("id, name, region, slug")
-      .eq("is_active", true)
-      .order("name")
-      .then(({ data }) => {
-        const list = (data as MuniOpt[] | null) ?? [];
-        setMunicipalities(list);
-        if (list.length > 0) {
-          const rz = list.find((m) => m.slug === "ruzindol") || list[0];
-          setMunicipalityId(rz.id);
-        }
-      });
-  }, []);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Presmerovanie ak je už prihlásený
   useEffect(() => {
@@ -57,21 +39,25 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  useEffect(() => {
+    if (viewMode === "email") {
+      setTimeout(() => emailInputRef.current?.focus(), 100);
+    }
+  }, [viewMode]);
+
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setNotice(null);
 
-    if (mode === "signup" && !legalAccepted) {
-      setError(
-        "Pred registráciou musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.",
-      );
+    if (authAction === "signup" && !legalAccepted) {
+      setError("Pred registráciou musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.");
       return;
     }
 
     setBusy(true);
     try {
-      if (mode === "signin") {
+      if (authAction === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate({ to: "/" });
@@ -81,9 +67,6 @@ function AuthPage() {
           password,
           options: {
             data: {
-              name,
-              street,
-              municipality_id: municipalityId,
               legal_accepted_at: new Date().toISOString(),
               legal_version: "2026-08-03",
             },
@@ -95,14 +78,13 @@ function AuthPage() {
         if (data.session) {
           navigate({ to: "/" });
         } else {
-          setMode("signin");
-          setNotice(
-            "Registrácia prebehla. Potvrď email v schránke a potom sa prihlás emailom a heslom.",
-          );
+          setNotice("Na tvoj e-mail sme odoslali overovací odkaz. Klikni naň a dokonči registráciu.");
+          setEmail("");
+          setPassword("");
         }
       }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch (err: any) {
+      setError(err.message || "Nepodarilo sa prihlásiť.");
     } finally {
       setBusy(false);
     }
@@ -110,15 +92,10 @@ function AuthPage() {
 
   async function handleGoogle() {
     setError(null);
-    setNotice(null);
-
     if (!legalAccepted) {
-      setError(
-        "Pred pokračovaním cez Google musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.",
-      );
+      setError("Pred prihlásením musíš súhlasiť so spracovaním údajov (zaškrtni políčko nižšie).");
       return;
     }
-
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -131,234 +108,201 @@ function AuthPage() {
       setBusy(false);
     }
   }
-
-  function openLegalDialog(section: LegalSection) {
-    setLegalDialogSection(section);
-    setLegalDialogOpen(true);
-  }
-
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.18),_transparent_34%),linear-gradient(180deg,_#08111d_0%,_#0f172a_52%,_#111827_100%)] px-4 py-8 text-slate-50">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl lg:w-[42%]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.22),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.18),_transparent_24%)]" />
-          <div className="relative flex h-full flex-col justify-between gap-8">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">
-                <Sparkles className="h-3.5 w-3.5" />
-                Prihlásenie do Komunita Ružindol
-              </div>
-              <div className="space-y-4">
-                <h1 className="max-w-md text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                  Vitaj u susedov. Vyber si, ako vstúpiš.
-                </h1>
-                <p className="max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-                  Použi svoj Google účet, klasický e-mail alebo zadaj pozývací kód. Všetko rýchlo, bezpečne a na jednom mieste.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { title: "Email", desc: "Klasické prihlásenie", icon: Mail },
-                { title: "Google", desc: "Rýchly vstup", icon: Chrome },
-                { title: "Invite", desc: "Voliteľné odomknutie", icon: BadgeCheck },
-              ].map(({ title, desc, icon: Icon }) => (
-                <div key={title} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <Icon className="mb-3 h-5 w-5 text-emerald-300" />
-                  <div className="text-sm font-semibold text-white">{title}</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-300">{desc}</div>
-                </div>
-              ))}
-            </div>
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-slate-950 px-4 py-12 selection:bg-emerald-500/30 selection:text-emerald-200">
+      {/* Emerald Glow Effect */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-full -translate-x-1/2 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15)_0%,transparent_70%)]" />
+      
+      <div className="relative z-10 w-full max-w-md">
+        {/* Upper Badge */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 flex justify-center"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-[11px] font-bold tracking-wider text-emerald-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>PRIHLÁSENIE DO KOMUNITA RUŽINDOL</span>
           </div>
-        </section>
+        </motion.div>
 
-        <div className="grid flex-1 gap-6 lg:max-w-2xl">
-          <Card className="border-white/10 bg-slate-950/80 text-slate-50 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <CardHeader className="space-y-2 border-b border-white/10 bg-white/5">
-              <CardTitle className="text-2xl text-white">Prihlásenie emailom</CardTitle>
-              <CardDescription className="text-slate-300">
-                Prihlás sa existujúcim účtom alebo si vytvor účet pre svoju komunitu.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-200">Email</label>
-                  <Input
-                    type="email"
-                    placeholder="napr. meno@domena.sk"
-                    required
-                    className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
-                    onChange={(e) => setEmail(e.target.value)}
+        {/* Headlines */}
+        <div className="mb-10 text-center">
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+          >
+            Vitaj u susedov. <br />
+            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Vyber si, ako vstúpiš.</span>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-4 text-slate-400"
+          >
+            Použi svoj Google účet alebo klasický e-mail. <br className="hidden sm:block" />
+            Všetko rýchlo, bezpečne a na jednom mieste.
+          </motion.p>
+        </div>
+
+        {/* Auth Cards / Form Container */}
+        <div className="relative min-h-[340px]">
+          <AnimatePresence mode="wait">
+            {viewMode === "select" ? (
+              <motion.div
+                key="select"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="grid gap-4"
+              >
+                {/* Email Card */}
+                <button
+                  onClick={() => setViewMode("email")}
+                  className="group relative flex items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all hover:border-emerald-500/50 hover:bg-slate-900 active:scale-[0.99]"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 transition-colors group-hover:bg-emerald-500/20">
+                    <Mail className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Email</h3>
+                    <p className="text-sm text-slate-400">Klasické prihlásenie</p>
+                  </div>
+                  <ArrowRight className="ml-auto h-5 w-5 text-slate-600 transition-transform group-hover:translate-x-1 group-hover:text-emerald-500" />
+                </button>
+
+                {/* Google Card */}
+                <button
+                  onClick={handleGoogle}
+                  disabled={busy}
+                  className="group relative flex items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all hover:border-blue-500/50 hover:bg-slate-900 active:scale-[0.99]"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-900">
+                    <Globe className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Google</h3>
+                    <p className="text-sm text-slate-400">Rýchly vstup</p>
+                  </div>
+                  <ArrowRight className="ml-auto h-5 w-5 text-slate-600 transition-transform group-hover:translate-x-1 group-hover:text-blue-500" />
+                </button>
+
+                {/* Consent in Select Mode */}
+                <div className="mt-4">
+                  <ConsentCheckbox
+                    checked={legalAccepted}
+                    onChange={setLegalAccepted}
+                    onOpenLegal={openLegalDialog}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-200">Heslo</label>
-                  <Input
-                    type="password"
-                    placeholder="Tvoje heslo"
-                    required
-                    className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
+              </motion.div>
+            ) : (
 
-                {mode === "signup" && (
-                  <div className="grid gap-4 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-4 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <div className="text-sm font-semibold text-emerald-100">Registrácia účtu</div>
-                      <p className="text-xs leading-5 text-slate-300">
-                        Zadaj základné údaje, aby si bol pripravený na komunitné funkcie.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-200">
-                        Meno a priezvisko
+
+  const openLegalDialog = (section: LegalSection) => {
+              <motion.div
+                key="email"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm"
+              >
+                <button
+                  onClick={() => setViewMode("select")}
+                  className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Späť na výber
+                </button>
+
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Váš e-mail
+                    </label>
+                    <Input
+                      ref={emailInputRef}
+                      type="email"
+                      required
+                      placeholder="sused@ruzindol.sk"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Heslo
                       </label>
-                      <Input
-                        placeholder="Tvoje meno"
-                        className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
-                        onChange={(e) => setName(e.target.value)}
-                      />
+                      <button 
+                        type="button"
+                        onClick={() => navigate({ to: "/reset-password" })}
+                        className="text-[11px] font-medium text-emerald-400 hover:text-emerald-300"
+                      >
+                        Zabudnuté heslo?
+                      </button>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-200">Ulica a číslo</label>
-                      <Input
-                        placeholder="Ulica 12"
-                        className="h-11 border-white/10 bg-white/5 text-white placeholder:text-slate-400 focus-visible:ring-emerald-400"
-                        onChange={(e) => setStreet(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm font-medium text-slate-200">Profil komunity</label>
-                      {municipalities.length <= 1 ? (
-                        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                          <div className="text-sm font-semibold text-white">
-                            {municipalities[0]?.name ?? "Ružindol"}
-                          </div>
-                          <div className="mt-1 text-xs leading-5 text-slate-300">
-                            Aktuálne je dostupný iba jeden profil. Po vytvorení ďalšej komunity sa
-                            tu zobrazí aj výber.
-                          </div>
-                        </div>
-                      ) : (
-                        <select
-                          className="h-11 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white outline-none ring-offset-transparent focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-                          value={municipalityId}
-                          onChange={(e) => setMunicipalityId(e.target.value)}
-                        >
-                          {municipalities.map((m) => (
-                            <option key={m.id} value={m.id} className="bg-slate-950 text-white">
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <div className="sm:col-span-2">
+                    <Input
+                  {authAction === "signup" && (
+                    <div className="pt-2">
                       <ConsentCheckbox
                         checked={legalAccepted}
                         onChange={setLegalAccepted}
                         onOpenLegal={openLegalDialog}
                       />
                     </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                    {error}
-                  </div>
-                )}
-
-                {notice && (
-                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                    {notice}
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={busy || (mode === "signup" && !legalAccepted)}
-                  className="h-11 w-full rounded-2xl bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400"
-                >
-                  {busy ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : mode === "signin" ? (
-                    <>
-                      Prihlásiť sa emailom
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      Registrovať sa emailom
-                      <ArrowRight className="h-4 w-4" />
-                    </>
                   )}
-                </Button>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                    className="text-emerald-300 underline-offset-4 hover:underline"
+                  <Button
+                    type="submit"
+                    disabled={busy}
+                    className="h-12 w-full rounded-2xl bg-emerald-600 font-semibold text-white hover:bg-emerald-500"
                   >
-                    {mode === "signin"
-                      ? "Nemáš účet? Registrovať sa"
-                      : "Mám účet, chcem sa prihlásiť"}
-                  </button>
-                  <span className="text-slate-400">Email login je najrýchlejšia cesta.</span>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                    {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BadgeCheck className="mr-2 h-4 w-4" />}
+                    {authAction === "signin" ? "Prihlásiť sa" : "Vytvoriť účet"}
+                  </Button>
 
-          <Card className="border-white/10 bg-white/95 text-slate-950 shadow-2xl shadow-black/20 backdrop-blur-xl">
-            <CardHeader className="space-y-2 border-b border-slate-200/80 bg-slate-50/90">
-              <CardTitle className="text-2xl text-slate-900">Prihlásenie cez Google</CardTitle>
-              <CardDescription className="text-slate-600">
-                Rýchle prihlásenie jedným klikom cez tvoj Google účet.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <Button
-                onClick={handleGoogle}
-                disabled={busy || !legalAccepted}
-                variant="outline"
-                className="h-11 w-full rounded-2xl border-slate-300 bg-white text-slate-900 shadow-sm hover:bg-slate-50"
-              >
-                <Chrome className="h-4 w-4" />
-                Pokračovať cez Google
-              </Button>
-              <div className="mt-3">
-                <ConsentCheckbox
-                  checked={legalAccepted}
-                  onChange={setLegalAccepted}
-                  onOpenLegal={openLegalDialog}
-                  darkText
-                />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Po povolení providera v Supabase sa tu otvorí štandardný Google flow a po úspešnom
-                prihlásení sa vrátiš späť do aplikácie.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-emerald-400/20 bg-emerald-50/95 text-slate-950 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl">
-            <CardHeader className="space-y-2 border-b border-emerald-200/80 bg-white/60">
-              <CardTitle className="text-2xl text-slate-900">Nepovinný invite kód</CardTitle>
-              <CardDescription className="text-slate-600">
-                Ak máš kód od suseda alebo starostu, môžeš ho aktivovať hneď po prihlásení.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <InviteRedeemSection />
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="pt-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setAuthAction(authAction === "signin" ? "signup" : "signin")}
+                      className="text-sm text-slate-400 hover:text-white"
+                    >
+                      {authAction === "signin" ? (
+                        <>Ešte nemáte účet? <span className="font-semibold text-emerald-400">Zaregistrujte sa</span></>
+                      ) : (
+                        <>Už máte účet? <span className="font-semibold text-emerald-400">Prihláste sa</span></>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+        {/* Global Messages */}
+        <AnimatePresence>
+          {(error || notice) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={cn(
+                "mt-6 rounded-2xl border p-4 text-sm font-medium leading-relaxed shadow-lg",
+                error 
+                  ? "border-rose-500/20 bg-rose-500/10 text-rose-400" 
+                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+              )}
+            >
+              {error || notice}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <LegalDocumentsDialog
@@ -374,41 +318,47 @@ function ConsentCheckbox({
   checked,
   onChange,
   onOpenLegal,
-  darkText = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   onOpenLegal: (section: LegalSection) => void;
-  darkText?: boolean;
 }) {
-  const textTone = darkText ? "text-slate-700" : "text-slate-200";
-  const linkTone = darkText
-    ? "font-semibold text-emerald-700 underline underline-offset-4 hover:text-emerald-600"
-    : "font-semibold text-emerald-300 underline underline-offset-4 hover:text-emerald-200";
-
   return (
-    <label className={`flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-3 text-sm ${textTone}`}>
+    <label className="flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 px-4 py-3 text-[13px] text-slate-400 transition-colors hover:bg-slate-900/50">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-white/5 text-emerald-400 focus:ring-emerald-400"
+        className="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20"
       />
-      <span className="max-h-24 overflow-y-auto pr-1 leading-6">
-        Súhlasím so
-        {" "}
-        <LegalLinkButton section="terms" onOpen={onOpenLegal} className={linkTone}>
-          Všeobecnými podmienkami používania
+      <span className="leading-5">
+        Súhlasím so{" "}
+        <LegalLinkButton section="terms" onOpen={onOpenLegal} className="font-semibold text-emerald-400 underline-offset-4 hover:underline">
+          VPP
         </LegalLinkButton>
-        {" "}
-        a
-        {" "}
-        <LegalLinkButton section="privacy" onOpen={onOpenLegal} className={linkTone}>
-          Zásadami ochrany osobných údajov
+        {" "}a{" "}
+        <LegalLinkButton section="privacy" onOpen={onOpenLegal} className="font-semibold text-emerald-400 underline-offset-4 hover:underline">
+          GDPR
         </LegalLinkButton>
-        . Beriem na vedomie, že moje údaje (e-mail, meno/prezývka) budú spracúvané na účely
-        fungovania komunitnej aplikácie.
+        . Beriem na vedomie spracovanie mojich údajov.
       </span>
     </label>
   );
 }
+
+          </AnimatePresence>
+        </div>
+
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+    setLegalDialogSection(section);
+    setLegalDialogOpen(true);
+  };
+
