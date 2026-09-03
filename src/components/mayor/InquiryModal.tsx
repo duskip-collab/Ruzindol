@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Image, Lock, Globe, AlertCircle, MapPin, Camera, Loader2, X } from 'lucide-react';
-import { AnimatedModal } from '../AnimatedModal';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,16 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lock body overflow when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -193,216 +203,273 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
   };
 
   return (
-    <AnimatedModal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Podnet starostovi" 
-      confirmText={submitting || uploading ? (uploading ? 'Nahrávam fotku...' : 'Odosielam...') : 'Odoslať'} 
-      cancelText="Zrušiť" 
-      onConfirm={handleSubmit}
-      disabled={submitting || uploading}
-    >
-      <div className="space-y-3">
-        {errorMessage && (
-          <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-950 dark:text-rose-200">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Kategória</label>
-          <div className="grid grid-cols-3 gap-1">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => { triggerHaptic('light'); setCategory(cat.id); }}
-                disabled={submitting || uploading}
-                className={cn(
-                  'rounded-lg border p-2 text-[11px] font-medium text-center transition-colors disabled:opacity-50',
-                  category === cat.id
-                    ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-200'
-                    : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                )}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="inquiry-title" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Názov *</label>
-          <input 
-            id="inquiry-title" 
-            type="text" 
-            value={title} 
-            onChange={(e) => setTitle(e.target.value)} 
-            placeholder="Názov podnetu" 
-            disabled={submitting || uploading}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 z-[99] bg-black/40 backdrop-blur-sm dark:bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            aria-hidden="true"
           />
-        </div>
 
-        <div>
-          <label htmlFor="inquiry-body" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Popis *</label>
-          <textarea 
-            id="inquiry-body" 
-            rows={3} 
-            value={body} 
-            onChange={(e) => setBody(e.target.value)} 
-            placeholder="Popíšte situáciu..." 
-            disabled={submitting || uploading}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 resize-none disabled:opacity-50"
-          />
-        </div>
-
-        {/* Image Upload / Preview Section */}
-        <div>
-          <label className="block text-xs font-semibold mb-2 text-slate-900 dark:text-slate-100">Fotografia (voliteľne)</label>
-          
-          {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden border-2 border-blue-300 dark:border-blue-700 bg-slate-100 dark:bg-slate-800">
-              <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover" />
+          {/* Fullscreen Modal Container */}
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inquiry-modal-title"
+            className="fixed inset-0 z-[100] flex flex-col h-full w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden"
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+          >
+            {/* HEADER - Fixed */}
+            <div className="shrink-0 flex items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <h3 id="inquiry-modal-title" className="text-lg font-semibold">
+                Podnet starostovi
+              </h3>
               <button
                 type="button"
-                onClick={handleRemoveImage}
+                onClick={onClose}
                 disabled={submitting || uploading}
-                className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 disabled:opacity-50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors focus:outline-none disabled:opacity-50"
+                aria-label="Zatvoriť"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-[10px]">
-                Fotka pripravená k odoslaniu
-              </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex gap-2">
+
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
+              {errorMessage && (
+                <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-950 dark:text-rose-200">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Kategória</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => { triggerHaptic('light'); setCategory(cat.id); }}
+                      disabled={submitting || uploading}
+                      className={cn(
+                        'rounded-lg border p-2 text-[11px] font-medium text-center transition-colors disabled:opacity-50',
+                        category === cat.id
+                          ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-200'
+                          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                      )}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="inquiry-title" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Názov *</label>
+                <input 
+                  id="inquiry-title" 
+                  type="text" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  placeholder="Názov podnetu" 
+                  disabled={submitting || uploading}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="inquiry-body" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Popis *</label>
+                <textarea 
+                  id="inquiry-body" 
+                  rows={3} 
+                  value={body} 
+                  onChange={(e) => setBody(e.target.value)} 
+                  placeholder="Popíšte situáciu..." 
+                  disabled={submitting || uploading}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 resize-none disabled:opacity-50"
+                />
+              </div>
+
+              {/* Image Upload / Preview Section */}
+              <div>
+                <label className="block text-xs font-semibold mb-2 text-slate-900 dark:text-slate-100">Fotografia (voliteľne)</label>
+                
+                {imagePreview ? (
+                  <div className="relative rounded-xl overflow-hidden border-2 border-blue-300 dark:border-blue-700 bg-slate-100 dark:bg-slate-800">
+                    <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover" />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      disabled={submitting || uploading}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white text-[10px]">
+                      Fotka pripravená k odoslaniu
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={submitting || uploading}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors disabled:opacity-50"
+                      >
+                        <Camera className="h-4 w-4" />
+                        Nahrať fotku
+                      </button>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleImageSelect}
+                      disabled={submitting || uploading}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+
+                {/* Legacy URL input (fallback) */}
+                <div className="mt-2">
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Alebo vložte URL fotky..."
+                    disabled={submitting || uploading || !!imagePreview}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              {/* Geolocation Section */}
+              <div>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={submitting || uploading}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-colors disabled:opacity-50"
+                  onClick={handleGetLocation}
+                  disabled={submitting || uploading || locationLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 p-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors disabled:opacity-50"
                 >
-                  <Camera className="h-4 w-4" />
-                  Nahrať fotku
+                  {locationLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Získavam polohu...
+                    </>
+                  ) : latitude && longitude ? (
+                    <>
+                      <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Poloha: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-3.5 w-3.5" />
+                      Pridať moju polohu (GPS)
+                    </>
+                  )}
                 </button>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleImageSelect}
-                disabled={submitting || uploading}
-                className="hidden"
-              />
-            </div>
-          )}
 
-          {/* Legacy URL input (fallback) */}
-          <div className="mt-2">
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Alebo vložte URL fotky..."
-              disabled={submitting || uploading || !!imagePreview}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
-            />
-          </div>
-        </div>
+              {/* Public/Anonymous and Private Section */}
+              <div className="space-y-2 pt-2">
+                {/* Public Toggle */}
+                <div className="flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                  <div className="flex items-center gap-2">
+                    {isPublic ? (
+                      <Globe className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-amber-500" />
+                    )}
+                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      {isPublic ? 'Verejný podnet' : 'Súkromný podnet'}
+                    </span>
+                  </div>
 
-        {/* Geolocation Section */}
-        <div>
-          <button
-            type="button"
-            onClick={handleGetLocation}
-            disabled={submitting || uploading || locationLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 p-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors disabled:opacity-50"
-          >
-            {locationLoading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Získavam polohu...
-              </>
-            ) : latitude && longitude ? (
-              <>
-                <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                Poloha: {latitude.toFixed(4)}, {longitude.toFixed(4)}
-              </>
-            ) : (
-              <>
-                <MapPin className="h-3.5 w-3.5" />
-                Pridať moju polohu (GPS)
-              </>
-            )}
-          </button>
-        </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setIsPublic(!isPublic);
+                      if (!isPublic) setIsAnonymousPublic(false); // Reset anonymous if switching to private
+                    }}
+                    disabled={submitting || uploading}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50',
+                      isPublic ? 'bg-emerald-600 dark:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200',
+                        isPublic ? 'translate-x-5' : 'translate-x-0'
+                      )}
+                    />
+                  </button>
+                </div>
 
-        {/* Public/Anonymous and Private Section */}
-        <div className="space-y-2 pt-2">
-          {/* Public Toggle */}
-          <div className="flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-            <div className="flex items-center gap-2">
-              {isPublic ? (
-                <Globe className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <Lock className="h-4 w-4 text-amber-500" />
-              )}
-              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                {isPublic ? 'Verejný podnet' : 'Súkromný podnet'}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('light');
-                setIsPublic(!isPublic);
-                if (!isPublic) setIsAnonymousPublic(false); // Reset anonymous if switching to private
-              }}
-              disabled={submitting || uploading}
-              className={cn(
-                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50',
-                isPublic ? 'bg-emerald-600 dark:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
-              )}
-            >
-              <span
-                className={cn(
-                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200',
-                  isPublic ? 'translate-x-5' : 'translate-x-0'
+                {/* Anonymous Public Checkbox (only visible when public) */}
+                {isPublic && (
+                  <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isAnonymousPublic}
+                      onChange={(e) => {
+                        triggerHaptic('light');
+                        setIsAnonymousPublic(e.target.checked);
+                      }}
+                      disabled={submitting || uploading}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                      Anonymný podnet pre verejnosť
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      (Úrad vidí tvoje meno)
+                    </span>
+                  </label>
                 )}
-              />
-            </button>
-          </div>
+              </div>
+            </div>
 
-          {/* Anonymous Public Checkbox (only visible when public) */}
-          {isPublic && (
-            <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-              <input
-                type="checkbox"
-                checked={isAnonymousPublic}
-                onChange={(e) => {
-                  triggerHaptic('light');
-                  setIsAnonymousPublic(e.target.checked);
-                }}
+            {/* FOOTER - Fixed Action Buttons */}
+            <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 flex items-center justify-end gap-3 pb-safe">
+              <button
+                type="button"
+                onClick={onClose}
                 disabled={submitting || uploading}
-                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-              />
-              <span className="text-xs font-medium text-slate-900 dark:text-slate-100">
-                Anonymný podnet pre verejnosť
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                (Úrad vidí tvoje meno)
-              </span>
-            </label>
-          )}
-        </div>
-      </div>
-    </AnimatedModal>
+                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors active:scale-95 disabled:opacity-50"
+              >
+                Zrušiť
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting || uploading}
+                className="rounded-xl px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors active:scale-95 disabled:opacity-50"
+              >
+                {submitting || uploading ? (uploading ? 'Nahrávam fotku...' : 'Odosielam...') : 'Odoslať'}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 
