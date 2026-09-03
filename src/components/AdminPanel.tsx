@@ -427,16 +427,30 @@ function RoleAssigner() {
       void load();
     }, 0);
 
-    const channel = supabase
-      .channel("admin-users-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        void load();
-      })
-      .subscribe();
+    let channel: any;
+
+    const setupChannel = async () => {
+      // Create and subscribe to the channel
+      channel = supabase.channel("admin-users-live");
+      
+      channel
+        .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+          void load();
+        })
+        .subscribe((status) => {
+           if (status !== 'SUBSCRIBED') {
+             console.warn('Realtime subscription status:', status);
+           }
+        });
+    };
+
+    void setupChannel();
 
     return () => {
       window.clearTimeout(id);
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, []);
 
