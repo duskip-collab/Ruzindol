@@ -33,33 +33,77 @@ export function useCurrentUser() {
 
   useEffect(() => {
     let mounted = true;
+    
     (async () => {
-      setLoading(true);
-      setError(null);
       try {
-// Namiesto retryAsync hneď na začiatku:
-      const { data: { user } } = await supabase.auth.getUser(); 
-      if (!user) { 
-        setUserId(null);
-        setLoading(false);
-        return; 
-      }
-      
-      setUserId(user.id);
-      
-      // Načítaj profil len raz, bez zbytočného timeoutu
-      const { data: p } = await supabase.from("profiles").select(SELECT).eq("id", user.id).maybeSingle();
-      if (mounted) setProfile((p as Profile | null) ?? null);
-      setLoading(false);
+        setLoading(true);
+        setError(null);
+        
+        // Bezpečné získanie auth user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.warn("[useCurrentUser] getUser chyba:", userError);
+          if (mounted) {
+            setUserId(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+        
+        if (!user) {
+          console.info("[useCurrentUser] Žiadny autentifikovaný user");
+          if (mounted) {
+            setUserId(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Validácia userId
+        if (!user.id || typeof user.id !== "string" || user.id.trim() === "") {
+          console.error("[useCurrentUser] Invalid user.id:", user.id);
+          if (mounted) {
+            setUserId(null);
+            setProfile(null);
+            setError("Neplatné user ID");
+            setLoading(false);
+          }
+          return;
+        }
+
+        setUserId(user.id);
+
+        // Načítaj profil z databázy
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select(SELECT)
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.warn("[useCurrentUser] Profile load chyba:", profileError);
+          if (mounted) {
+            setProfile(null);
+            setError("Nepodarilo sa načítať profil");
+          }
+        } else if (mounted) {
+          setProfile((profileData as Profile | null) ?? null);
+        }
       } catch (e) {
-        console.error("useCurrentUser load failed", e);
-        if (!mounted) return;
-        setProfile(null);
-        setError("Nepodarilo sa načítať používateľa. Skús obnoviť stránku.");
+        console.error("[useCurrentUser] Neočakávaná chyba:", e);
+        if (mounted) {
+          setProfile(null);
+          setUserId(null);
+          setError("Nepodarilo sa načítať používateľa. Skús obnoviť stránku.");
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -71,20 +115,36 @@ export function useCurrentUser() {
     loading,
     error,
     refresh: async () => {
-      if (!userId) return;
+      if (!userId) {
+        console.warn("[useCurrentUser.refresh] Žiadny userId");
+        return;
+      }
       try {
-        const { data: p } = await withTimeout(
+        const { data: p, error: err } = await withTimeout(
           () =>
             retryAsync(
-              () => supabase.from("profiles").select(SELECT).eq("id", userId).maybeSingle(),
+              () =>
+                supabase
+                  .from("profiles")
+                  .select(SELECT)
+                  .eq("id", userId)
+                  .maybeSingle(),
               { retries: 1, delayMs: 250 },
             ),
           7000,
           "Obnova profilu trvala príliš dlho.",
         );
-        setProfile((p as Profile | null) ?? null);
+        
+        if (err) {
+          console.error("[useCurrentUser.refresh] Chyba:", err);
+          setError("Obnova profilu zlyhala");
+        } else {
+          setProfile((p as Profile | null) ?? null);
+          setError(null);
+        }
       } catch (e) {
-        console.error("useCurrentUser refresh failed", e);
+        console.error("[useCurrentUser.refresh] Neočakávaná chyba:", e);
+        setError("Obnova profilu zlyhala");
       }
     },
   };

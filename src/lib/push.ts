@@ -159,14 +159,33 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    if (!session?.user) {
-      console.warn("Používateľ nie je prihlásený, subskripcia sa neuloží.");
+    
+    // Bezpečné získanie session — detailný logging
+    if (!session) {
+      console.warn("[Push] Žiadna session dostupná");
+      return false;
+    }
+    
+    if (!session.user) {
+      console.warn("[Push] Session existuje, ale nemá user objekt");
       return false;
     }
 
     const userId = session.user.id;
-    if (!userId || typeof userId !== "string" || userId.trim() === "") {
-      console.error("Chyba: session.user.id nie je dostupný alebo je neplatný!");
+    
+    // Triple validation userId
+    if (!userId) {
+      console.error("[Push] Chyba: session.user.id je undefined alebo null");
+      return false;
+    }
+    
+    if (typeof userId !== "string") {
+      console.error("[Push] Chyba: session.user.id nie je string, je:", typeof userId);
+      return false;
+    }
+    
+    if (userId.trim() === "") {
+      console.error("[Push] Chyba: session.user.id je prázdny string");
       return false;
     }
 

@@ -200,25 +200,46 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    
+    // Inicializácia: Získaj aktuálneho users bez čakania na async
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
-      setCurrentUserId(data.user?.id ?? null);
+      const userId = data.user?.id;
+      if (userId && typeof userId === "string") {
+        setCurrentUserId(userId);
+      } else {
+        setCurrentUserId(null);
+      }
+    }).catch((err) => {
+      console.warn("[NotificationContext] getUser() chyba:", err);
+      if (mounted) setCurrentUserId(null);
     });
 
+    // Monitoruj zmeny autentifikácie (login/logout/token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUserId(session?.user?.id ?? null);
-      if (!session?.user || !session.user.id) {
+      // Bezpečné získanie userId z session
+      const userId = session?.user?.id;
+      if (userId && typeof userId === "string") {
+        setCurrentUserId(userId);
+      } else {
+        // User nie je prihlásený alebo je prihlásenie neplatné
+        setCurrentUserId(null);
+      }
+
+      // Ak user nie je prihlásený, vyčisti všetko
+      if (!userId) {
         setHasOfficialUnread(false);
         setHasMessageUnread(false);
         setNotifications([]);
         return;
       }
 
+      // Ak sú push notifikácie dostupné a povolené, synchronizuj subskripciu
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         syncPushSubscriptionSilently().catch((error) => {
-          console.error("Chyba pri synchronizácii push subskripcie:", error);
+          console.error("[NotificationContext] Push sync chyba:", error);
         });
       }
     });
