@@ -792,19 +792,19 @@ export function RolePanels({ role }: { role: ProfileRole }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Community Statistics - visible for everyone */}
+      <CommunityStats municipalityId={profile?.municipality_id ?? null} />
+      
       {role === "VIP_Firma" && <VipDashboard postsCount={posts.length} itemsCount={itemsCount} />}
       {role === "Starosta" && (
-        <>
-          <CommunityStats municipalityId={profile?.municipality_id ?? null} />
-          <PanelStarostu
-            posts={posts}
-            itemsCount={itemsCount}
-            usersCount={usersCount}
-            onDeleted={() => {
-              void loadStats();
-            }}
-          />
-        </>
+        <PanelStarostu
+          posts={posts}
+          itemsCount={itemsCount}
+          usersCount={usersCount}
+          onDeleted={() => {
+            void loadStats();
+          }}
+        />
       )}
       {role === "Uradnik" && (
         <section className="rounded-2xl border border-orange-200 bg-white p-5 shadow-sm">

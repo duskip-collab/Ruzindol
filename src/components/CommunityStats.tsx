@@ -21,15 +21,21 @@ export function CommunityStats({ municipalityId }: { municipalityId: string | nu
         setLoading(true);
         setError(null);
 
+        console.log("CommunityStats: Loading with municipalityId:", municipalityId);
+
         const { data, error: queryError } = await supabase.rpc(
           "get_community_statistics",
           { _municipality_id: municipalityId },
         );
 
+        console.log("CommunityStats RPC response:", { data, error: queryError });
+
         if (queryError) throw queryError;
 
         if (mounted) {
-          setStats(data?.[0] ?? null);
+          const statsData = data?.[0] ?? null;
+          console.log("CommunityStats parsed stats:", statsData);
+          setStats(statsData);
         }
       } catch (err) {
         console.error("Failed to load community stats:", err);
@@ -72,6 +78,7 @@ export function CommunityStats({ municipalityId }: { municipalityId: string | nu
           </div>
         </div>
         {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
+        {!stats && <p className="mt-3 text-xs text-neutral-500">Žiadne údaje k dispozícii</p>}
       </section>
     );
   }
