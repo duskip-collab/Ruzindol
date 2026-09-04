@@ -48,7 +48,7 @@ function NeighborsScreen() {
       // Pokus o načítanie s novými poliami (ak existuje migrácia)
       const primaryQuery = await supabase
         .from("profiles")
-        .select("id, name, street, avatar_url, is_verified, invited_by:invited_by_user_id(id, name)")
+        .select("id, name, street, avatar_url, is_verified, invited_by:profiles!profiles_invited_by_user_id_fkey(id, name)")
         .eq("municipality_id", municipalityId!)
         .order("name");
 
