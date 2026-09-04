@@ -11,7 +11,7 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
   const { activateCode } = useAppMode();
 
   async function submit() {
-    const val = code.trim();
+    const val = code.trim().replace(/-/g, '');
     if (!val) {
       setErr("Zadaj kód od suseda alebo starostu.");
       return;
@@ -40,6 +40,12 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
     }
   }
 
+  function formatCode(input: string): string {
+    const clean = input.toUpperCase().replace(/-/g, '');
+    if (clean.length <= 4) return clean;
+    return clean.slice(0, 4) + '-' + clean.slice(4, 20);
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-neutral-600 dark:text-neutral-300">
@@ -52,12 +58,12 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
           <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => setCode(formatCode(e.target.value))}
             onKeyDown={(e) => {
               if (e.key === "Enter") void submit();
             }}
             placeholder="XXXX-XXXXX"
-            maxLength={20}
+            maxLength={12}
             autoComplete="off"
             className="app-input w-full rounded-2xl pl-9 pr-3 py-3 font-mono text-sm tracking-[0.25em] outline-none"
           />

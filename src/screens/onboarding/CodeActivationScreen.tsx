@@ -18,7 +18,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   async function submit(raw?: string) {
-    const val = (raw ?? code).trim();
+    const val = (raw ?? code).trim().replace(/-/g, '');
     if (!val) { 
       setErr("Zadaj kód."); 
       return; 
@@ -43,6 +43,12 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  function formatCode(input: string): string {
+    const clean = input.toUpperCase().replace(/-/g, '');
+    if (clean.length <= 4) return clean;
+    return clean.slice(0, 4) + '-' + clean.slice(4, 20);
   }
 
   return (
@@ -139,11 +145,11 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
               </p>
               <input
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(e) => setCode(formatCode(e.target.value))}
                 onFocus={() => setKeyboardOpen(true)}
                 onBlur={() => setKeyboardOpen(false)}
                 placeholder="XXXX-XXXXX"
-                maxLength={30}
+                maxLength={12}
                 autoComplete="off"
                 inputMode="text"
                 className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-base sm:text-xl tracking-[0.15em] sm:tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
