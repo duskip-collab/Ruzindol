@@ -20,6 +20,7 @@ import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { isIosDevice } from "@/lib/pwa";
 import type { PostPriority } from "@/types";
 import { MayorInquiriesPanel } from "@/components/mayor/MayorInquiriesPanel";
+import { CommunityStats } from "@/components/CommunityStats";
 
 type ReviewPost = {
   id: string;
@@ -793,14 +794,17 @@ export function RolePanels({ role }: { role: ProfileRole }) {
     <div className="flex flex-col gap-4">
       {role === "VIP_Firma" && <VipDashboard postsCount={posts.length} itemsCount={itemsCount} />}
       {role === "Starosta" && (
-        <PanelStarostu
-          posts={posts}
-          itemsCount={itemsCount}
-          usersCount={usersCount}
-          onDeleted={() => {
-            void loadStats();
-          }}
-        />
+        <>
+          <CommunityStats municipalityId={profile?.municipality_id ?? null} />
+          <PanelStarostu
+            posts={posts}
+            itemsCount={itemsCount}
+            usersCount={usersCount}
+            onDeleted={() => {
+              void loadStats();
+            }}
+          />
+        </>
       )}
       {role === "Uradnik" && (
         <section className="rounded-2xl border border-orange-200 bg-white p-5 shadow-sm">
