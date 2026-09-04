@@ -174,17 +174,28 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
         const answer = answers[inquiryId] || '';
         const status = statuses[inquiryId] || 'pending';
 
-        const { error } = await supabase
-          .from('mayor_inquiries')
-          .update({
-            answer: answer || null,
-            status,
-            answered_at: answer ? new Date().toISOString() : null,
-            answered_by: userId,
-          })
-          .eq('id', inquiryId);
+        // If status is "resolved", delete the inquiry instead of updating it
+        if (status === 'resolved') {
+          const { error } = await supabase
+            .from('mayor_inquiries')
+            .delete()
+            .eq('id', inquiryId);
 
-        if (error) throw error;
+          if (error) throw error;
+        } else {
+          // Otherwise update with answer and status
+          const { error } = await supabase
+            .from('mayor_inquiries')
+            .update({
+              answer: answer || null,
+              status,
+              answered_at: answer ? new Date().toISOString() : null,
+              answered_by: userId,
+            })
+            .eq('id', inquiryId);
+
+          if (error) throw error;
+        }
       }
 
       triggerHaptic('success');

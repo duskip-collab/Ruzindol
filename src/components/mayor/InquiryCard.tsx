@@ -1,5 +1,8 @@
-import React from 'react';
-import { MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle, Lock, Globe, Building2, MapPin, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle, Lock, Globe, Building2, MapPin, User, Trash2, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 
 export interface MayorInquiry {
@@ -27,6 +30,7 @@ export interface MayorInquiry {
 export interface InquiryCardProps {
   inquiry: MayorInquiry;
   className?: string;
+  onDeleted?: () => void;
 }
 
 const CATEGORY_LABELS: Record<MayorInquiry['category'], string> = {
@@ -38,7 +42,38 @@ const CATEGORY_LABELS: Record<MayorInquiry['category'], string> = {
   ine: 'Iné',
 };
 
-export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) => {
+export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, onDeleted }) => {
+  const { userId } = useCurrentUser();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const isAuthor = userId === inquiry.user_id;
+
+  const handleDelete = async () => {
+    if (!confirm('Naozaj chceš zmazať tento podnet? Túto akciu sa nedá vrátiť.')) return;
+
+    setIsDeleting(true);
+    try {
+      triggerHaptic('success');
+      const { error } = await supabase
+        .from('mayor_inquiries')
+        .delete()
+        .eq('id', inquiry.id);
+
+      if (error) {
+        triggerHaptic('error');
+        console.error('Chyba pri mazaní podnetu:', error);
+        alert('Nepodarilo sa zmazať podnet: ' + (error.message || 'Neznáma chyba'));
+      } else {
+        triggerHaptic('success');
+        onDeleted?.();
+      }
+    } catch (err) {
+      triggerHaptic('error');
+      console.error('Neočakávaná chyba:', err);
+      alert('Neočakávaná chyba pri mazaní');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   const getStatusBadge = () => {
     switch (inquiry.status) {
       case 'resolved':
@@ -183,13 +218,31 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className }) 
       )}
 
       {/* Footer Meta */}
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
-        <span>Odoslané: {formatDate(inquiry.created_at)}</span>
-        {inquiry.is_anonymous_public && inquiry.is_public ? (
-          <span>Autor: Overený občan</span>
-        ) : inquiry.profiles?.name || inquiry.profiles?.full_name ? (
-          <span>Autor: {inquiry.profiles.name || inquiry.profiles.full_name}</span>
-        ) : null}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 mb-3">
+          <span>Odoslané: {formatDate(inquiry.created_at)}</span>
+          {inquiry.is_anonymous_public && inquiry.is_public ? (
+            <span>Autor: Overený občan</span>
+          ) : inquiry.profiles?.name || inquiry.profiles?.full_name ? (
+            <span>Autor: {inquiry.profiles.name || inquiry.profiles.full_name}</span>
+          ) : null}
+        </div>
+        
+        {/* Delete button for author */}
+        {isAuthor && (
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            {isDeleting ? 'Mazanie...' : 'Zmazať podnet'}
+          </button>
+        )}
       </div>
     </div>
   );

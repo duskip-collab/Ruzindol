@@ -176,7 +176,11 @@ export function InquiriesScreen() {
       ) : filteredInquiries.length > 0 ? (
         <div className="space-y-4">
           {filteredInquiries.map((inq) => (
-            <InquiryCard key={inq.id} inquiry={inq} />
+            <InquiryCard 
+              key={inq.id} 
+              inquiry={inq} 
+              onDeleted={loadInquiries}
+            />
           ))}
         </div>
       ) : (
