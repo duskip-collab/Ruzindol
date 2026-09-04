@@ -60,7 +60,7 @@ export function MayorInquiriesPanel() {
     // Explicitné naviazanie cudzieho kľúča profiles!mayor_inquiries_user_id_fkey zabráni chybe 400 Bad Request
     const { data, error } = await supabase
       .from('mayor_inquiries')
-      .select('*, profiles!mayor_inquiries_user_id_fkey(name, full_name, email)')
+      .select('*, profiles!mayor_inquiries_user_id_fkey(name, email)')
       .order('created_at', { ascending: false });
 
     if (error) {
