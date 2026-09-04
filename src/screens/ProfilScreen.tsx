@@ -67,6 +67,10 @@ type Item = {
   price: number;
   created_at: string;
   expires_at: string | null;
+  image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
+  image_url_4: string | null;
   image_path: string | null;
   image_path_2: string | null;
   image_path_3: string | null;
@@ -164,7 +168,7 @@ export function ProfilScreen() {
             async () => {
               return supabase
                 .from("warehouse_items")
-                .select("id, type, title, price, created_at, expires_at, image_path, image_path_2, image_path_3, image_path_4")
+                .select("id, type, title, price, created_at, expires_at, image_url, image_url_2, image_url_3, image_url_4, image_path, image_path_2, image_path_3, image_path_4")
                 .eq("user_id", uid)
                 .order("created_at", { ascending: false });
             },

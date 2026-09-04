@@ -41,6 +41,12 @@ type Item = {
   price: number;
   image_url: string | null;
   image_path: string | null;
+  image_url_2: string | null;
+  image_path_2: string | null;
+  image_url_3: string | null;
+  image_path_3: string | null;
+  image_url_4: string | null;
+  image_path_4: string | null;
   created_at: string;
   expires_at: string | null;
   profiles?: { name: string; street: string | null; is_active_neighbor?: boolean | null } | null;
@@ -278,7 +284,7 @@ function useItems(type: ItemType) {
       setLoading(true);
       const { data } = await supabase
         .from("warehouse_items")
-        .select("id, user_id, type, title, description, price, image_url, image_path, created_at, expires_at, profiles(name, street, is_active_neighbor)")
+        .select("id, user_id, type, title, description, price, image_url, image_path, image_url_2, image_path_2, image_url_3, image_path_3, image_url_4, image_path_4, created_at, expires_at, profiles(name, street, is_active_neighbor)")
         .eq("type", type)
         .order("created_at", { ascending: false });
       if (!mounted) return;
@@ -513,13 +519,30 @@ function ListingDetailModal({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
-          {item.image_url && (
-            <img
-              src={item.image_url}
-              alt={item.title}
-              className="max-h-[42vh] w-full rounded-2xl object-cover"
-            />
-          )}
+          {(() => {
+            const photos = [
+              item.image_url,
+              item.image_url_2,
+              item.image_url_3,
+              item.image_url_4,
+            ].filter(Boolean);
+            
+            if (photos.length > 0) {
+              return (
+                <div className="grid grid-cols-2 gap-2">
+                  {photos.map((url, index) => (
+                    <img
+                      key={`${index}-${url}`}
+                      src={url}
+                      alt={`${item.title} - foto ${index + 1}`}
+                      className="h-40 w-full rounded-2xl object-cover"
+                    />
+                  ))}
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           <div>
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Popis</p>
@@ -714,41 +737,69 @@ function AddListingModal({
   const isPoz = type === "sklad_ponuka";
   const { userId } = useCurrentUser();
 
+  const MAX_PHOTOS = 4;
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [photo, setPhoto] = useState<CompressedImage | null>(null);
+  const [photos, setPhotos] = useState<CompressedImage[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const priceLabel = isPoz ? "Odmena / cena za deň (€)" : "Cena (€)";
   const pricePlaceholder = isPoz ? "3" : "35";
 
+  const addPhotos = (images: CompressedImage[]) => {
+    setPhotos((current) => {
+      const available = Math.max(0, MAX_PHOTOS - current.length);
+      const accepted = images.slice(0, available);
+      images.slice(available).forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      if (accepted.length < images.length) {
+        setErr("Inzerát môže obsahovať najviac 4 fotky.");
+      } else {
+        setErr(null);
+      }
+      return [...current, ...accepted];
+    });
+  };
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || photos.length > MAX_PHOTOS) return;
     setErr(null);
     setBusy(true);
     try {
-      let image_url: string | null = null;
-      let image_path: string | null = null;
-      if (photo) {
+      const uploaded: Array<{ url: string; path: string }> = [];
+      for (const photo of photos) {
         const upload = await uploadCompressedImage(photo, userId);
-        image_url = upload.imageUrl;
-        image_path = upload.imagePath;
+        uploaded.push({ url: upload.imageUrl, path: upload.imagePath });
       }
-      const numericPrice = isDarovanie ? 0 : Number(price) || 0;
-      const { error } = await supabase.from("warehouse_items").insert({
+
+      const fields: Record<string, string | null | number> = {
         user_id: userId,
         type,
         title: title.trim(),
         description: description.trim(),
-        price: numericPrice,
-        image_url,
-        image_path,
+        price: isDarovanie ? 0 : Number(price) || 0,
         expires_at: getWarehouseExpiryIso(type as WarehouseItemType),
+      };
+
+      uploaded.forEach((photo, index) => {
+        const suffix = index === 0 ? "" : `_${index + 1}`;
+        fields[`image_url${suffix}`] = photo.url;
+        fields[`image_path${suffix}`] = photo.path;
       });
+
+      for (let index = uploaded.length; index < MAX_PHOTOS; index++) {
+        const suffix = index === 0 ? "" : `_${index + 1}`;
+        fields[`image_url${suffix}`] = null;
+        fields[`image_path${suffix}`] = null;
+      }
+
+      const { error } = await supabase.from("warehouse_items").insert(fields);
       if (error) throw error;
+      
+      photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
       onClose();
       window.location.reload();
     } catch (e) {
@@ -804,7 +855,36 @@ function AddListingModal({
             />
           </div>
 
-          <ImageInput value={photo} onChange={setPhoto} label="Fotka (voliteľné)" />
+          <div>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Fotografie ({photos.length}/{MAX_PHOTOS})</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {photos.map((photo, index) => (
+                <div key={photo.previewUrl} className="relative">
+                  <img src={photo.previewUrl} alt="Nová fotka" className="h-28 w-full rounded-xl object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(photo.previewUrl);
+                      setPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index));
+                    }}
+                    aria-label="Odstrániť fotku"
+                    className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {photos.length < MAX_PHOTOS && (
+              <ImageInput
+                value={null}
+                onChange={(image) => image && addPhotos([image])}
+                onChangeMany={addPhotos}
+                multiple
+                label="Pridať fotografie"
+              />
+            )}
+          </div>
 
           <div>
             <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -832,7 +912,7 @@ function AddListingModal({
           <div className="mt-auto flex flex-col gap-2 pt-4">
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || photos.length > MAX_PHOTOS}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 dark:bg-teal-600 dark:hover:bg-teal-500 active:scale-[0.99] disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
