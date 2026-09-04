@@ -539,22 +539,22 @@ export function NastenkaScreen() {
       )}
 
       {/* Hlásnik */}
-      {hasNotices && (
-        <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
-          <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
-            <div>
-              <h2 className="text-base font-semibold tracking-tight text-foreground">📢 Obecný hlásnik</h2>
-              <p className="text-[11px] text-muted-foreground">Oficiálne oznamy a digitálny rozhlas</p>
-            </div>
-            {canCreateOfficialNotice && !isReadonly && (
-              <button
-                onClick={() => setModal({ kind: "official" })}
-                className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
-              >
-                <Plus className="h-3.5 w-3.5" /> Pridať úradný oznam
-              </button>
-            )}
+      <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
+        <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">📢 Obecný hlásnik</h2>
+            <p className="text-[11px] text-muted-foreground">Oficiálne oznamy a digitálny rozhlas</p>
           </div>
+          {canCreateOfficialNotice && !isReadonly && (
+            <button
+              onClick={() => setModal({ kind: "official" })}
+              className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
+            >
+              <Plus className="h-3.5 w-3.5" /> Pridať úradný oznam
+            </button>
+          )}
+        </div>
+        {hasNotices && (
           <div className="overflow-x-auto md:overflow-visible">
             <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
               {allNotices.map((notice) => (
@@ -578,8 +578,13 @@ export function NastenkaScreen() {
               ))}
             </div>
           </div>
-        </section>
-      )}
+        )}
+        {!hasNotices && (
+          <div className="text-center py-6 text-xs text-neutral-500">
+            Zatiaľ žiadne oznamy.
+          </div>
+        )}
+      </section>
 
       {/* Susedský život */}
       <section className="flex flex-col">
