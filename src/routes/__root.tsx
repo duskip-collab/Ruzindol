@@ -9,6 +9,7 @@ import { ThemeProvider } from "../context/ThemeContext";
 import { RouteErrorView } from "../components/RouteErrorView";
 import { RealtimeNotificationBanner } from "../components/RealtimeNotificationBanner";
 import { Splash } from "../components/Splash";
+import { useActivityTracking } from "../hooks/useActivityTracking";
 
 function NotFoundComponent() {
   return (
@@ -75,6 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useActivityTracking();
 
   return (
     <QueryClientProvider client={queryClient}>
