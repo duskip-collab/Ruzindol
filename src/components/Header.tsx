@@ -28,7 +28,11 @@ export function Header({
   const navigate = useNavigate();
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      console.warn("Session už bola neplatná pri odhlásení");
+    }
     navigate({ to: "/auth", replace: true });
   }
 

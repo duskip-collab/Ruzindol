@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAppMode } from "@/context/AppModeContext";
 import { BanBanner } from "@/components/BanBanner";
 
 export function ReadonlyBanner() {
   const { profile, loading } = useCurrentUser();
+  const { isVerified } = useAppMode();
   const navigate = useNavigate();
   
   if (loading || !profile) return null;
@@ -18,7 +20,7 @@ export function ReadonlyBanner() {
     );
   }
 
-  if (profile.is_active_neighbor) return null;
+  if (profile.is_active_neighbor || isVerified) return null;
 
   return (
     <button

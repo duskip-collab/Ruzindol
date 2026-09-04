@@ -1431,7 +1431,11 @@ function AccountActions({ userId }: { userId: string }) {
   const [err, setErr] = useState<string | null>(null);
 
   async function logout() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      console.warn("Session už bola neplatná pri odhlásení");
+    }
     window.location.href = "/auth";
   }
 
@@ -1447,7 +1451,11 @@ function AccountActions({ userId }: { userId: string }) {
       return;
     }
 
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      console.warn("Session už bola neplatná pri odhlásení");
+    }
     window.location.href = "/auth";
   }
 

@@ -34,6 +34,9 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
         await onActivated();
       } else if (onClose) {
         onClose();
+        window.location.reload();
+      } else {
+        window.location.reload();
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Aktivácia zlyhala.");

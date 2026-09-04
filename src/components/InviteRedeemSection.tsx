@@ -28,7 +28,11 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
       activateCode(val);
       setOk(true);
       setCode("");
-      if (onActivated) await onActivated();
+      if (onActivated) {
+        await onActivated();
+      } else {
+        window.location.reload();
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Aktivácia zlyhala.");
     } finally {
