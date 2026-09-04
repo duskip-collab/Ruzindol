@@ -45,10 +45,10 @@ function NeighborsScreen() {
     queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
-      // Simplified query without relationship - just profiles with municipality filter
+      // Load neighbors with verified fields only
       const primaryQuery = await supabase
         .from("profiles")
-        .select("id, name, street, avatar_url, is_verified, invited_by_user_id")
+        .select("id, name, street, municipality_id")
         .eq("municipality_id", municipalityId!)
         .order("name");
 
@@ -59,7 +59,7 @@ function NeighborsScreen() {
       // Fallback for databases where the optional profile fields are not deployed yet.
       const fallbackQuery = await supabase
         .from("profiles")
-        .select("id, name, street, is_active_neighbor")
+        .select("id, name, street")
         .eq("municipality_id", municipalityId!)
         .order("name");
 
@@ -70,7 +70,7 @@ function NeighborsScreen() {
         name: row.name,
         street: row.street,
         avatar_url: null,
-        is_verified: Boolean(row.is_active_neighbor),
+        is_verified: false,
         invited_by_user_id: null,
       }));
     },
