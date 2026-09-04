@@ -38,6 +38,19 @@ const TRH_DISCLAIMER =
 const OFFICIAL_NOTICE_MAX_DAYS = 4;
 const POST_TTL_MS = 4 * 24 * 3600_000;
 
+type Announcement = {
+  id: string;
+  source: "rss" | "internal";
+  title: string;
+  content: string;
+  audio_url: string | null;
+  expires_at: string | null;
+  link: string | null;
+  priority: "oznam" | "prioritne" | "urgentne" | "vystraha";
+  published_at: string;
+  author_id: string | null;
+};
+
 function timeAgo(iso: string) {
   if (!iso) return "pred chvíľou";
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -45,6 +58,11 @@ function timeAgo(iso: string) {
   if (s < 3600) return `pred ${Math.floor(s / 60)} min`;
   if (s < 86400) return `pred ${Math.floor(s / 3600)} h`;
   return `pred ${Math.floor(s / 86400)} dňami`;
+}
+
+function isAnnouncementExpired(item: Announcement) {
+  if (!item.expires_at) return false;
+  return new Date(item.expires_at).getTime() <= Date.now();
 }
 
 type ModalMode = null | { kind: "official" } | { kind: "neighbor" };
@@ -117,6 +135,7 @@ function isPostExpired(post: Post) {
 export function NastenkaScreen() {
   const { profile, userId } = useCurrentUser();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [repliesByPost, setRepliesByPost] = useState<Record<string, PostReply[]>>({});
   const [replyDraftByPost, setReplyDraftByPost] = useState<Record<string, string>>({});
   const [replyBusyByPost, setReplyBusyByPost] = useState<Record<string, boolean>>({});
@@ -134,19 +153,26 @@ export function NastenkaScreen() {
 
   const loadPosts = useCallback(async () => {
     // Načítame príspevky bez toho, aby sme riskovali vyradenie kvôli chýbajúcemu profilu
-    const { data, error } = await supabase
-      .from("posts")
-      .select(
-        "id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)",
-      )
-      .order("created_at", { ascending: false });
+    const [postsRes, announcementsRes] = await Promise.all([
+      supabase
+        .from("posts")
+        .select(
+          "id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)",
+        )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("announcements")
+        .select("*")
+        .eq("source", "internal")
+        .order("published_at", { ascending: false }),
+    ]);
 
-    if (error) {
-      console.error("Chyba pri načítaní príspevkov zo Supabase:", error);
+    if (postsRes.error) {
+      console.error("Chyba pri načítaní príspevkov zo Supabase:", postsRes.error);
       return;
     }
 
-    const mapped: Post[] = ((data as PostRow[] | null) ?? [])
+    const mapped: Post[] = ((postsRes.data as PostRow[] | null) ?? [])
       .map((row) => ({
         id: row.id,
         userId: row.user_id,
@@ -164,6 +190,11 @@ export function NastenkaScreen() {
       .filter((post) => !isPostExpired(post));
 
     setPosts(mapped);
+
+    // Načítaj announcements (Digitálny rozhlas)
+    const announcementsList = ((announcementsRes.data as Announcement[] | null) ?? [])
+      .filter((ann) => !isAnnouncementExpired(ann));
+    setAnnouncements(announcementsList);
 
     const postIds = mapped.map((post) => post.id);
     if (postIds.length === 0) {
@@ -431,6 +462,35 @@ export function NastenkaScreen() {
   }, [posts, q]);
 
   const oznamy = filtered.filter((p) => p.type === "hlasnik" || p.type === "official_alert");
+  
+  // Combine official posts and digital announcements for display
+  const allNotices = useMemo(() => {
+    return [
+      ...oznamy.map(p => ({
+        id: p.id,
+        type: 'post' as const,
+        title: p.title,
+        content: p.content,
+        createdAt: p.createdAt,
+        imageUrl: p.imageUrl,
+        userName: p.userName,
+        post: p,
+      })),
+      ...announcements.map(a => ({
+        id: a.id,
+        type: 'announcement' as const,
+        title: a.title,
+        content: a.content,
+        createdAt: a.published_at,
+        imageUrl: null,
+        userName: a.author_id ?? 'Obecný rozhlas',
+        announcement: a,
+      }))
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [oznamy, announcements]);
+
+  // Auto-hide Hlásnik section if empty
+  const hasNotices = allNotices.length > 0;
 
   const prispevky = filtered.filter((p) => {
     if (p.type !== "susedsky_zivot" && p.type !== "farsky_oznam") return false;
@@ -479,43 +539,47 @@ export function NastenkaScreen() {
       )}
 
       {/* Hlásnik */}
-      <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
-        <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
-          <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">📢 Obecný hlásnik</h2>
-            <p className="text-[11px] text-muted-foreground">Oficiálne oznamy obce</p>
-          </div>
-          {canCreateOfficialNotice && !isReadonly && (
-            <button
-              onClick={() => setModal({ kind: "official" })}
-              className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
-            >
-              <Plus className="h-3.5 w-3.5" /> Pridať úradný oznam
-            </button>
-          )}
-        </div>
-        <div className="overflow-x-auto md:overflow-visible">
-          <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
-            {oznamy.length === 0 && (
-              <div className="flex h-32 w-full items-center justify-center text-xs text-neutral-600">
-                Zatiaľ žiadne oznamy.
-              </div>
+      {hasNotices && (
+        <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
+          <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight text-foreground">📢 Obecný hlásnik</h2>
+              <p className="text-[11px] text-muted-foreground">Oficiálne oznamy a digitálny rozhlas</p>
+            </div>
+            {canCreateOfficialNotice && !isReadonly && (
+              <button
+                onClick={() => setModal({ kind: "official" })}
+                className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
+              >
+                <Plus className="h-3.5 w-3.5" /> Pridať úradný oznam
+              </button>
             )}
-            {oznamy.map((o) => (
-              <OfficialCard
-                key={o.id}
-                post={o}
-                onOpen={() => setLightboxPost(o)}
-                onReport={() => {
-                  void reportPost(o.id);
-                }}
-                reported={o.isReported || !!reportedByPost[o.id]}
-                locked={!canWrite}
-              />
-            ))}
           </div>
-        </div>
-      </section>
+          <div className="overflow-x-auto md:overflow-visible">
+            <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
+              {allNotices.map((notice) => (
+                notice.type === 'post' && notice.post ? (
+                  <OfficialCard
+                    key={notice.id}
+                    post={notice.post}
+                    onOpen={() => setLightboxPost(notice.post)}
+                    onReport={() => {
+                      void reportPost(notice.post!.id);
+                    }}
+                    reported={notice.post.isReported || !!reportedByPost[notice.post.id]}
+                    locked={!canWrite}
+                  />
+                ) : notice.type === 'announcement' && notice.announcement ? (
+                  <AnnouncementNoticeCard
+                    key={notice.id}
+                    announcement={notice.announcement}
+                  />
+                ) : null
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Susedský život */}
       <section className="flex flex-col">
@@ -698,6 +762,42 @@ function OfficialCard({
         >
           <Flag className="h-3 w-3" /> Nahlásiť
         </button>
+      </div>
+    </article>
+  );
+}
+
+function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }) {
+  const priorityColors: Record<string, string> = {
+    oznam: "border-neutral-200 bg-neutral-50",
+    prioritne: "border-yellow-200 bg-yellow-50",
+    urgentne: "border-orange-200 bg-orange-50",
+    vystraha: "border-red-200 bg-red-50",
+  };
+
+  const priorityBadge: Record<string, string> = {
+    oznam: "text-neutral-700",
+    prioritne: "text-yellow-700",
+    urgentne: "text-orange-700",
+    vystraha: "text-red-700",
+  };
+
+  return (
+    <article
+      className={`flex h-full w-64 shrink-0 flex-col rounded-2xl border ${priorityColors[announcement.priority]} p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink`}
+    >
+      <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider">
+        <span className={`text-brand ${priorityBadge[announcement.priority]}`}>
+          📻 {announcement.priority === "oznam" ? "Rozhlas" : announcement.priority}
+        </span>
+        <span className="text-[10px] text-muted-foreground">{timeAgo(announcement.published_at)}</span>
+      </div>
+      <h3 className="text-sm font-semibold text-foreground">{announcement.title}</h3>
+      <p className="mt-1 line-clamp-3 flex-1 text-xs leading-snug text-muted-foreground">
+        {announcement.content}
+      </p>
+      <div className="mt-2">
+        <span className="text-[10px] text-muted-foreground">Digitálny rozhlas</span>
       </div>
     </article>
   );
