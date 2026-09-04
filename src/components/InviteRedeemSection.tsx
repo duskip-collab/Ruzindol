@@ -11,8 +11,8 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
   const { activateCode } = useAppMode();
 
   async function submit() {
-    const val = code.trim().replace(/-/g, '');
-    if (!val) {
+    const val = code.trim();
+    if (!val.replace(/-/g, '')) {
       setErr("Zadaj kód od suseda alebo starostu.");
       return;
     }
@@ -25,7 +25,7 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
       });
       if (error) throw new Error(mapError(error.message));
       if (!data) throw new Error("Neplatný pozývací kód.");
-      activateCode(val);
+      activateCode(val.replace(/-/g, ''));
       setOk(true);
       setCode("");
       if (onActivated) {

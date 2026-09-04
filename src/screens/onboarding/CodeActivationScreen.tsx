@@ -18,7 +18,8 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   async function submit(raw?: string) {
-    const val = (raw ?? code).trim().replace(/-/g, '');
+    const raw_code = (raw ?? code).trim();
+    const val = raw_code.replace(/-/g, '');
     if (!val) { 
       setErr("Zadaj kód."); 
       return; 
@@ -26,7 +27,7 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
     setBusy(true); 
     setErr(null);
     try {
-      const { data, error } = await supabase.rpc("redeem_invite_code", { _code: val });
+      const { data, error } = await supabase.rpc("redeem_invite_code", { _code: raw_code });
       if (error) throw new Error(mapError(error.message));
       if (!data) throw new Error("Neplatný pozývací kód.");
       activateCode(val);
