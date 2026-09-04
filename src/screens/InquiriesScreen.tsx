@@ -30,7 +30,7 @@ export function InquiriesScreen() {
 
       const { data, error } = await supabase
         .from('mayor_inquiries')
-        .select('*, profiles!fk_mayor_inquiries_profiles(full_name, name)')
+        .select('*, profiles!fk_mayor_inquiries_user_id(full_name, name)')
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
