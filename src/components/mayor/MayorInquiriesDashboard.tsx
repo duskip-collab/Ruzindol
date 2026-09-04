@@ -87,7 +87,7 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
     try {
       const { data, error } = await supabase
         .from('mayor_inquiries')
-        .select('*, profiles!fk_mayor_inquiries_user_id(full_name, name)')
+        .select('*, profiles!mayor_inquiries_user_id_fkey(full_name, name)')
         .order('created_at', { ascending: false });
 
       if (!error && data) {

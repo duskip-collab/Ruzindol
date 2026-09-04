@@ -57,10 +57,10 @@ export function MayorInquiriesPanel() {
   const fetchInquiries = async () => {
     setLoading(true);
     
-    // Explicitné naviazanie cudzieho kľúča profiles!fk_mayor_inquiries_user_id zabráni chybe 400 Bad Request
+    // Explicitné naviazanie cudzieho kľúča profiles!mayor_inquiries_user_id_fkey zabráni chybe 400 Bad Request
     const { data, error } = await supabase
       .from('mayor_inquiries')
-      .select('*, profiles!fk_mayor_inquiries_user_id(name, full_name, email)')
+      .select('*, profiles!mayor_inquiries_user_id_fkey(name, full_name, email)')
       .order('created_at', { ascending: false });
 
     if (error) {
