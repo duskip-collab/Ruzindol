@@ -26,11 +26,10 @@ function canSubmitInquiry(profile: {
     profile.is_official === true || 
     (!!profile.role && (OFFICIAL_ROLES as readonly string[]).includes(profile.role));
 
-  // Kontrola, či ide o plne overeného suseda s platným invite kódom
+  // Kontrola, či ide o aktívneho suseda alebo suseda s invite kódom
   const isVerifiedNeighbor = 
-    profile.is_active_neighbor === true && 
-    typeof profile.invite_code === 'string' && 
-    profile.invite_code.trim() !== '';
+    profile.is_active_neighbor === true ||
+    (typeof profile.invite_code === 'string' && profile.invite_code.trim() !== '');
 
   return isManager || isVerifiedNeighbor;
 }
