@@ -12,7 +12,7 @@ type Neighbor = {
   street: string | null;
   avatar_url: string | null;
   is_verified: boolean;
-  invited_by: { id: string; name: string } | null;
+  invited_by_user_id: string | null;
 };
 
 export const Route = createFileRoute("/_authenticated/susedia")({
@@ -45,10 +45,10 @@ function NeighborsScreen() {
     queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
-      // Pokus o načítanie s novými poliami (ak existuje migrácia )
+      // Simplified query without relationship - just profiles with municipality filter
       const primaryQuery = await supabase
         .from("profiles")
-        .select("id, name, street, avatar_url, is_verified, invited_by:profiles!profiles_invited_by_user_id_fkey(id, name)")
+        .select("id, name, street, avatar_url, is_verified, invited_by_user_id")
         .eq("municipality_id", municipalityId!)
         .order("name");
 
@@ -71,7 +71,7 @@ function NeighborsScreen() {
         street: row.street,
         avatar_url: null,
         is_verified: Boolean(row.is_active_neighbor),
-        invited_by: null,
+        invited_by_user_id: null,
       }));
     },
   });
@@ -124,7 +124,7 @@ function NeighborsScreen() {
               <h2 className="truncate font-semibold text-foreground">{neighbor.name || "Sused"}</h2>
               <p className="mt-1 truncate text-sm text-muted-foreground">{neighbor.street || "Ulica neuvedená"}</p>
               {neighbor.is_verified && <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Overený sused</span>}
-              {neighbor.invited_by && <p className="mt-2 text-xs text-muted-foreground">Pozval/a: {neighbor.invited_by.name}</p>}
+              {neighbor.invited_by_user_id && <p className="mt-2 text-xs text-muted-foreground">Pozval: Overený sused</p>}
             </div>
           </article>
         ))}
