@@ -45,7 +45,7 @@ function NeighborsScreen() {
     queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
-      // Pokus o načítanie s novými poliami (ak existuje migrácia)
+      // Pokus o načítanie s novými poliami (ak existuje migrácia )
       const primaryQuery = await supabase
         .from("profiles")
         .select("id, name, street, avatar_url, is_verified, invited_by:profiles!profiles_invited_by_user_id_fkey(id, name)")
