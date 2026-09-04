@@ -31,7 +31,7 @@ AS $function$
 DECLARE
   v_uid UUID := auth.uid();
   v_row public.invite_codes%ROWTYPE;
-  v_norm text := upper(btrim(_code));
+  v_norm text := upper(regexp_replace(btrim(_code), '-', '', 'g'));
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
@@ -48,7 +48,7 @@ BEGIN
   SELECT *
     INTO v_row
   FROM public.invite_codes
-  WHERE upper(code) = v_norm
+  WHERE upper(regexp_replace(code, '-', '', 'g')) = v_norm
   FOR UPDATE;
 
   IF NOT FOUND THEN
