@@ -31,6 +31,7 @@ import {
   MessageSquare,
   HelpCircle,
 } from "lucide-react";
+import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
