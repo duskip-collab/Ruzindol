@@ -44,7 +44,6 @@ export function NotificationBellTip({
 
   useEffect(() => {
     setIsMounted(true);
-    // Skontrolovať localStorage pri prvom načítaní
     const isDismissed = localStorage.getItem(STORAGE_KEY);
     if (!isDismissed && !hasNotificationDot) {
       setShowTip(true);
@@ -70,13 +69,13 @@ export function NotificationBellTip({
   if (!isMounted) return null;
 
   return (
-    <>
+    <div className="relative inline-block">
       <style>{PULSE_ANIMATION}</style>
 
-      {/* Pulzujúca bodka indikátora - viditeľná len ak nie sú notifikácie povolené */}
+      {/* Pulzujúca bodka indikátora */}
       {showTip && !hasNotificationDot && (
         <div
-          className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center"
+          className="absolute -top-1 -right-1 z-20 flex h-4 w-4 items-center justify-center pointer-events-none"
           style={{
             animation: "pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
           }}
@@ -112,13 +111,12 @@ export function NotificationBellTip({
         )}
       </button>
 
-      {/* Tooltip / Nápoveda bubble */}
+      {/* Informačná bublina - vysúva sa smerom NADOL, aby sa neorezávala v hlavičke */}
       {showTip && !hasNotificationDot && (
-        <div className="pointer-events-none absolute bottom-full right-0 mb-3 z-50">
+        <div className="absolute top-full right-0 mt-3 z-50 w-72 pointer-events-auto">
           <div className="relative">
-            {/* Bubble */}
-            <div className="relative w-72 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-xl border border-emerald-200/60 dark:from-emerald-950 dark:to-teal-950 dark:border-emerald-700/60 pointer-events-auto">
-              {/* Close button */}
+            <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-2xl border border-emerald-200/60 dark:from-emerald-950 dark:to-teal-950 dark:border-emerald-700/60">
+              {/* Zatváracie tlačidlo */}
               <button
                 onClick={handleDismiss}
                 className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-700 transition-colors"
@@ -138,7 +136,7 @@ export function NotificationBellTip({
                 </p>
               </div>
 
-              {/* CTA Button */}
+              {/* CTA Tlačidlo */}
               <button
                 onClick={handleBellClick}
                 className="mt-3 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-2 text-xs font-semibold text-white shadow-md hover:shadow-lg hover:scale-105 transition-all active:scale-95"
@@ -146,17 +144,17 @@ export function NotificationBellTip({
                 Kliknúť a povoliť 📲
               </button>
 
-              {/* Arrow pointing to bell (zarovnaná doprava priamo pod ikonu zvončeka) */}
+              {/* Šípka ukazujúca nahor na zvonček */}
               <div
-                className="absolute right-6 -bottom-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-emerald-50 dark:border-t-emerald-950"
+                className="absolute right-5 -top-2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-emerald-50 dark:border-b-emerald-950"
                 style={{
-                  filter: "drop-shadow(0 -1px 0 rgba(16, 185, 129, 0.2))",
+                  filter: "drop-shadow(0 1px 0 rgba(16, 185, 129, 0.2))",
                 }}
               />
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
