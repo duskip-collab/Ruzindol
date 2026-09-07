@@ -19,6 +19,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"select" | "email" | "forgot">("select");
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
 
   const [busy, setBusy] = useState(false);
@@ -51,7 +52,7 @@ function AuthPage() {
     setNotice(null);
 
     if (!legalAccepted) {
-      setError("Pred pokračovaním musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.");
+      setError("Pred pokračovaním musíš odsúhlasiť Všeobecné podmienky používania a GDPR.");
       return;
     }
 
@@ -70,6 +71,8 @@ function AuthPage() {
         password,
         options: {
           data: {
+            name: fullName || email.split("@")[0],
+            full_name: fullName || email.split("@")[0],
             legal_accepted_at: new Date().toISOString(),
             legal_version: "2026-08-03",
           },
@@ -86,6 +89,7 @@ function AuthPage() {
       } else {
         setNotice("Nový účet bol úspešne vytvorený. Na tvoj e-mail sme odoslali overovací odkaz.");
         setEmail("");
+        setFullName("");
         setPassword("");
       }
     } catch (err: any) {
@@ -185,28 +189,28 @@ function AuthPage() {
           </motion.p>
         </div>
 
-        {/* CONSENT CHECKBOX - MOVED TO THE TOP (BEFORE ANY AUTH OPTIONS) */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8"
-        >
-          <ConsentCheckbox
-            checked={legalAccepted}
-            onChange={setLegalAccepted}
-            onOpenLegal={openLegalDialog}
-          />
-          {!legalAccepted && (
+        {/* CONSENT CHECKBOX - HIDDEN ONCE ACCEPTED */}
+        {!legalAccepted && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-8"
+          >
+            <ConsentCheckbox
+              checked={legalAccepted}
+              onChange={setLegalAccepted}
+              onOpenLegal={openLegalDialog}
+            />
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="mt-3 text-center text-xs text-amber-500/80"
             >
-              ⚠️ Aby pokračovali, musíte odsúhlasiť VPP a GDPR
+              ⚠️ Aby ste mohli pokračovať, musíte odsúhlasiť VPP a GDPR
             </motion.p>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Auth Cards / Form Container */}
         <div className="relative w-full">
@@ -286,6 +290,20 @@ function AuthPage() {
                       placeholder="sused@ruzindol.sk"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  {/* Name Input */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Meno a priezvisko (pre nový účet)
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Ján Sused"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
                     />
                   </div>
