@@ -153,44 +153,48 @@ function AuthPage() {
       <div className="pointer-events-none fixed left-1/2 top-0 h-[500px] w-full -translate-x-1/2 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15)_0%,transparent_70%)]" />
 
       <div className="relative z-10 mx-auto w-full max-w-md">
-        {/* Upper Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex justify-center"
-        >
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-[11px] font-bold tracking-wider text-emerald-400">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>✨ PRIHLÁSENIE DO KOMUNITA RUŽINDOL</span>
-          </div>
-        </motion.div>
+        {viewMode === "select" && (
+          <>
+            {/* Upper Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 flex justify-center"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-1.5 text-[11px] font-bold tracking-wider text-emerald-400">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>✨ PRIHLÁSENIE DO KOMUNITA RUŽINDOL</span>
+              </div>
+            </motion.div>
 
-        {/* Headlines */}
-        <div className="mb-10 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
-          >
-            Vitaj u susedov. <br />
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-              Vyber si, ako vstúpiš.
-            </span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-4 text-slate-400"
-          >
-            Použi svoj Google účet alebo klasický e-mail. <br className="hidden sm:block" />
-            Všetko rýchlo, bezpečne a na jednom mieste.
-          </motion.p>
-        </div>
+            {/* Headlines */}
+            <div className="mb-10 text-center">
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              >
+                Vitaj u susedov. <br />
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  Vyber si, ako vstúpiš.
+                </span>
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-4 text-slate-400"
+              >
+                Použi svoj Google účet alebo klasický e-mail. <br className="hidden sm:block" />
+                Všetko rýchlo, bezpečne a na jednom mieste.
+              </motion.p>
+            </div>
+          </>
+        )}
 
         {/* CONSENT CHECKBOX - HIDDEN ONCE ACCEPTED */}
-        {!legalAccepted && (
+        {viewMode === "select" && !legalAccepted && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
