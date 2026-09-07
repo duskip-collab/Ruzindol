@@ -66,7 +66,6 @@ async function shouldSendOptionalNotification(
   supabase: ReturnType<typeof createClient>,
   userId: string,
 ): Promise<boolean> {
-  // Prefer explicit per-user settings table if present.
   const settingsResult = await supabase
     .from("user_settings")
     .select("notifications_enabled")
@@ -81,7 +80,6 @@ async function shouldSendOptionalNotification(
     console.error("Chyba pri čítaní user_settings.notifications_enabled:", settingsResult.error);
   }
 
-  // Fallback to profiles.notifications_enabled if the column exists.
   const profileResult = await supabase
     .from("profiles")
     .select("notifications_enabled")
@@ -96,7 +94,6 @@ async function shouldSendOptionalNotification(
     console.error("Chyba pri čítaní profiles.notifications_enabled:", profileResult.error);
   }
 
-  // If settings storage is not available, default to send instead of silently dropping alerts.
   return true;
 }
 
@@ -113,17 +110,31 @@ serve(async (req) => {
       );
     }
 
-    const payloadData = await req.json();
-    const record = parseWebhookRecord(payloadData);
-    const decision = evaluatePushDecision(record);
+    let payloadData: any;
+    try {
+      payloadData = await req.json();
+    } catch (parseErr) {
+      console.error("Chyba pri parsovaní vstupného JSON payloadu:", parseErr);
+      return json({ success: false, error: "Invalid JSON payload" }, 400);
+    }
 
-    if (!record || decision.reason === "missing_record") {
+    console.log("[WEBHOOK PAYLOAD RECEIVED]:", JSON.stringify(payloadData));
+
+    const record = parseWebhookRecord(payloadData);
+    if (!record) {
+      console.warn("parseWebhookRecord vrátil null, payload neobsahuje platný záznam.");
       return json({ success: false, message: "Chýba record" }, 400);
     }
 
-    if (decision.reason === "missing_user_id") {
-      // Graceful no-op: malformed payload must not crash function.
-      console.warn("send-push: record neobsahuje user_id, push sa preskakuje.");
+    const decision = evaluatePushDecision(record);
+
+    if (decision.reason === "missing_record") {
+      console.warn("Rozhodnutie: missing_record pre záznam:", record);
+      return json({ success: false, message: "Chýba record" }, 400);
+    }
+
+    if (decision.reason === "missing_user_id" || !decision.userId) {
+      console.warn("send-push: record neobsahuje user_id, push sa preskakuje.", record);
       return json({ success: true, skipped: true, reason: "missing_user_id" });
     }
 
@@ -139,6 +150,7 @@ serve(async (req) => {
       const enabled = await shouldSendOptionalNotification(supabase, userId);
       const optionalDecision = evaluatePushDecision(record, enabled);
       if (!optionalDecision.shouldSend) {
+        console.log(`[PUSH SKIPPED] Užívateľ ${userId} má vypnuté notifikácie (reason: ${optionalDecision.reason})`);
         return json({ success: true, skipped: true, reason: optionalDecision.reason });
       }
     }
@@ -226,15 +238,15 @@ serve(async (req) => {
     await Promise.all(sendPromises);
 
     return json({
-        success: failedCount === 0,
-        attempted: subscriptions.length,
-        sent: sentCount,
-        failed: failedCount,
-        critical,
-        forceSend,
-      });
+      success: failedCount === 0,
+      attempted: subscriptions.length,
+      sent: sentCount,
+      failed: failedCount,
+      critical,
+      forceSend,
+    });
   } catch (err: any) {
-    console.error("Chyba v send-push Edge Funkcii:", err);
+    console.error("Kritická chyba v send-push Edge Funkcii:", err);
     return json({ error: err.message }, 500);
   }
 });
