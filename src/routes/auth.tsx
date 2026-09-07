@@ -17,8 +17,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<"select" | "email">("select");
-  const [authAction, setAuthAction] = useState<"signin" | "signup">("signin");
+  const [viewMode, setViewMode] = useState<"select" | "email" | "forgot">("select");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -39,9 +38,9 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  // Auto-focus email input when switching to email mode
+  // Auto-focus email input when switching to email or forgot mode
   useEffect(() => {
-    if (viewMode === "email") {
+    if (viewMode === "email" || viewMode === "forgot") {
       setTimeout(() => emailInputRef.current?.focus(), 100);
     }
   }, [viewMode]);
@@ -51,41 +50,65 @@ function AuthPage() {
     setError(null);
     setNotice(null);
 
-    if (authAction === "signup" && !legalAccepted) {
-      setError("Pred registráciou musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.");
+    setBusy(true);
+    try {
+      // 1. Try signing in first
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (!signInError) {
+        navigate({ to: "/" });
+        return;
+      }
+
+      // 2. If user doesn't exist or sign-in failed due to non-existent account, automatically sign up
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            legal_accepted_at: new Date().toISOString(),
+            legal_version: "2026-08-03",
+          },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+
+      if (signUpError) {
+        throw signInError;
+      }
+
+      if (signUpData.session) {
+        navigate({ to: "/" });
+      } else {
+        setNotice("Nový účet bol úspešne vytvorený. Na tvoj e-mail sme odoslali overovací odkaz.");
+        setEmail("");
+        setPassword("");
+      }
+    } catch (err: any) {
+      setError(err.message || "Nepodarilo sa prihlásiť alebo vytvoriť účet.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleForgotSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+
+    if (!email) {
+      setError("Zadaj svoju e-mailovú adresu.");
       return;
     }
 
     setBusy(true);
     try {
-      if (authAction === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/" });
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              legal_accepted_at: new Date().toISOString(),
-              legal_version: "2026-08-03",
-            },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-
-        if (data.session) {
-          navigate({ to: "/" });
-        } else {
-          setNotice("Na tvoj e-mail sme odoslali overovací odkaz. Klikni naň a dokonči registráciu.");
-          setEmail("");
-          setPassword("");
-        }
-      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setNotice("Na zadaný e-mail sme odoslali inštrukcie na obnovenie hesla.");
     } catch (err: any) {
-      setError(err.message || "Nepodarilo sa prihlásiť.");
+      setError(err.message || "Nepodarilo sa odoslať žiadosť o obnovu hesla.");
     } finally {
       setBusy(false);
     }
@@ -210,8 +233,8 @@ function AuthPage() {
                   />
                 </div>
               </motion.div>
-            ) : (
-              // STAV 2: EMAIL MODE - EMAIL FORM
+            ) : viewMode === "email" ? (
+              // STAV 2: EMAIL MODE - UNIFIED SIGNIN / SIGNUP FORM
               <motion.div
                 key="email"
                 initial={{ opacity: 0, x: 20 }}
@@ -253,15 +276,13 @@ function AuthPage() {
                       <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                         Heslo
                       </label>
-                      {authAction === "signin" && (
-                        <button
-                          type="button"
-                          onClick={() => navigate({ to: "/reset-password" })}
-                          className="text-[11px] font-medium text-emerald-400 hover:text-emerald-300"
-                        >
-                          Zabudnuté heslo?
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("forgot")}
+                        className="text-[11px] font-medium text-emerald-400 hover:text-emerald-300"
+                      >
+                        Zabudnuté heslo?
+                      </button>
                     </div>
                     <Input
                       type="password"
@@ -272,17 +293,6 @@ function AuthPage() {
                       className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
                     />
                   </div>
-
-                  {/* Consent for Signup */}
-                  {authAction === "signup" && (
-                    <div className="pt-2">
-                      <ConsentCheckbox
-                        checked={legalAccepted}
-                        onChange={setLegalAccepted}
-                        onOpenLegal={openLegalDialog}
-                      />
-                    </div>
-                  )}
 
                   {/* Submit Button */}
                   <Button
@@ -295,29 +305,65 @@ function AuthPage() {
                     ) : (
                       <BadgeCheck className="mr-2 h-4 w-4" />
                     )}
-                    {authAction === "signin" ? "Prihlásiť sa" : "Vytvoriť účet"}
+                    Pokračovať / Vstúpiť
                   </Button>
+                </form>
+              </motion.div>
+            ) : (
+              // STAV 3: FORGOT PASSWORD MODE
+              <motion.div
+                key="forgot"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm"
+              >
+                {/* Back Button */}
+                <button
+                  onClick={() => setViewMode("email")}
+                  className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Späť na prihlásenie
+                </button>
 
-                  {/* Toggle Signin/Signup */}
-                  <div className="pt-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setAuthAction(authAction === "signin" ? "signup" : "signin")}
-                      className="text-sm text-slate-400 hover:text-white"
-                    >
-                      {authAction === "signin" ? (
-                        <>
-                          Ešte nemáte účet?{" "}
-                          <span className="font-semibold text-emerald-400">Zaregistrujte sa</span>
-                        </>
-                      ) : (
-                        <>
-                          Už máte účet?{" "}
-                          <span className="font-semibold text-emerald-400">Prihláste sa</span>
-                        </>
-                      )}
-                    </button>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-white">Obnovenie hesla</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Zadaj svoj e-mail a my ti pošleme odkaz na resetovanie hesla.
+                  </p>
+                </div>
+
+                <form onSubmit={handleForgotSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Váš e-mail
+                    </label>
+                    <Input
+                      ref={emailInputRef}
+                      autoFocus
+                      type="email"
+                      required
+                      placeholder="sused@ruzindol.sk"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
+                    />
                   </div>
+
+                  <Button
+                    type="submit"
+                    disabled={busy}
+                    className="h-12 w-full rounded-2xl bg-emerald-600 font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <BadgeCheck className="mr-2 h-4 w-4" />
+                    )}
+                    Odoslať odkaz na obnovu
+                  </Button>
                 </form>
               </motion.div>
             )}
