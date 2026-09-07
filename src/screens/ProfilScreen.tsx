@@ -29,6 +29,7 @@ import {
   X,
   ChevronDown,
   MessageSquare,
+  HelpCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
@@ -667,6 +668,19 @@ export function ProfilScreen() {
                 })}
               </ul>
             )}
+          </AccordionSection>
+
+          <AccordionSection
+            value="guide"
+            title="📖 Návod na používanie"
+            description="Kompletná nápoveda a sprievodca aplikáciou."
+            icon={<HelpCircle className="h-4 w-4" />}
+            iconClass="bg-sky-600"
+            isActive={openSection === "guide"}
+            onToggle={() => setOpenSection((prev) => (prev === "guide" ? "" : "guide"))}
+            onClose={() => setOpenSection("")}
+          >
+            <HelpGuidePanel />
           </AccordionSection>
 
           <AccordionSection
@@ -1597,3 +1611,229 @@ function RoleSwitcher({
     </div>
   );
 }
+
+function HelpGuidePanel() {
+  return (
+    <div className="flex flex-col gap-6 pb-4">
+      {/* Header */}
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-br from-sky-50 to-blue-50 p-5 dark:from-sky-950/40 dark:to-blue-950/40">
+        <h2 className="text-lg font-bold text-foreground">📖 Kompletná nápoveda k aplikácii Moji Susedia</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Vitajte v užívateľskej príručke aplikácie <strong>Moji Susedia</strong>, ktorá vám pomôže zorientovať sa vo všetkých jej funkciách, sekciách a možnostiach nastavenia.
+        </p>
+      </div>
+
+      {/* Sections */}
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">🔔</span> 1. Zvonček a notifikácie (Dôležité upozornenia)
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Ikona zvončeka v hornej lište aplikácie slúži ako vaše priame prepojenie s dianím v obci a okolí:
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Ako to funguje:</span>
+            <span>Po kliknutí na ikonu zvončeka sa vám zotriedene zobrazia všetky dôležité upozornenia a správy.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Reálne notifikácie:</span>
+            <span>Vďaka notifikáciám dostávate <strong>okamžité upozornenia priamo z obecného úradu</strong> v prípade mimoriadnych udalostí (napr. nečakané odstávky, výstrahy pred počasím, havárie) alebo dôležitých oznamov.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Ako si ich zapnúť:</span>
+            <span className="flex flex-col gap-1">
+              <span>1. Kliknite na ikonu zvončeka 🔔</span>
+              <span>2. Ak sa vám zobrazuje nápoveda, kliknite na <strong>„Kliknúť a povoliť"</strong></span>
+              <span>3. V kontextovom okne vášho zariadenia potvrďte povolenie notifikácií</span>
+              <span className="italic">💡 Tip: Zelená pulzujúca bodka pri zvončeku vás upozorňuje na to, že ešte nemáte povolené doručovanie upozornení do zariadenia.</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">📄</span> 2. Nástenka a Susedský život
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Nástenka je hlavným srdcom celej aplikácie, kde prebieha každodenný život komunity.
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Čo sa tu zobrazuje:</span>
+            <span>Príspevky, postrehy, otázky a oznamy, ktoré vkladajú samotní obyvatelia a susedia.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Kto to pridáva:</span>
+            <span>Overení obyvatelia komunity.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Typy príspevkov:</span>
+            <span className="flex flex-col gap-1">
+              <span><strong>Otázky:</strong> Potrebujete poradiť, zohnať odporúčanie na remeselníka alebo sa opýtať na dianie v obci?</span>
+              <span><strong>Straty a nálezy:</strong> Stratili ste kľúče, domáceho miláčika, alebo ste niečo našli? K príspevku môžete pridať <strong>fotku</strong>, čo výrazne zvýši šancu na úspešné nájdenie.</span>
+              <span><strong>Informácie pre susedov:</strong> Dôležité upozornenia, pozvánky na susedské stretnutia alebo zaujímavosti z okolia.</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">📢</span> 3. Aktuality (Obecný hlásnik)
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Táto sekcia slúži na oficiálne informácie, oznamy a prehľad harmonogramov súvisiacich s chodom obce Ružindol.
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Podnety:</span>
+            <span>Priestor, kde môžu občania posielať svoje podnety, nápady na zlepšenie alebo hlásiť nedostatky v obci.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Zdieľaný kalendár:</span>
+            <span>Prehľad všetkých blížiacich sa kultúrnych, spoločenských či športových akcii v obci.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Oznamy obce:</span>
+            <span>Oficiálne správy a nariadenia z obecného úradu.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Kalendár zberu odpadov:</span>
+            <span>Praktický harmonogram vývozu jednotlivých druhov odpadu, aby ste vždy vedeli, kedy akú nádobu vyložiť.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Informácie o stránkových dňoch:</span>
+            <span>Úradné hodiny a dni, kedy je obecný úrad otvorený pre verejnosť.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Digitálny rozhlas:</span>
+            <span>Textová podoba obecného rozhlasu pre prípad, že ste zmeškali hlásenie vonku.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">🛡️</span> 4. Špeciálne komunitné sekcie pre Ružindol
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Aplikácia spája rôzne zložky a komunity pôsobiace priamo v obci:
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• OŠK Ružindol:</span>
+            <span>Oficiálna sekcia miestneho športového klubu. Nájdete tu výsledky zápasov, športové oznamy a pozvánky na podujatia.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• DHZ Ružindol (Dobrovoľný hasičský zbor):</span>
+            <span>Informácie o činnosti našich hasičov, výcvikoch, súťažiach či preventívnych opatreniach a požiarnych vyhliadkach v obci.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Dôchodcovia Ružindol:</span>
+            <span>Vyhradený priestor pre seniorskú komunitu a klub dôchodcov, kde sa zdieľajú informácie o stretnutiach, výletoch a aktivitách pre starších spoluobčanov.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Farnosť:</span>
+            <span>Miesto pre farské oznamy. Miestny farár alebo správca tu zverejňuje poriadok svätých omší, úradné hodiny farského úradu, pozvánky na farské akcie, brigády či stretnutia.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Služby a firmy:</span>
+            <span>Katalóg overených lokálnych firiem, remeselníkov a poskytovateľov služieb, ktorí pôsobia v blízkosti našej komunity.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">📦</span> 5. Sklad (Trh a zdieľanie)
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Sekcia Sklad slúži na ekologické a ekonomické zdieľanie vecí medzi susedmi. Delí sa na tri podkategórie:
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Susedský trh:</span>
+            <span>Miesto, kde môžete ponúknuť na predaj alebo výmenu veci, ktoré už nepotrebujete, prípadne pohľadať to, čo iní ponúkajú.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Darovanie:</span>
+            <span>Sekcia pre veci, ktoré darujete za odvoz (napr. prebytočný materiál, knihy, oblečenie či rastliny).</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Susedská požičovňa:</span>
+            <span>Ponuka náradia, záhradnej techniky či pomôcok (rebríky, kosačky, vŕtačky), ktoré si susedia vedia navzájom požičať.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">💬</span> 6. Správy
+        </h3>
+        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Kedy sa zobrazujú:</span>
+            <span>Správy sa aktivujú vtedy, keď zareagujete na inzerát alebo ponuku iného suseda (napr. v Sklade).</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Účel:</span>
+            <span>Slúžia <strong>výhradne na vzájomnú dohodu</strong> ohľadom vyzdvihnutia veci, termínu alebo upresnenia podrobností k inzerátu.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="italic text-foreground">⚠️ Upozornenie:</span>
+            <span>Nejedná sa o platformu na všeobecné chatovanie – na bežnú komunikáciu slúžia iné četové aplikácie.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm">
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span className="text-lg">👤</span> 7. Profil a Nastavenia
+        </h3>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          V sekcii Profil nájdete kompletnú správu svojho účtu a aplikácie:
+        </p>
+        <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Osobné informácie:</span>
+            <span>Možnosť zmeniť si svoje údaje a prispôsobiť profil.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Nastavenie notifikácií:</span>
+            <span>Správa upozornení, aby vám nič dôležité neuniklo.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Veľkosť písma:</span>
+            <span>Možnosť prispôsobiť si veľkosť textu v aplikácii pre čo najpohodlnejšie čítanie.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Panel rolí:</span>
+            <span>Informácie o vašich oprávneniach a priradených úlohách v systéme.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Pozvať suseda:</span>
+            <span>Jednoduchá možnosť, ako vygenerovať pozvánku a privítať v aplikácii ďalších členov susedstva.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Moje inzeráty:</span>
+            <span>Správa vašich publikovaných ponúk. Svoje inzeráty tu môžete kedykoľvek <strong>upraviť, vymazať</strong> alebo ich <strong>nanovo publikovať</strong>, ak sú opäť aktuálne.</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="font-semibold text-foreground min-w-fit">• Účet a odhlásenie:</span>
+            <span>Možnosť bezpečného odhlásenia sa zo zariadenia, prípadne <strong>trvalého zmazania účtu</strong>, ak sa rozhodnete aplikáciu viac nepoužívať.</span>
+          </li>
+        </ul>
+      </section>
+
+      {/* Footer */}
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/40 dark:to-teal-950/40">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <strong>💡 Ďakujeme, že používate aplikáciu Moji Susedia!</strong> Ak máte otázky alebo návrhy na zlepšenie, prosím kontaktujte nás. Našou snahou je vytvoriť čo najlepšiu komunitu pre obyvateľov Ružindola.
+        </p>
+      </div>
+    </div>
+  );
+}
+
