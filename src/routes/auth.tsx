@@ -50,6 +50,11 @@ function AuthPage() {
     setError(null);
     setNotice(null);
 
+    if (!legalAccepted) {
+      setError("Pred pokračovaním musíš súhlasiť so Všeobecnými podmienkami používania a GDPR.");
+      return;
+    }
+
     setBusy(true);
     try {
       // 1. Try signing in first
@@ -291,6 +296,15 @@ function AuthPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  {/* Consent Checkbox */}
+                  <div className="pt-2">
+                    <ConsentCheckbox
+                      checked={legalAccepted}
+                      onChange={setLegalAccepted}
+                      onOpenLegal={openLegalDialog}
                     />
                   </div>
 
