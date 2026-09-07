@@ -185,6 +185,29 @@ function AuthPage() {
           </motion.p>
         </div>
 
+        {/* CONSENT CHECKBOX - MOVED TO THE TOP (BEFORE ANY AUTH OPTIONS) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8"
+        >
+          <ConsentCheckbox
+            checked={legalAccepted}
+            onChange={setLegalAccepted}
+            onOpenLegal={openLegalDialog}
+          />
+          {!legalAccepted && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-3 text-center text-xs text-amber-500/80"
+            >
+              ⚠️ Aby pokračovali, musíte odsúhlasiť VPP a GDPR
+            </motion.p>
+          )}
+        </motion.div>
+
         {/* Auth Cards / Form Container */}
         <div className="relative w-full">
           <AnimatePresence mode="wait">
@@ -201,7 +224,8 @@ function AuthPage() {
                 {/* Email Card */}
                 <button
                   onClick={() => setViewMode("email")}
-                  className="group relative flex w-full items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all duration-300 hover:border-emerald-500/50 hover:bg-slate-900 active:scale-[0.99]"
+                  disabled={!legalAccepted}
+                  className="group relative flex w-full items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all duration-300 hover:border-emerald-500/50 hover:bg-slate-900 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 transition-colors group-hover:bg-emerald-500/20">
                     <Mail className="h-6 w-6" />
@@ -216,8 +240,8 @@ function AuthPage() {
                 {/* Google Card */}
                 <button
                   onClick={handleGoogle}
-                  disabled={busy}
-                  className="group relative flex w-full items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all duration-300 hover:border-blue-500/50 hover:bg-slate-900 active:scale-[0.99] disabled:opacity-50"
+                  disabled={busy || !legalAccepted}
+                  className="group relative flex w-full items-center gap-4 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 text-left transition-all duration-300 hover:border-blue-500/50 hover:bg-slate-900 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-slate-900">
                     <Globe className="h-6 w-6" />
@@ -228,15 +252,6 @@ function AuthPage() {
                   </div>
                   <ArrowRight className="h-5 w-5 text-slate-600 transition-all group-hover:translate-x-1 group-hover:text-blue-500" />
                 </button>
-
-                {/* Consent Checkbox in Select Mode */}
-                <div className="pt-4">
-                  <ConsentCheckbox
-                    checked={legalAccepted}
-                    onChange={setLegalAccepted}
-                    onOpenLegal={openLegalDialog}
-                  />
-                </div>
               </motion.div>
             ) : viewMode === "email" ? (
               // STAV 2: EMAIL MODE - UNIFIED SIGNIN / SIGNUP FORM
@@ -296,15 +311,6 @@ function AuthPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-12 rounded-2xl border-slate-800 bg-slate-950 text-white placeholder:text-slate-600 focus:ring-emerald-500/20"
-                    />
-                  </div>
-
-                  {/* Consent Checkbox */}
-                  <div className="pt-2">
-                    <ConsentCheckbox
-                      checked={legalAccepted}
-                      onChange={setLegalAccepted}
-                      onOpenLegal={openLegalDialog}
                     />
                   </div>
 
