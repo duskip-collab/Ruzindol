@@ -131,15 +131,15 @@ export function HelpGuideEditPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/30 dark:bg-blue-950/20">
         <div className="flex gap-3">
-          <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-500" />
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
           <div>
-            <h3 className="font-semibold text-amber-900 dark:text-amber-200">
-              Admin Režim - Editovanie Návodu
+            <h3 className="font-semibold text-blue-900 dark:text-blue-200">
+              📖 Admin Režim - Editovanie Návodu
             </h3>
-            <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
-              Kliknite na tlačidlo Upraviť pri jednotlivých sekciách aby ste ich mohli upravovať.
+            <p className="mt-1 text-sm text-blue-800 dark:text-blue-300">
+              Kliknite na tlačidlo „Upraviť" pri jednotlivých sekciách aby ste ich mohli upravovať.
             </p>
           </div>
         </div>
@@ -153,13 +153,13 @@ export function HelpGuideEditPanel() {
           return (
             <div
               key={section.id}
-              className="rounded-lg border border-border bg-card p-4 dark:bg-card/50"
+              className="rounded-2xl border border-border/80 bg-card/60 p-4 dark:bg-card/50"
             >
               {isEditing ? (
                 // Režim editácie
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium">Emoji & Nadpis</label>
+                   <label className="block text-sm font-medium text-foreground mb-1">Emoji & Nadpis</label>
                     <div className="mt-1 flex gap-2">
                       <input
                         type="text"
@@ -171,7 +171,7 @@ export function HelpGuideEditPanel() {
                             section_emoji: e.target.value,
                           })
                         }
-                        className="h-10 w-12 rounded border border-input bg-background px-2 text-center"
+                       className="h-10 w-12 rounded-lg border border-border bg-background px-2 text-center text-sm dark:border-border/50"
                         placeholder="🔔"
                       />
                       <input
@@ -183,13 +183,13 @@ export function HelpGuideEditPanel() {
                             section_title: e.target.value,
                           })
                         }
-                        className="flex-1 rounded border border-input bg-background px-3 py-2 text-sm"
+                       className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm dark:border-border/50"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium">Úvodný Opis</label>
+                   <label className="block text-sm font-medium text-foreground mb-1">Úvodný Opis</label>
                     <textarea
                       value={current.content?.description || ""}
                       onChange={(e) =>
@@ -201,15 +201,15 @@ export function HelpGuideEditPanel() {
                           },
                         })
                       }
-                      className="mt-1 min-h-[80px] w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                     className="mt-1 min-h-[80px] w-full rounded-lg border border-border bg-background px-3 py-2 text-sm dark:border-border/50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">Položky</label>
+                   <label className="block text-sm font-medium text-foreground mb-2">Položky</label>
                     <div className="space-y-2">
                       {current.content?.items?.map((item, idx) => (
-                        <div key={idx} className="space-y-1 rounded bg-muted/50 p-2">
+                       <div key={idx} className="space-y-1 rounded-lg bg-muted/50 p-3 border border-border/50">
                           <input
                             type="text"
                             placeholder="Nadpis"
@@ -225,7 +225,7 @@ export function HelpGuideEditPanel() {
                                 },
                               });
                             }}
-                            className="w-full rounded border border-input bg-background px-2 py-1 text-sm font-semibold"
+                           className="w-full rounded-lg border border-border bg-background px-2 py-1 text-sm font-semibold dark:border-border/50"
                           />
                           <textarea
                             placeholder="Text"
@@ -241,25 +241,25 @@ export function HelpGuideEditPanel() {
                                 },
                               });
                             }}
-                            className="min-h-[60px] w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                           className="min-h-[60px] w-full rounded-lg border border-border bg-background px-2 py-1 text-sm dark:border-border/50"
                           />
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-2">
+                   <div className="flex gap-2 pt-2">
                     <button
                       onClick={handleSave}
                       disabled={loading}
-                      className="flex items-center gap-2 rounded bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 disabled:opacity-50 transition-colors"
                     >
                       <Save className="h-4 w-4" />
                       {loading ? "Ukladám..." : "Uložiť"}
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="flex items-center gap-2 rounded bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80"
+                      className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm font-medium hover:bg-muted/80 dark:border-border/50 transition-colors"
                     >
                       <X className="h-4 w-4" />
                       Zrušiť
@@ -290,7 +290,7 @@ export function HelpGuideEditPanel() {
                   </div>
                   <button
                     onClick={() => handleEdit(section)}
-                    className="mt-1 flex items-center gap-2 rounded bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700"
+                    className="mt-1 flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-500 transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                     Upraviť
