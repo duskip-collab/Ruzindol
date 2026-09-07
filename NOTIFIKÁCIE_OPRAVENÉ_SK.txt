@@ -1,0 +1,56 @@
+🔧 NOTIFIKAČNÝ SYSTÉM - OPRAVA HOTOVÁ
+=====================================
+
+📌 PROBLÉM:
+-----------
+Po pridaní notifikácií pre "Susedský život" prestali všetky notifikácie fungovať.
+
+🔍 PRÍČINA:
+-----------
+V edge function (send-push/index.ts) bola nekonzistentnosť:
+- Riadok 39: Kontrolovala "hlasnik" 
+- Riadok 47: Neobsahovala "hlasnik"
+
+Výsledok: Notifikácie typu "hlasnik" sa neodsílaly používateľom s vypnutými notifikáciami.
+
+✅ OPRAVA:
+----------
+Súbor: supabase/functions/send-push/index.ts
+Riadok 47: Pridaný type === "hlasnik" do podmienky
+
+Zmena:
+- PRED:  type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post"
+- PO:    type === "announcement" || type === "official_alert" || type === "hlasnik" || type === "group_announcement" || type === "neighbor_post"
+
+📋 STATUS:
+----------
+✅ Problém nájdený
+✅ Oprava aplikovaná
+✅ Dokumentácia hotová
+✅ Testovacia procedúra pripravená
+⏳ Čaká na nasadenie na Supabase
+
+🚀 ĎALŠIE KROKY:
+----------------
+1. Nasadiť zmenu na Supabase:
+   supabase functions deploy send-push
+
+2. Overiť: Vytvorte príspevek v "Susedský život" a v "Obecnom hlásníku"
+
+3. Skontrolujte, či všetci dostali push notifikácie
+
+📊 POKRYTIE:
+------------
+✅ Susedský život (neighbor_post) - VŽDY sa odošle
+✅ Obecný hlásnik (official_alert, hlasnik) - VŽDY sa odošle
+✅ RSS Announcements (announcement) - Sa odoslajú
+✅ Skupinové oznámenia (group_announcement) - Sa odoslajú
+✅ Odpovede na podnety (inquiry_answer) - Sa odoslajú
+
+📚 DOKUMENTÁCIA:
+----------------
+- NOTIFICATION_HOTFIX_SUMMARY.md - Detailný súhrn
+- NOTIFICATION_TEST_PROCEDURE.md - Ako testovať
+- NOTIFICATION_FIX_REPORT.md - Technická analýza
+- NOTIFICATION_COMPLETE_OVERVIEW.md - Úplný prehľad
+- DIAGNOSTIC_SQL.sql - SQL na overenie

@@ -44,7 +44,7 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
 
 function isCommunityBroadcastNotification(record: Record<string, unknown>) {
   const type = String(record.type ?? "").toLowerCase();
-  return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
+  return type === "announcement" || type === "official_alert" || type === "hlasnik" || type === "group_announcement" || type === "neighbor_post";
 }
 
 async function loadSubscriptions(supabase: ReturnType<typeof createClient>, userId: string) {
