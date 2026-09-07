@@ -39,7 +39,20 @@ export function useCurrentUser() {
         setLoading(true);
         setError(null);
         
-        // Bezpečné získanie auth user
+        // 1. Najskôr skontrolovať či existuje relácia (bez chybových hlásení)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          // Žiadny používateľ nie je prihlásený – ticho
+          if (mounted) {
+            setUserId(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+        
+        // 2. Ak relácia existuje, bezpečne zavoláme getUser()
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
