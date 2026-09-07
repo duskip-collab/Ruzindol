@@ -146,9 +146,9 @@ export function NotificationBellTip({
                 Kliknúť a povoliť 📲
               </button>
 
-              {/* Arrow pointing to bell */}
+              {/* Arrow pointing to bell (zarovnaná doprava priamo pod ikonu zvončeka) */}
               <div
-                className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-emerald-50 dark:border-t-emerald-950"
+                className="absolute right-6 -bottom-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-emerald-50 dark:border-t-emerald-950"
                 style={{
                   filter: "drop-shadow(0 -1px 0 rgba(16, 185, 129, 0.2))",
                 }}
