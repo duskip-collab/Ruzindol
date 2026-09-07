@@ -36,7 +36,7 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
   const refId = typeof record.ref_id === "string" ? record.ref_id : null;
 
   if (type === "message" && refId) return `/chat/${refId}`;
-  if (type === "official_alert" || type === "hlasnik") return "/nastenka";
+  if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post") return "/nastenka";
   if (type === "announcement" || type === "group_announcement") return "/aktuality";
   if (critical) return "/aktuality";
   return "/";
@@ -44,7 +44,7 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
 
 function isCommunityBroadcastNotification(record: Record<string, unknown>) {
   const type = String(record.type ?? "").toLowerCase();
-  return type === "announcement" || type === "official_alert" || type === "group_announcement";
+  return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
 }
 
 async function loadSubscriptions(supabase: ReturnType<typeof createClient>, userId: string) {
