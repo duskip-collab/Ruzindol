@@ -116,11 +116,11 @@ function AuthPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen min-h-[100dvh] w-full flex-col items-center overflow-y-auto overflow-x-hidden bg-slate-950 px-4 py-8 pb-36 selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="relative min-h-screen min-h-[100dvh] w-full overflow-y-auto overflow-x-hidden bg-slate-950 px-4 py-12 pb-40 selection:bg-emerald-500/30 selection:text-emerald-200">
       {/* Emerald Glow Effect */}
       <div className="pointer-events-none fixed left-1/2 top-0 h-[500px] w-full -translate-x-1/2 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15)_0%,transparent_70%)]" />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 mx-auto w-full max-w-md">
         {/* Upper Badge */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
