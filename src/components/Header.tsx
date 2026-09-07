@@ -1,10 +1,10 @@
-import { Bell, Download, Loader2, LogOut } from "lucide-react";
+import { Download, Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
 import ruzindolErb from "@/assets/ruzindol-erb.png";
 import { cn } from "@/lib/utils";
-import { enableNotifications } from "@/lib/push";
+import { NotificationBellTip } from "./NotificationBellTip";
 
 export function Header({
   profile,
@@ -37,11 +37,6 @@ export function Header({
   }
 
   async function handleBellClick() {
-    try {
-      await enableNotifications();
-    } catch (error) {
-      console.error("Chyba pri registrácii push notifikácií:", error);
-    }
     onBellClick();
   }
 
@@ -84,17 +79,10 @@ export function Header({
             <span className="hidden sm:inline">Pridať na plochu</span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={handleBellClick}
-          className="header-action-button relative grid h-10 w-10 place-items-center rounded-full shadow-sm transition-all active:scale-95"
-          aria-label="Notifikácie"
-        >
-          <Bell size={17} strokeWidth={2} />
-          {hasNotificationDot && (
-            <span className="absolute right-[0.7rem] top-[0.7rem] h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
-          )}
-        </button>
+        <NotificationBellTip
+          hasNotificationDot={hasNotificationDot}
+          onBellClick={handleBellClick}
+        />
         <div
           className="grid h-10 w-10 place-items-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-sm"
           title={profile?.name ?? ""}
