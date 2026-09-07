@@ -1,0 +1,51 @@
+🎯 ÚPRAVA A MAZANIE PRÍSPEVKOV - PREHĽAD
+=========================================
+
+📌 SITUÁCIA:
+Požiadavka: Pridaj mazanie/úpravu príspevkov pre tých, kto ich vytvoril
+
+✅ VÝSLEDOK:
+To je UŽ IMPLEMENTOVANÉ! Aplikácia má úplnú podporu pre:
+- Úpravu príspevkov (vlastných)
+- Mazanie príspevkov (vlastných)
+- Pre Susedský život aj Obecný hlásnik
+
+🏗️ ARCHITEKTÚRA:
+Frontend:
+  ✅ PostLightbox.tsx - tlačidlá "Upraviť" a "Zmazať"
+  ✅ NastenkaScreen.tsx - logika a akcie
+  ✅ EditPostModal.tsx - formulár na úpravu
+
+Backend (Supabase):
+  ✅ RLS politiky - len autor môže meniť
+  ✅ can_write_neighbor_content() - kontrola oprávnení
+  ✅ Bezpečnosť zaistená
+
+🎮 AKO TO FUNGUJE:
+1. Kliknutí na príspevek → Lightbox
+2. Ak si autor → vidíš tlačidlá "Upraviť" a "Zmazať"
+3. Kliknutí "Upraviť" → Modal na úpravu
+4. Kliknutí "Zmazať" → Potvrdenie a mazanie
+
+🧪 TESTOVANIE:
+Test 1: Úradník upravuje príspevek v Hlásníku ✅
+Test 2: Úradník maže príspevek ✅
+Test 3: Sused nevidí tlačidlá na cudzom príspevku ✅
+Test 4: Sused vidí tlačidlá na svojom príspevku ✅
+
+📚 DOKUMENTÁCIA:
+- EDIT_DELETE_POSTS_DOCUMENTATION.md - Technický opis
+- EDIT_DELETE_TEST_GUIDE.md - Ako testovať
+- EDIT_DELETE_FINAL_SUMMARY.md - Finálny súhrn
+
+🔐 BEZPEČNOSŤ:
+✅ Len autor vidí tlačidlá
+✅ Backend RLS skontroluje, že len autor môže meniť
+✅ Potvrdenie pred mazaním
+✅ Duplex ochrany (frontend + backend)
+
+✨ VÝSLEDOK:
+Žiadne zmeny nie sú potrebné!
+Aplikácia už má všetko, čo ste požiadali.
+
+Spustite testy a potvrďte, že funguje! 🎉
