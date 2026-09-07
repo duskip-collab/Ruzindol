@@ -7,9 +7,18 @@ export type PushDecision = {
 
 export function parseWebhookRecord(payload: unknown): Record<string, unknown> | null {
   const p = payload as any;
-  const record = p?.record ?? p?.new ?? null;
-  if (!record || typeof record !== "object") return null;
-  return record as Record<string, unknown>;
+  if (!p || typeof p !== "object") return null;
+
+  // 1. Štandardný Supabase Database Webhook formát
+  if (p.record && typeof p.record === "object") return p.record as Record<string, unknown>;
+  if (p.new && typeof p.new === "object") return p.new as Record<string, unknown>;
+
+  // 2. Fallback: Ak bol poslaný priamo objekt notifikácie (napr. pri manuálnom teste v Dashboarde)
+  if (typeof p.user_id === "string" || typeof p.title === "string" || typeof p.type === "string") {
+    return p as Record<string, unknown>;
+  }
+
+  return null;
 }
 
 export function isCriticalNotification(record: Record<string, unknown>) {
