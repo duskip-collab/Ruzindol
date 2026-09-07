@@ -19,12 +19,6 @@ export type Profile = {
 const SELECT =
   "id, name, street, role, is_active_neighbor, municipality_id, invite_code, banned_until, ban_reason";
 
-function fallbackName(email?: string | null) {
-  if (!email) return "Sused";
-  const local = email.split("@")[0]?.trim();
-  return local ? local.slice(0, 32) : "Sused";
-}
-
 export function useCurrentUser() {
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -33,17 +27,18 @@ export function useCurrentUser() {
 
   useEffect(() => {
     let mounted = true;
-    
-    (async () => {
+
+    const fetchUserData = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        if (mounted) {
+          setLoading(true);
+          setError(null);
+        }
         
         // 1. Najskôr skontrolovať či existuje relácia (bez chybových hlásení)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
-          // Žiadny používateľ nie je prihlásený – ticho
           if (mounted) {
             setUserId(null);
             setProfile(null);
@@ -66,7 +61,6 @@ export function useCurrentUser() {
         }
         
         if (!user) {
-          console.info("[useCurrentUser] Žiadny autentifikovaný user");
           if (mounted) {
             setUserId(null);
             setProfile(null);
@@ -87,7 +81,9 @@ export function useCurrentUser() {
           return;
         }
 
-        setUserId(user.id);
+        if (mounted) {
+          setUserId(user.id);
+        }
 
         // Načítaj profil z databázy
         const { data: profileData, error: profileError } = await supabase
@@ -115,10 +111,28 @@ export function useCurrentUser() {
       } finally {
         if (mounted) setLoading(false);
       }
-    })();
+    };
+
+    // Počiatočné načítanie
+    fetchUserData();
+
+    // Počúvanie na zmeny autentifikácie za chodu (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        if (mounted) {
+          setUserId(null);
+          setProfile(null);
+          setLoading(false);
+          setError(null);
+        }
+      } else {
+        fetchUserData();
+      }
+    });
 
     return () => {
       mounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
