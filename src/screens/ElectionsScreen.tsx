@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Vote, Award, Loader2, RefreshCw, Edit3 } from 'lucide-react';
+import { Vote, Award, Loader2, RefreshCw, Edit3, FileText, Image as ImageIcon, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -10,11 +10,24 @@ import PollCard, { Poll } from '@/components/polls/PollCard';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 
+type Attachment = {
+  id: string;
+  election_id: string;
+  file_name: string;
+  file_type: 'pdf' | 'image';
+  file_url: string;
+  file_size_bytes?: number;
+  description?: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export function ElectionsScreen() {
   const { electionsEnabled, loading: settingsLoading } = useAppSettings();
   const { profile } = useCurrentUser();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [polls, setPolls] = useState<Poll[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candModalOpen, setCandModalOpen] = useState(false);
@@ -29,8 +42,97 @@ export function ElectionsScreen() {
       if (cData) setCandidates(cData as unknown as Candidate[]);
       const { data: pData } = await supabase.from('polls').select('*, options:poll_options(*)');
       if (pData) setPolls(pData as unknown as Poll[]);
+      // Načítaj prílohy volieb
+      const { data: aData } = await supabase
+        .from('elections_attachments')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      if (aData) setAttachments(aData as unknown as Attachment[]);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
+
+  const handleEditElections = async () => {
+    try {
+      setLoading(true);
+      // Načítaj aktívnu voľbu
+      const { data: electionsData } = await supabase
+        .from('elections')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (electionsData && electionsData.length > 0) {
+        const election = electionsData[0];
+        
+        // Načítaj kandidátov
+        const { data: candidatesData } = await supabase
+          .from('election_candidates')
+          .select('*')
+          .eq('election_id', election.id);
+
+        // Načítaj prílohy
+        const { data: attachmentsData } = await supabase
+          .from('elections_attachments')
+          .select('*')
+          .eq('election_id', election.id)
+          .order('sort_order', { ascending: true });
+
+        const mayorCandidates = (candidatesData || [])
+          .filter((c: any) => c.position_type === 'starosta')
+          .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+        
+        const councilCandidates = (candidatesData || [])
+          .filter((c: any) => c.position_type === 'poslanec')
+          .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+
+        const attachmentsAsFiles = (attachmentsData || []).map((a: Attachment) => ({
+          id: a.id,
+          file_name: a.file_name,
+          file_type: a.file_type,
+          file_url: a.file_url,
+          file_size_bytes: a.file_size_bytes,
+          description: a.description,
+          sort_order: a.sort_order
+        }));
+
+        setCurrentElection({
+          id: election.id,
+          name: election.name,
+          description: election.description,
+          election_date: election.election_date,
+          status: election.status,
+          candidates_mayor: mayorCandidates.length > 0 ? mayorCandidates : [emptyElectionCandidate()],
+          candidates_council: councilCandidates.length > 0 ? councilCandidates : [emptyElectionCandidate()],
+          attachments: attachmentsAsFiles
+        });
+      } else {
+        setCurrentElection(null);
+      }
+
+      triggerHaptic('light');
+      setEditModalOpen(true);
+    } catch (err) {
+      console.error('Error loading election for edit:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const emptyElectionCandidate = () => ({
+    full_name: '',
+    party_or_independent: '',
+    position_type: 'starosta' as const,
+    age: undefined,
+    profession: '',
+    motto: '',
+    bio: '',
+    email: '',
+    website_url: '',
+    facebook_url: '',
+    program_priorities: [],
+    sort_order: 0
+  });
 
   const handleSaveElection = async (data: ElectionsData) => {
     try {
@@ -104,23 +206,24 @@ export function ElectionsScreen() {
 
       // Handleuj prílohy (attachments)
       if (data.attachments.length > 0) {
-        const existingAttachments = data.attachments.filter((a) => !a.id.startsWith('new'));
-        if (existingAttachments.length > 0) {
+        const attachmentsToUpsert = data.attachments
+          .filter((a) => a.file_url) // Iba prílohy s URL (nahrané súbory)
+          .map((a) => ({
+            id: a.id,
+            election_id: electionId,
+            file_name: a.file_name,
+            file_type: a.file_type,
+            file_url: a.file_url,
+            file_size_bytes: a.file_size_bytes,
+            description: a.description,
+            sort_order: a.sort_order,
+            uploaded_by: profile?.id
+          }));
+
+        if (attachmentsToUpsert.length > 0) {
           const { error: attachError } = await supabase
             .from('elections_attachments')
-            .upsert(
-              existingAttachments.map((a) => ({
-                id: a.id,
-                election_id: electionId,
-                file_name: a.file_name,
-                file_type: a.file_type,
-                file_url: a.file_url,
-                file_size_bytes: a.file_size_bytes,
-                description: a.description,
-                sort_order: a.sort_order,
-                uploaded_by: profile?.id
-              }))
-            );
+            .upsert(attachmentsToUpsert);
 
           if (attachError) throw new Error(attachError.message);
         }
@@ -166,7 +269,7 @@ export function ElectionsScreen() {
               type="button" 
               onClick={() => { 
                 triggerHaptic('light'); 
-                setEditModalOpen(true); 
+                void handleEditElections();
               }} 
               className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
               title="Upraviť voľby"
@@ -204,6 +307,58 @@ export function ElectionsScreen() {
           <h2 className="text-sm font-bold flex items-center gap-1.5"><Vote className="h-4 w-4 text-blue-500" /> Ankety</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {polls.map((p) => (<PollCard key={p.id} poll={p} isActiveNeighbor={Boolean(profile?.is_active_neighbor)} onVoteSuccess={loadData} />))}
+          </div>
+        </div>
+      )}
+
+      {attachments.length > 0 && (
+        <div className="space-y-3 pt-3 border-t dark:border-slate-800">
+          <h2 className="text-sm font-bold flex items-center gap-1.5"><FileText className="h-4 w-4 text-amber-600" /> Dokumenty a fotografie</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={att.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all overflow-hidden flex flex-col h-full"
+              >
+                {att.file_type === 'image' ? (
+                  <div className="aspect-video overflow-hidden bg-slate-100 dark:bg-slate-900">
+                    <img
+                      src={att.file_url}
+                      alt={att.file_name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 flex items-center justify-center">
+                    <FileText className="h-12 w-12 text-red-400 dark:text-red-600" />
+                  </div>
+                )}
+                <div className="p-3 flex-1 flex flex-col">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    {att.file_name}
+                  </p>
+                  {att.description && (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                      {att.description}
+                    </p>
+                  )}
+                  {att.file_size_bytes && (
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-auto pt-1">
+                      {(att.file_size_bytes / 1024).toFixed(1)} KB
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                    <Download className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
+                      Stiahnuť
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       )}
