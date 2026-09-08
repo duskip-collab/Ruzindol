@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Vote, Award, Loader2, RefreshCw, Edit3, FileText, Image as ImageIcon, Download } from 'lucide-react';
+import { Vote, Award, Loader2, RefreshCw, Edit3, FileText, Image as ImageIcon, Download, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -246,6 +246,42 @@ export function ElectionsScreen() {
     }
   };
 
+  // Manuálne mazanie jednotlivého kandidáta
+  const handleDeleteCandidate = async (candidateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('election_candidates')
+        .delete()
+        .eq('id', candidateId);
+
+      if (error) throw new Error(error.message);
+      
+      triggerHaptic('success');
+      void loadData();
+    } catch (error) {
+      console.error('Delete candidate error:', error);
+      throw error;
+    }
+  };
+
+  // Manuálne mazanie jednotlivej prílohy
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('elections_attachments')
+        .delete()
+        .eq('id', attachmentId);
+
+      if (error) throw new Error(error.message);
+      
+      triggerHaptic('success');
+      void loadData();
+    } catch (error) {
+      console.error('Delete attachment error:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => { void loadData(); }, []);
 
   if (settingsLoading) return <div className="p-8 text-center text-xs"><Loader2 className="h-5 w-5 animate-spin inline" /></div>;
@@ -324,54 +360,75 @@ export function ElectionsScreen() {
           <h2 className="text-sm font-bold flex items-center gap-1.5"><FileText className="h-4 w-4 text-amber-600" /> Dokumenty a fotografie</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {attachments.map((att) => (
-              <a
+              <div
                 key={att.id}
-                href={att.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all overflow-hidden flex flex-col h-full"
+                className="group relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden flex flex-col h-full"
               >
-                {att.file_type === 'image' ? (
-                  <div className="aspect-video overflow-hidden bg-slate-100 dark:bg-slate-900">
-                    <img
-                      src={att.file_url}
-                      alt={att.file_name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
+                <a
+                  href={att.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex flex-col hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all"
+                >
+                  {att.file_type === 'image' ? (
+                    <div className="aspect-video overflow-hidden bg-slate-100 dark:bg-slate-900">
+                      <img
+                        src={att.file_url}
+                        alt={att.file_name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 flex items-center justify-center">
+                      <FileText className="h-12 w-12 text-red-400 dark:text-red-600" />
+                    </div>
+                  )}
+                  <div className="p-3 flex-1 flex flex-col">
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {att.file_name}
+                    </p>
+                    {att.description && (
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                        {att.description}
+                      </p>
+                    )}
+                    {att.file_size_bytes && (
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-auto pt-1">
+                        {(att.file_size_bytes / 1024).toFixed(1)} KB
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                      <Download className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
+                        Stiahnuť
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="aspect-video bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 flex items-center justify-center">
-                    <FileText className="h-12 w-12 text-red-400 dark:text-red-600" />
-                  </div>
+                </a>
+
+                {isOfficial && (
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteAttachment(att.id)}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors opacity-0 group-hover:opacity-100"
+                    title="Vymazať prílohu"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 )}
-                <div className="p-3 flex-1 flex flex-col">
-                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
-                    {att.file_name}
-                  </p>
-                  {att.description && (
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                      {att.description}
-                    </p>
-                  )}
-                  {att.file_size_bytes && (
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-auto pt-1">
-                      {(att.file_size_bytes / 1024).toFixed(1)} KB
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                    <Download className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">
-                      Stiahnuť
-                    </span>
-                  </div>
-                </div>
-              </a>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      <CandidateModal candidate={selectedCandidate} isOpen={candModalOpen} onClose={() => setCandModalOpen(false)} />
+      <CandidateModal 
+        candidate={selectedCandidate} 
+        isOpen={candModalOpen} 
+        onClose={() => setCandModalOpen(false)} 
+        onDelete={handleDeleteCandidate}
+        isAdmin={isOfficial}
+      />
       
       <ElectionsEditModal 
         isOpen={editModalOpen}
