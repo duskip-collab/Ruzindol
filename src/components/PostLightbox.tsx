@@ -180,7 +180,7 @@ export function PostLightbox({
             </div>
 
             {(onLike || onReport || canManage) && (
-              <div className="flex items-center gap-2 border-t border-neutral-200 bg-neutral-50/70 px-4 py-3 dark:border-neutral-300 dark:bg-neutral-200">
+              <div className="flex items-center gap-2 border-t border-neutral-200 bg-neutral-50/70 px-4 py-3 pb-safe dark:border-neutral-300 dark:bg-neutral-200">
                 {onLike && (
                   <button
                     onClick={onLike}

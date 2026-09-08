@@ -75,7 +75,7 @@ export function BottomNav({
       role="tablist"
       aria-label="Hlavná navigácia aplikácie"
       className={cn(
-        "glass-panel bottom-nav relative z-50 grid shrink-0 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
+        "glass-panel bottom-nav relative z-40 grid shrink-0 items-center gap-1 rounded-[1.75rem] px-2 py-2 pb-safe",
         visibleTabs.length === 6 ? "grid-cols-6" : "grid-cols-5",
         className,
       )}

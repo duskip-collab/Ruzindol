@@ -128,7 +128,7 @@ export function WarehouseItemEditForm({
           <h2 className="font-semibold">Upraviť inzerát</h2>
           <button type="button" onClick={onClose} aria-label="Zavrieť" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>
         </div>
-        <form onSubmit={(event) => void submit(event)} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <form onSubmit={(event) => void submit(event)} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5 pb-safe">
           <label className="text-sm font-medium">Názov<input value={title} onChange={(event) => setTitle(event.target.value)} required className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm" /></label>
           <label className="text-sm font-medium">Popis<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className="mt-1 w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm" /></label>
           <div>

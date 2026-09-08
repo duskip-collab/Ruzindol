@@ -263,7 +263,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-[99] bg-black/40 backdrop-blur-sm dark:bg-black/60"
+            className="fixed inset-0 z-[9997] bg-black/40 backdrop-blur-sm dark:bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -277,7 +277,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
             role="dialog"
             aria-modal="true"
             aria-labelledby="inquiry-modal-title"
-            className="fixed inset-0 z-[100] flex flex-col h-full w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden"
+            className="fixed inset-0 z-[9998] flex flex-col h-full w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden"
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
