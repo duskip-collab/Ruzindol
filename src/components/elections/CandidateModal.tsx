@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Award, CheckCircle2, Globe, Mail, Facebook, ExternalLink, Trash2, AlertCircle } from 'lucide-react';
 import { AnimatedModal } from '../AnimatedModal';
 import { Candidate } from './CandidateCard';
+import { PhotoLightbox } from './PhotoLightbox';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
 
   if (!candidate) return null;
   const isMayor = candidate.position_type === 'starosta';
@@ -32,6 +34,13 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   const handleTabChange = (tab: TabType) => {
     triggerHaptic('light');
     setActiveTab(tab);
+  };
+
+  const handlePhotoClick = () => {
+    if (candidate.photo_url) {
+      triggerHaptic('light');
+      setShowPhotoLightbox(true);
+    }
   };
 
   const handleDelete = async () => {
@@ -57,7 +66,13 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+            <div
+              className={cn(
+                'relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800',
+                candidate.photo_url && 'cursor-pointer transition-all hover:shadow-lg'
+              )}
+              onClick={handlePhotoClick}
+            >
               {candidate.photo_url ? (
                 <img src={candidate.photo_url} alt={candidate.full_name} className="h-full w-full object-cover" />
               ) : (
@@ -202,6 +217,14 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Photo Lightbox */}
+      <PhotoLightbox
+        photoUrl={candidate.photo_url}
+        candidateName={candidate.full_name}
+        isOpen={showPhotoLightbox}
+        onClose={() => setShowPhotoLightbox(false)}
+      />
     </AnimatedModal>
   );
 };

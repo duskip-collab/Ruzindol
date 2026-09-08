@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Award, ArrowRight } from 'lucide-react';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
+import { PhotoLightbox } from './PhotoLightbox';
 
 export interface Candidate {
   id: string;
@@ -27,9 +28,17 @@ export interface CandidateCardProps {
 }
 
 export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelect, className }) => {
+  const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
+
   const handleClick = () => {
     triggerHaptic('light');
     onSelect(candidate);
+  };
+
+  const handlePhotoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('light');
+    setShowPhotoLightbox(true);
   };
 
   const isMayor = candidate.position_type === 'starosta';
@@ -63,7 +72,10 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelec
 
         {/* Profile Info */}
         <div className="flex items-start gap-4">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <div
+            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all hover:shadow-lg"
+            onClick={candidate.photo_url ? handlePhotoClick : undefined}
+          >
             {candidate.photo_url ? (
               <img
                 src={candidate.photo_url}
@@ -114,6 +126,14 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelec
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {/* Photo Lightbox */}
+      <PhotoLightbox
+        photoUrl={candidate.photo_url}
+        candidateName={candidate.full_name}
+        isOpen={showPhotoLightbox}
+        onClose={() => setShowPhotoLightbox(false)}
+      />
     </div>
   );
 };
