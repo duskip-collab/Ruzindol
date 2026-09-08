@@ -64,12 +64,13 @@ export function ElectionsScreen() {
 
       if (electionsData && electionsData.length > 0) {
         const election = electionsData[0];
-        
-        // Načítaj kandidátov
+         
+        // Načítaj kandidátov IBA AKTÍVNYCH
         const { data: candidatesData } = await supabase
           .from('election_candidates')
           .select('*')
-          .eq('election_id', election.id);
+          .eq('election_id', election.id)
+          .eq('is_active', true);
 
         // Načítaj prílohy
         const { data: attachmentsData } = await supabase
@@ -246,12 +247,12 @@ export function ElectionsScreen() {
     }
   };
 
-  // Manuálne mazanie jednotlivého kandidáta
+  // Manuálne mazanie jednotlivého kandidáta (Soft delete - nastaví is_active=false)
   const handleDeleteCandidate = async (candidateId: string) => {
     try {
       const { error } = await supabase
         .from('election_candidates')
-        .delete()
+        .update({ is_active: false })
         .eq('id', candidateId);
 
       if (error) throw new Error(error.message);
