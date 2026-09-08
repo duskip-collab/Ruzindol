@@ -283,7 +283,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+        <div className="space-y-3 max-h-[calc(70vh-200px)] md:max-h-[75vh] overflow-y-auto pr-2 pb-4">
           {/* INFO TAB */}
           {expandedTab === 'info' && (
             <div className="space-y-3">

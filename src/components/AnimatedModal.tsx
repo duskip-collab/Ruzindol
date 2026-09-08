@@ -136,7 +136,12 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             </div>
 
             {/* Scrollable Content - Flexible padding pre safe areas */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-32 sm:pb-40">
+            <div className={cn(
+              'overflow-y-auto overscroll-contain p-4 sm:p-6',
+              fullscreen 
+                ? 'flex-1 pb-20 sm:pb-24' // Menšia padding v fullscreen
+                : 'pb-32 sm:pb-40' // Väčšia padding v normálnom móde
+            )}>
               {description && (
                 <p
                   id="modal-description"
