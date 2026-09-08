@@ -289,12 +289,7 @@ export function ElectionsScreen() {
 
   const isOfficial = profile?.is_admin || profile?.role === 'Starosta' || profile?.role === 'Uradnik';
   if (!electionsEnabled && !isOfficial) {
-    return (
-      <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 my-6">
-        <Vote className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-        <h3 className="text-sm font-bold">Modul volieb nie je aktívny</h3>
-      </div>
-    );
+    return null;
   }
 
   const filtered = candidates.filter((c) => posFilter === 'vsetko' || c.position_type === posFilter);
