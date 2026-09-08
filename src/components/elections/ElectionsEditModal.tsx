@@ -151,7 +151,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
     triggerHaptic('medium');
     setFormData(prev => ({
       ...prev,
-      candidates_mayor: [emptyCandidate()]
+      candidates_mayor: []
     }));
     setConfirmDelete(null);
   };
@@ -161,7 +161,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
     triggerHaptic('medium');
     setFormData(prev => ({
       ...prev,
-      candidates_council: [emptyCandidate()]
+      candidates_council: []
     }));
     setConfirmDelete(null);
   };
@@ -185,19 +185,11 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
       return;
     }
 
-    if (
-      (formData.candidates_mayor.length === 1 && !formData.candidates_mayor[0].full_name.trim()) &&
-      (formData.candidates_council.length === 1 && !formData.candidates_council[0].full_name.trim())
-    ) {
-      setError('Pridaj aspoň jedného kandidáta');
-      return;
-    }
-
     try {
       setLoading(true);
       triggerHaptic('light');
       
-      // Filter out empty candidates
+      // Filter out empty candidates - only keep candidates with names
       const cleanMayor = formData.candidates_mayor.filter((c) => c.full_name.trim());
       const cleanCouncil = formData.candidates_council.filter((c) => c.full_name.trim());
 
@@ -351,7 +343,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   Počet kandidátov: {formData.candidates_mayor.filter((c) => c.full_name.trim()).length}
                 </p>
-                {formData.candidates_mayor.some((c) => c.full_name.trim()) && (
+                {formData.candidates_mayor.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setConfirmDelete('mayor')}
@@ -394,7 +386,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
                 <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   Počet kandidátov: {formData.candidates_council.filter((c) => c.full_name.trim()).length}
                 </p>
-                {formData.candidates_council.some((c) => c.full_name.trim()) && (
+                {formData.candidates_council.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setConfirmDelete('council')}

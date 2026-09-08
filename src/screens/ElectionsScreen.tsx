@@ -205,25 +205,33 @@ export function ElectionsScreen() {
       }
 
       // Handleuj prílohy (attachments)
+      // 1. Vymažem staré prílohy ak editujeme
+      if (data.id) {
+        await supabase
+          .from('elections_attachments')
+          .delete()
+          .eq('election_id', electionId);
+      }
+
+      // 2. Vložím nové prílohy
       if (data.attachments.length > 0) {
-        const attachmentsToUpsert = data.attachments
+        const attachmentsToInsert = data.attachments
           .filter((a) => a.file_url) // Iba prílohy s URL (nahrané súbory)
-          .map((a) => ({
-            id: a.id,
+          .map((a, idx) => ({
             election_id: electionId,
             file_name: a.file_name,
             file_type: a.file_type,
             file_url: a.file_url,
             file_size_bytes: a.file_size_bytes,
             description: a.description,
-            sort_order: a.sort_order,
+            sort_order: idx,
             uploaded_by: profile?.id
           }));
 
-        if (attachmentsToUpsert.length > 0) {
+        if (attachmentsToInsert.length > 0) {
           const { error: attachError } = await supabase
             .from('elections_attachments')
-            .upsert(attachmentsToUpsert);
+            .insert(attachmentsToInsert);
 
           if (attachError) throw new Error(attachError.message);
         }
