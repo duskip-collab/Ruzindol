@@ -402,5 +402,22 @@
     background-color: color-mix(in oklab, var(--bg-surface-hover) 94%, transparent);
     color: var(--text-main);
   }
+
+  /* Safe area support for notched devices */
+  .safe-area-inset-bottom {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-inset-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .safe-area-inset-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .safe-area-inset-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
 

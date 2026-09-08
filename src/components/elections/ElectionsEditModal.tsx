@@ -224,6 +224,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       showCloseButton
+      fullscreen={true}
       confirmText={loading ? 'Ukladám...' : 'Uložiť zmeny'}
       confirmDisabled={loading}
       cancelText="Zavrieť"

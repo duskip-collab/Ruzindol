@@ -17,6 +17,8 @@ export interface AnimatedModalProps {
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
   className?: string;
+  fullscreen?: boolean; // Nový prop pre fullscreen mode
+  confirmDisabled?: boolean; // Nový prop pre disable confirm button
 }
 
 export const AnimatedModal: React.FC<AnimatedModalProps> = ({
@@ -32,6 +34,8 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
   showCloseButton = true,
   closeOnBackdropClick = true,
   className,
+  fullscreen = false,
+  confirmDisabled = false,
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -75,7 +79,10 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className={cn(
+          'fixed inset-0 z-50 flex items-center justify-center transition-all',
+          fullscreen ? 'p-0' : 'p-4 sm:p-6'
+        )}>
           <motion.div
             className="fixed inset-0 bg-black/40 backdrop-blur-sm dark:bg-black/60"
             initial={{ opacity: 0 }}
@@ -92,17 +99,21 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             aria-labelledby={title ? 'modal-title' : undefined}
             aria-describedby={description ? 'modal-description' : undefined}
             className={cn(
-              'relative z-10 w-full max-w-lg max-h-[90vh] rounded-2xl border border-slate-200 bg-white shadow-2xl transition-colors flex flex-col',
+              'relative z-10 w-full flex flex-col transition-colors',
+              fullscreen 
+                ? 'h-full max-h-screen rounded-none' // Fullscreen - bez zaoblenia
+                : 'max-w-lg max-h-[90vh] rounded-2xl border border-slate-200 dark:border-slate-800',
+              'border-slate-200 bg-white shadow-2xl',
               'dark:border-slate-800 dark:bg-slate-900 dark:text-white',
               className
             )}
-            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            initial={{ opacity: 0, scale: fullscreen ? 1 : 0.92, y: fullscreen ? 0 : 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+            exit={{ opacity: 0, scale: fullscreen ? 1 : 0.92, y: fullscreen ? 0 : 12 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 shrink-0 p-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-start justify-between gap-4 shrink-0 p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
               {title && (
                 <h3
                   id="modal-title"
@@ -124,8 +135,8 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
               )}
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            {/* Scrollable Content - Flexible padding pre safe areas */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-20 sm:pb-24">
               {description && (
                 <p
                   id="modal-description"
@@ -138,8 +149,8 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
               {children && <div className={cn(description ? 'mt-4' : '')}>{children}</div>}
             </div>
 
-            {/* Footer Buttons */}
-            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-6 flex items-center justify-end gap-3">
+            {/* Footer Buttons - Sticky na dne, bezpečne pred notch/navbar */}
+            <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 flex items-center justify-end gap-3 sticky bottom-0 safe-area-inset-bottom">
               <button
                 type="button"
                 onClick={onClose}
@@ -152,8 +163,10 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirm}
+                  disabled={confirmDisabled}
                   className={cn(
                     'rounded-xl px-4 py-2 text-sm font-medium transition-colors',
+                    confirmDisabled ? 'opacity-50 cursor-not-allowed' : '',
                     getConfirmButtonClasses()
                   )}
                 >
