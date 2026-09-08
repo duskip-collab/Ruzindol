@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Trash2, Loader2, Save, X, AlertCircle, ChevronDown,
-  User, Users, Award, FileText
+  User, Users, Award, FileText, Trash
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AnimatedModal } from '../AnimatedModal';
@@ -68,6 +68,7 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedTab, setExpandedTab] = useState<'info' | 'mayor' | 'council' | 'files'>('info');
+  const [confirmDelete, setConfirmDelete] = useState<'mayor' | 'council' | 'attachments' | null>(null);
 
   const [formData, setFormData] = useState<ElectionsData>({
     name: '',
@@ -143,6 +144,36 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
       ...prev,
       candidates_council: prev.candidates_council.filter((_, i) => i !== idx)
     }));
+  };
+
+  // Mazanie všetkých kandidátov na starostu
+  const clearAllMayorCandidates = () => {
+    triggerHaptic('medium');
+    setFormData(prev => ({
+      ...prev,
+      candidates_mayor: [emptyCandidate()]
+    }));
+    setConfirmDelete(null);
+  };
+
+  // Mazanie všetkých kandidátov do zastupiteľstva
+  const clearAllCouncilCandidates = () => {
+    triggerHaptic('medium');
+    setFormData(prev => ({
+      ...prev,
+      candidates_council: [emptyCandidate()]
+    }));
+    setConfirmDelete(null);
+  };
+
+  // Mazanie všetkých prílohy
+  const clearAllAttachments = () => {
+    triggerHaptic('medium');
+    setFormData(prev => ({
+      ...prev,
+      attachments: []
+    }));
+    setConfirmDelete(null);
   };
 
   const handleSave = async () => {
@@ -315,6 +346,22 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
           {/* MAYOR CANDIDATES TAB */}
           {expandedTab === 'mayor' && (
             <div className="space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Počet kandidátov: {formData.candidates_mayor.filter((c) => c.full_name.trim()).length}
+                </p>
+                {formData.candidates_mayor.some((c) => c.full_name.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete('mayor')}
+                    disabled={loading}
+                    className="text-xs px-2 py-1 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors font-semibold"
+                  >
+                    Vymazať všetkých
+                  </button>
+                )}
+              </div>
+
               {formData.candidates_mayor.map((candidate, idx) => (
                 <CandidateRow
                   key={idx}
@@ -342,6 +389,22 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
           {/* COUNCIL CANDIDATES TAB */}
           {expandedTab === 'council' && (
             <div className="space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Počet kandidátov: {formData.candidates_council.filter((c) => c.full_name.trim()).length}
+                </p>
+                {formData.candidates_council.some((c) => c.full_name.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete('council')}
+                    disabled={loading}
+                    className="text-xs px-2 py-1 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors font-semibold"
+                  >
+                    Vymazať všetkých
+                  </button>
+                )}
+              </div>
+
               {formData.candidates_council.map((candidate, idx) => (
                 <CandidateRow
                   key={idx}
@@ -368,7 +431,22 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
 
           {/* FILES TAB */}
           {expandedTab === 'files' && (
-            <div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Počet prílohy: {formData.attachments.length}
+                </p>
+                {formData.attachments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete('attachments')}
+                    disabled={loading}
+                    className="text-xs px-2 py-1 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors font-semibold"
+                  >
+                    Vymazať všetko
+                  </button>
+                )}
+              </div>
               <ElectionsAttachmentUpload
                 electionId={formData.id || 'new'}
                 attachments={formData.attachments}
@@ -378,6 +456,49 @@ export const ElectionsEditModal: React.FC<ElectionsEditModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* CONFIRM DELETE DIALOG */}
+        {confirmDelete && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-900 dark:text-red-300 mb-2">
+                  {confirmDelete === 'mayor' && 'Vymazať všetkých kandidátov na starostu?'}
+                  {confirmDelete === 'council' && 'Vymazať všetkých kandidátov do zastupiteľstva?'}
+                  {confirmDelete === 'attachments' && 'Vymazať všetky prílohy?'}
+                </p>
+                <p className="text-xs text-red-800 dark:text-red-400 mb-3">
+                  {confirmDelete === 'mayor' && 'Táto akcia je trvalá. Všetci kandidáti na starostu budú vymazaní.'}
+                  {confirmDelete === 'council' && 'Táto akcia je trvalá. Všetci kandidáti do zastupiteľstva budú vymazaní.'}
+                  {confirmDelete === 'attachments' && 'Táto akcia je trvalá. Všetky prílohy budú vymazané.'}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirmDelete === 'mayor') clearAllMayorCandidates();
+                      if (confirmDelete === 'council') clearAllCouncilCandidates();
+                      if (confirmDelete === 'attachments') clearAllAttachments();
+                    }}
+                    disabled={loading}
+                    className="px-3 py-1.5 rounded-lg bg-red-600 dark:bg-red-700 text-white text-xs font-semibold hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
+                  >
+                    Vymazať
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(null)}
+                    disabled={loading}
+                    className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    Zrušiť
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AnimatedModal>
   );
