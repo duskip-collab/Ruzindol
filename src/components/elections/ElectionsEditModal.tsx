@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Trash2, Loader2, Save, X, AlertCircle, ChevronDown,
-  User, Users, Award, FileText, Trash
+  User, Users, Award, FileText, Trash, Image as ImageIcon, Upload, X as XIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AnimatedModal } from '../AnimatedModal';
@@ -686,6 +686,19 @@ const CandidateRow: React.FC<CandidateRowProps> = ({
               placeholder="https://facebook.com/..."
               disabled={disabled}
               className="w-full px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Photo Upload */}
+          <div>
+            <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+              Fotka kandidáta
+            </label>
+            <CandidatePhotoUpload
+              photo_url={candidate.photo_url}
+              onChange={(url) => onChange('photo_url', url)}
+              candidateId={candidate.id}
+              disabled={disabled}
             />
           </div>
 
