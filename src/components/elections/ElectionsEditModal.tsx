@@ -6,6 +6,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { AnimatedModal } from '../AnimatedModal';
 import { ElectionsAttachmentUpload, AttachmentFile } from './ElectionsAttachmentUpload';
+import { CandidatePhotoUpload } from './CandidatePhotoUpload';
 import { triggerHaptic } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 
