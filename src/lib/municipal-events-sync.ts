@@ -25,12 +25,27 @@ export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ sync
 
     console.log("[FRONTEND] Pokus o spustenie fetch-municipal-events Edge Function...");
 
-    const { data, error } = await supabase.functions.invoke("fetch-municipal-events", {
+    // Timeouts: Edge Function by mala skončiť do 30s
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        reject(new Error('Edge Function timeout: Synchronizácia kalendára trvala príliš dlho (>30s)'));
+      }, 30000);
+    });
+
+    const syncPromise = supabase.functions.invoke("fetch-municipal-events", {
       body: { force },
     });
 
+    const result = await Promise.race([syncPromise, timeoutPromise]) as any;
+    
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+
+    const { data, error } = result;
+
     if (error) {
       console.error("[FRONTEND ERROR] Edge Function zlyhala pri volaní:", error);
+      // Graceful fallback - nerušime app ak Edge Function padá
       return { synced: false, count: 0 };
     }
 
@@ -40,6 +55,7 @@ export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ sync
     return { synced: true, count };
   } catch (error) {
     console.error("Chyba pri synchronizácii obecného kalendára:", error);
+    // Graceful fallback - app pokračuje aj keď sync zlyhá
     return { synced: false, count: 0 };
   }
 }

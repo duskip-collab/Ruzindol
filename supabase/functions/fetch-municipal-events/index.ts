@@ -142,19 +142,27 @@ function extractEventLinks(html: string, calendarUrl: string) {
   return [...links].slice(0, EVENT_PATH_LIMIT);
 }
 
-async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-  });
+async function fetchText(url: string, timeoutMs: number = 8000): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`Fetch failed (${response.status}) for ${url}`);
+    if (!response.ok) {
+      throw new Error(`Fetch failed (${response.status}) for ${url}`);
+    }
+
+    return await response.text();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await response.text();
 }
 
 async function syncRssForMunicipality(
@@ -281,55 +289,90 @@ serve(async (req) => {
     }
 
     let totalCount = 0;
-    for (const municipality of activeMunicipalities) {
-      if (!municipality.calendar_url) continue;
+    
+    // Paralelne spracovávaj municípie (max 3 naraz na zabránenie overloadoru)
+    const BATCH_SIZE = 3;
+    const municipalitiesToProcess = activeMunicipalities.filter(m => m.calendar_url);
+    
+    for (let i = 0; i < municipalitiesToProcess.length; i += BATCH_SIZE) {
+      const batch = municipalitiesToProcess.slice(i, i + BATCH_SIZE);
+      
+      const batchResults = await Promise.allSettled(
+        batch.map(async (municipality) => {
+          try {
+            const listingHtml = await fetchText(municipality.calendar_url!, 6000);
+            const links = extractEventLinks(listingHtml, municipality.calendar_url!);
 
-      const listingHtml = await fetchText(municipality.calendar_url);
-      const links = extractEventLinks(listingHtml, municipality.calendar_url);
+            const parsed: ParsedEvent[] = [];
+            
+            // Paralelne sťahuj jednotlivé event stránky (max 2 naraz)
+            for (let j = 0; j < links.length; j += 2) {
+              const linkBatch = links.slice(j, j + 2);
+              const eventResults = await Promise.allSettled(
+                linkBatch.map(async (link) => {
+                  try {
+                    const html = await fetchText(link, 5000);
+                    const item = parseSingleEventHtml(html, link);
+                    if (item) return item;
+                    return null;
+                  } catch (error) {
+                    console.error("Failed to parse event page", { municipality: municipality.id, link, error });
+                    return null;
+                  }
+                })
+              );
+              
+              eventResults.forEach((result) => {
+                if (result.status === 'fulfilled' && result.value) {
+                  parsed.push(result.value);
+                }
+              });
+            }
 
-      const parsed: ParsedEvent[] = [];
-      for (const link of links) {
-        try {
-          const html = await fetchText(link);
-          const item = parseSingleEventHtml(html, link);
-          if (item) parsed.push(item);
-        } catch (error) {
-          console.error("Failed to parse event page", { municipality, link, error });
+            const upcoming = parsed
+              .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000)
+              .slice(0, EVENT_PATH_LIMIT);
+
+            if (upcoming.length === 0) return { success: true, count: 0 };
+
+            const rows = upcoming.map((event) => ({
+              author_id: null,
+              municipality_id: municipality.id,
+              title: event.title,
+              description: event.description,
+              location: municipality.name,
+              starts_at: event.startsAt,
+              ends_at: event.endsAt,
+              type: "Samospráva",
+              source_url: event.sourceUrl,
+              image_url: event.imageUrl,
+              end_date: event.endsAt ? toDatePart(event.endsAt) : null,
+              end_time: event.endsAt ? toTimePart(event.endsAt) : null,
+            }));
+
+            const { error } = await supabase.from("events").upsert(rows, {
+              onConflict: "source_url,starts_at",
+              ignoreDuplicates: false,
+            });
+
+            if (error) {
+              console.error("Upsert municipal events failed", { municipality: municipality.id, error });
+              return { success: false, error: error.message };
+            }
+
+            return { success: true, count: rows.length };
+          } catch (error) {
+            console.error("Failed to sync municipality calendar", { municipality: municipality.id, error });
+            return { success: false, error: String(error) };
+          }
+        })
+      );
+      
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value?.success) {
+          totalCount += result.value.count || 0;
         }
-      }
-
-      const upcoming = parsed
-        .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000)
-        .slice(0, EVENT_PATH_LIMIT);
-
-      if (upcoming.length === 0) continue;
-
-      const rows = upcoming.map((event) => ({
-        author_id: null,
-        municipality_id: municipality.id,
-        title: event.title,
-        description: event.description,
-        location: municipality.name,
-        starts_at: event.startsAt,
-        ends_at: event.endsAt,
-        type: "Samospráva",
-        source_url: event.sourceUrl,
-        image_url: event.imageUrl,
-        end_date: event.endsAt ? toDatePart(event.endsAt) : null,
-        end_time: event.endsAt ? toTimePart(event.endsAt) : null,
-      }));
-
-      const { error } = await supabase.from("events").upsert(rows, {
-        onConflict: "source_url,starts_at",
-        ignoreDuplicates: false,
       });
-
-      if (error) {
-        console.error("Upsert municipal events failed", { municipality, error });
-        return json({ success: false, error: error.message }, 500);
-      }
-
-      totalCount += rows.length;
     }
 
     return json({ success: true, count: totalCount });

@@ -26,6 +26,8 @@ const ALLOWED_TYPES = {
   pdf: ['application/pdf'],
   image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 };
+const STORAGE_BUCKET = 'elections';
+const STORAGE_FALLBACK_BUCKET = 'public'; // Fallback ak 'elections' neexistuje
 
 export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps> = ({
   electionId,
@@ -65,26 +67,46 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
 
       const fileName = `${electionId}/${fileType}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('elections')
-        .upload(fileName, file);
+      let uploadData;
+      let uploadError;
+      
+      // Pokús sa nahráť na 'elections' bucket, ak zlyhá spróbuj 'public'
+      try {
+        const result = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(fileName, file);
+        uploadData = result.data;
+        uploadError = result.error;
+      } catch (err) {
+        console.warn(`Bucket '${STORAGE_BUCKET}' failed, trying fallback:`, err);
+        // Fallback na verejný bucket ak 'elections' neexistuje
+        const result = await supabase.storage
+          .from(STORAGE_FALLBACK_BUCKET)
+          .upload(`elections/${fileName}`, file);
+        uploadData = result.data;
+        uploadError = result.error;
+      }
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        setError('Chyba pri nahrávaní súboru');
+        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('StorageApiError')) {
+          setError('Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.');
+        } else {
+          setError('Chyba pri nahrávaní súboru');
+        }
         triggerHaptic('error');
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('elections')
+      const publicUrlData = supabase.storage
+        .from(STORAGE_BUCKET)
         .getPublicUrl(fileName);
 
       const newAttachment: AttachmentFile = {
         id: uploadData.path,
         file_name: file.name,
         file_type: fileType,
-        file_url: publicUrlData.publicUrl,
+        file_url: publicUrlData.data.publicUrl,
         file_size_bytes: file.size,
         description: '',
         sort_order: attachments.length
@@ -94,7 +116,12 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
       triggerHaptic('success');
     } catch (err) {
       console.error('Upload failed:', err);
-      setError('Neznáma chyba pri nahrávaní');
+      const errorMessage = err instanceof Error ? err.message : 'Neznáma chyba';
+      if (errorMessage.includes('Bucket not found') || errorMessage.includes('StorageApiError')) {
+        setError('Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.');
+      } else {
+        setError('Neznáma chyba pri nahrávaní');
+      }
       triggerHaptic('error');
     } finally {
       setUploading(false);
