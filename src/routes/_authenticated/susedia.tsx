@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, Search, Users } from "lucide-react";
+import { CheckCircle2, Loader2, Search, Users, Check } from "lucide-react";
 import { useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Toast } from "@/components/Toast";
 
 type Neighbor = {
   id: string;
@@ -39,9 +40,18 @@ export const Route = createFileRoute("/_authenticated/susedia")({
 
 function NeighborsScreen() {
   const [search, setSearch] = useState("");
-  const { profile } = useCurrentUser();
+  const { profile, userId } = useCurrentUser();
   const municipalityId = profile?.municipality_id;
-  const { data: neighbors, error, isLoading } = useQuery({
+  const userRole = profile?.role;
+  
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifySuccess, setVerifySuccess] = useState<string | null>(null);
+  
+  // Kontrola či je user admin alebo starosta
+  const isAdminOrMayor = userRole === "admin" || userRole === "Starosta" || userRole === "Uradnik";
+
+  const { data: neighbors, error, isLoading, refetch } = useQuery({
     queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
@@ -76,6 +86,38 @@ function NeighborsScreen() {
     },
   });
 
+  async function handleVerifyNeighbor(neighborId: string) {
+    if (!isAdminOrMayor) {
+      setVerifyError("Len admin alebo starosta môžu overovať susedov.");
+      return;
+    }
+
+    setVerifyingId(neighborId);
+    setVerifyError(null);
+    setVerifySuccess(null);
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_verified: true })
+        .eq("id", neighborId);
+
+      if (error) throw error;
+
+      setVerifySuccess("Sused bol úspešne overený!");
+      setTimeout(() => setVerifySuccess(null), 3000);
+      
+      // Obnov zoznam
+      refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Overenie sa nepodarilo";
+      setVerifyError(message);
+      setTimeout(() => setVerifyError(null), 4000);
+    } finally {
+      setVerifyingId(null);
+    }
+  }
+
   const normalizedSearch = search.trim().toLowerCase();
   const filteredNeighbors = (neighbors ?? []).filter((neighbor) =>
     `${neighbor.name} ${neighbor.street ?? ""}`.toLowerCase().includes(normalizedSearch),
@@ -106,6 +148,9 @@ function NeighborsScreen() {
         />
       </label>
 
+      {verifyError && <Toast message={verifyError} variant="error" />}
+      {verifySuccess && <Toast message={verifySuccess} variant="success" />}
+
       {isLoading && <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
       {error && <p className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">Susedov sa nepodarilo načítať.</p>}
       {!isLoading && !error && filteredNeighbors.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">Žiadni susedia nezodpovedajú vyhľadávaniu.</p>}
@@ -120,11 +165,33 @@ function NeighborsScreen() {
                 {neighbor.name.trim().charAt(0).toUpperCase() || "S"}
               </div>
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="truncate font-semibold text-foreground">{neighbor.name || "Sused"}</h2>
               <p className="mt-1 truncate text-sm text-muted-foreground">{neighbor.street || "Ulica neuvedená"}</p>
               {neighbor.is_verified && <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Overený sused</span>}
               {neighbor.invited_by_user_id && <p className="mt-2 text-xs text-muted-foreground">Pozval: Overený sused</p>}
+              
+              {/* Verify button - only for admin/mayor and unverified neighbors */}
+              {isAdminOrMayor && !neighbor.is_verified && (
+                <button
+                  onClick={() => handleVerifyNeighbor(neighbor.id)}
+                  disabled={verifyingId === neighbor.id}
+                  className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors w-full"
+                  title="Overiť tohto suseda bez kódu"
+                >
+                  {verifyingId === neighbor.id ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Overovanie...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      Overiť
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </article>
         ))}
