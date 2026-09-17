@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/susedia")({
 
 function NeighborsScreen() {
   const [search, setSearch] = useState("");
-  const { profile, userId } = useCurrentUser();
+  const { profile } = useCurrentUser();
   const municipalityId = profile?.municipality_id;
   const userRole = profile?.role;
   
@@ -48,14 +48,13 @@ function NeighborsScreen() {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null);
   
-  // Kontrola či je user admin alebo starosta
+  // Kontrola či je user admin, starosta alebo úradník
   const isAdminOrMayor = userRole === "admin" || userRole === "Starosta" || userRole === "Uradnik";
 
   const { data: neighbors, error, isLoading, refetch } = useQuery({
     queryKey: ["neighbors", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
-      // Simplified query without relationship - just profiles with municipality filter
       const primaryQuery = await supabase
         .from("profiles")
         .select("id, name, street, avatar_url, is_verified, invited_by_user_id")
@@ -66,7 +65,7 @@ function NeighborsScreen() {
         return (primaryQuery.data as unknown as Neighbor[]) ?? [];
       }
 
-      // Fallback for databases where the optional profile fields are not deployed yet.
+      // Fallback pre staršiu štruktúru databázy
       const fallbackQuery = await supabase
         .from("profiles")
         .select("id, name, street, is_active_neighbor")
@@ -97,18 +96,19 @@ function NeighborsScreen() {
     setVerifySuccess(null);
 
     try {
-      const { data, error } = await supabase.rpc("verify_neighbor_manual", {
+      // Volanie RPC funkcie s oboma variantmi parametrov pre stopercentnú istotu
+      const { error: rpcError } = await supabase.rpc("verify_neighbor_manual", {
         _neighbor_id: neighborId,
+        target_user_id: neighborId,
       });
 
-      if (error) throw error;
-      if (!data) throw new Error("Overenie sa nepodarilo");
+      if (rpcError) throw rpcError;
 
       setVerifySuccess("Sused bol úspešne overený!");
       setTimeout(() => setVerifySuccess(null), 3000);
       
-      // Obnov zoznam
-      refetch();
+      // Okamžité obnovenie zoznamu zo servera
+      await refetch();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Overenie sa nepodarilo";
       setVerifyError(message);
@@ -168,10 +168,20 @@ function NeighborsScreen() {
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-semibold text-foreground">{neighbor.name || "Sused"}</h2>
               <p className="mt-1 truncate text-sm text-muted-foreground">{neighbor.street || "Ulica neuvedená"}</p>
-              {neighbor.is_verified && <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Overený sused</span>}
-              {neighbor.invited_by_user_id && <p className="mt-2 text-xs text-muted-foreground">Pozval: Overený sused</p>}
               
-              {/* Verify button - only for admin/mayor and unverified neighbors */}
+              {neighbor.is_verified ? (
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Overený sused
+                </span>
+              ) : (
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                  Neoverený čakajúci
+                </span>
+              )}
+
+              {neighbor.invited_by_user_id && <p className="mt-1 text-xs text-muted-foreground">Pozval: Iný sused</p>}
+              
+              {/* Tlačidlo overenia - iba pre admina/starostu a neoverených používateľov */}
               {isAdminOrMayor && !neighbor.is_verified && (
                 <button
                   onClick={() => handleVerifyNeighbor(neighbor.id)}
