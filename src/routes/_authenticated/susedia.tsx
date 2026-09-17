@@ -97,12 +97,12 @@ function NeighborsScreen() {
     setVerifySuccess(null);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_verified: true })
-        .eq("id", neighborId);
+      const { data, error } = await supabase.rpc("verify_neighbor_manual", {
+        _neighbor_id: neighborId,
+      });
 
       if (error) throw error;
+      if (!data) throw new Error("Overenie sa nepodarilo");
 
       setVerifySuccess("Sused bol úspešne overený!");
       setTimeout(() => setVerifySuccess(null), 3000);

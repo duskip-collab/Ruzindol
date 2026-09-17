@@ -795,6 +795,7 @@ export type Database = {
       is_group_admin: { Args: { _group_key: string; _user_id: string }; Returns: boolean };
       redeem_invite_code: { Args: { _code: string }; Returns: boolean };
       unban_neighbor: { Args: { _target: string }; Returns: boolean };
+      verify_neighbor_manual: { Args: { _neighbor_id: string }; Returns: boolean };
     };
     Enums: {
       app_role: "admin" | "Sused" | "Starosta" | "Uradnik" | "Farar" | "VIP_Firma";
