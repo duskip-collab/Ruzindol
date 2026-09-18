@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { CheckCheck, Loader2, MessageSquare, Info, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -36,7 +36,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
         .select("*")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(30); // Zvýšime limit, aby sme mali dostatok dát na filtrovanie
 
       if (error) throw error;
       return data as Notification[];
@@ -57,6 +57,14 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  // Filtrovanie: Neprečítané ukazujeme vždy, prečítané iba ak sú mladšie ako 7 dní (skryjeme staré mesačné histórie)
+  const visibleNotifications = notifications.filter((notif) => {
+    if (!notif.is_read) return true; // Neprečítané sa nestratia
+    const createdTime = new Date(notif.created_at).getTime();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return createdTime > sevenDaysAgo; // Prečítané staršie ako 7 dní nezobrazíme
+  });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -133,12 +141,12 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : notifications.length === 0 ? (
+        ) : visibleNotifications.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             Žiadne predchádzajúce upozornenia
           </div>
         ) : (
-          notifications.map((notif) => {
+          visibleNotifications.map((notif) => {
             const { title, body } = getCleanNotificationContent(notif);
             return (
               <div
