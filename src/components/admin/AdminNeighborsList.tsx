@@ -9,7 +9,6 @@ import {
   Search, 
   Mail, 
   MapPin, 
-  UserPlus, 
   ShieldAlert,
   Check
 } from "lucide-react";
@@ -27,8 +26,7 @@ type NeighborProfile = {
   is_verified: boolean | null;
   created_at: string;
   invited_by_user_id: string | null;
-  inviter_name?: string | null;
-  invite_code_used?: string | null;
+  has_invite_code: boolean;
 };
 
 export function AdminNeighborsList() {
@@ -47,7 +45,7 @@ export function AdminNeighborsList() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // 1. Načítame profily vrátane invited_by_user_id
+      // 1. Načítame profily
       let query = supabase
         .from("profiles")
         .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id")
@@ -68,52 +66,26 @@ export function AdminNeighborsList() {
         return;
       }
 
-      // 2. Načítame informácie z tabuľky invite_codes pre prípad, že väzba je uložená tam
+      // 2. Zistíme, ktorí používatelia použili invite kód (z tabuľky invite_codes)
       const { data: invitesData, error: invitesError } = await supabase
         .from("invite_codes")
-        .select("code, used_by, created_by, created_by_profile:profiles!invite_codes_created_by_fkey(name)");
+        .select("used_by");
 
-      const inviteMap: Record<string, { inviterName: string; code: string }> = {};
+      const invitedUserIdsSet = new Set<string>();
       if (!invitesError && invitesData) {
         (invitesData as any[]).forEach((inv) => {
           if (inv.used_by) {
-            inviteMap[inv.used_by] = {
-              inviterName: inv.created_by_profile?.name || "Neznámy sused",
-              code: inv.code,
-            };
+            invitedUserIdsSet.add(inv.used_by);
           }
         });
       }
 
-      // 3. Zozbierame aj ID priamych pozývateľov z invited_by_user_id (ak nie sú v inviteMap)
-      const missingInviterIds = loadedProfiles
-        .filter(p => p.invited_by_user_id && !inviteMap[p.id])
-        .map(p => p.invited_by_user_id);
-
-      const directInviterMap: Record<string, string> = {};
-      if (missingInviterIds.length > 0) {
-        const { data: directInviters } = await supabase
-          .from("profiles")
-          .select("id, name")
-          .in("id", missingInviterIds);
-
-        if (directInviters) {
-          directInviters.forEach((di) => {
-            directInviterMap[di.id] = di.name || "Neznámy sused";
-          });
-        }
-      }
-
-      // 4. Finálne spojenie a namapovanie dát
+      // 3. Namapujeme dáta a aplikujeme pravidlo: ak má invite kód, je automaticky overený
       const mappedNeighbors: NeighborProfile[] = loadedProfiles.map((p) => {
-        const invInfo = inviteMap[p.id];
-        let inviterName = invInfo ? invInfo.inviterName : null;
-        let codeUsed = invInfo ? invInfo.code : null;
-
-        // Fallback na priamy invited_by_user_id v profiles ak inviteMap nič nenašiel
-        if (!inviterName && p.invited_by_user_id) {
-          inviterName = directInviterMap[p.invited_by_user_id] || "Neznámy sused";
-        }
+        const hasCode = Boolean(p.invited_by_user_id || invitedUserIdsSet.has(p.id));
+        
+        // Ak má kód a zatiaľ nie je označený ako overený v DB, považujeme ho za overeného
+        const isVerifiedEffective = hasCode ? true : Boolean(p.is_verified || p.is_active_neighbor);
 
         return {
           id: p.id,
@@ -121,12 +93,11 @@ export function AdminNeighborsList() {
           email: p.email,
           street: p.street,
           role: p.role,
-          is_active_neighbor: p.is_active_neighbor,
-          is_verified: p.is_verified,
+          is_active_neighbor: isVerifiedEffective,
+          is_verified: isVerifiedEffective,
           created_at: p.created_at,
           invited_by_user_id: p.invited_by_user_id,
-          inviter_name: inviterName,
-          invite_code_used: codeUsed,
+          has_invite_code: hasCode,
         };
       });
 
@@ -194,7 +165,7 @@ export function AdminNeighborsList() {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Načítavam zoznam susedov a väzby pozvánok...</p>
+        <p className="text-sm text-muted-foreground">Načítavam zoznam susedov...</p>
       </div>
     );
   }
@@ -208,7 +179,7 @@ export function AdminNeighborsList() {
             Správa obyvateľov a overovania
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Prehľad registrovaných susedov, pôvodných pozvánok a stavu schválenia účtu v obci.
+            Prehľad registrovaných susedov a stavu schválenia účtu v obci.
           </p>
         </div>
 
@@ -267,7 +238,6 @@ export function AdminNeighborsList() {
                 <th className="py-3 px-4">Obyvateľ / Sused</th>
                 <th className="py-3 px-4">Ulica & Rola</th>
                 <th className="py-3 px-4">Stav overenia</th>
-                <th className="py-3 px-4">Kto ho pozval</th>
                 <th className="py-3 px-4">Schválil / Overil</th>
                 <th className="py-3 px-4 text-right">Akcie</th>
               </tr>
@@ -276,7 +246,7 @@ export function AdminNeighborsList() {
             <tbody className="divide-y divide-border">
               {filteredNeighbors.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     Nenašli sa žiadni obyvatelia zodpovedajúci zvoleným kritériám.
                   </td>
                 </tr>
@@ -322,28 +292,10 @@ export function AdminNeighborsList() {
                       </td>
 
                       <td className="py-3 px-4">
-                        {neighbor.inviter_name ? (
-                          <div className="space-y-0.5">
-                            <div className="font-medium text-foreground flex items-center gap-1">
-                              <UserPlus className="w-3 h-3 text-primary" />
-                              {neighbor.inviter_name}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {neighbor.invite_code_used ? `(kód: ${neighbor.invite_code_used})` : "(cez pozvánku)"}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 italic">
-                            Bez invite kódu
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-3 px-4">
                         {isVerified ? (
                           <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
                             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                            <span>Schválené / Aktivované</span>
+                            <span>{neighbor.has_invite_code ? "Overené pozvánkovým kódom" : "Schválené / Aktivované"}</span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground italic">Zatiaľ neschválené</span>
