@@ -18,6 +18,7 @@ import {
   Siren,
   Volume2,
   Trash2,
+  Maximize2,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -428,7 +429,10 @@ export function NastenkaScreen() {
           </div>
           {canCreateOfficialNotice && !isReadonly && (
             <button
-              onClick={() => setModal({ kind: "official" })}
+              onClick={() => {
+                setLightboxPost(null);
+                setModal({ kind: "official" });
+              }}
               className="btn-primary-glow flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
             >
               <Plus className="h-3.5 w-3.5" /> Pridať úradný oznam
@@ -443,7 +447,10 @@ export function NastenkaScreen() {
                   <OfficialCard
                     key={notice.id}
                     post={notice.post}
-                    onOpen={() => setLightboxPost(notice.post)}
+                    onOpen={() => {
+                      setModal(null);
+                      setLightboxPost(notice.post);
+                    }}
                     onReport={() => {
                       void reportPost(notice.post!.id);
                     }}
@@ -476,7 +483,10 @@ export function NastenkaScreen() {
           </div>
           {!isReadonly && (
             <button
-              onClick={() => setModal({ kind: "neighbor" })}
+              onClick={() => {
+                setLightboxPost(null);
+                setModal({ kind: "neighbor" });
+              }}
               className="btn-primary-glow flex items-center gap-1 px-2.5 py-1 text-xs font-medium"
             >
               <Plus className="h-3 w-3" /> Príspevok
@@ -496,7 +506,10 @@ export function NastenkaScreen() {
                 post={p}
                 liked={!!likesByPost[p.id]}
                 locked={!canWrite}
-                onOpen={() => setLightboxPost(p)}
+                onOpen={() => {
+                  setModal(null);
+                  setLightboxPost(p);
+                }}
                 onLike={() => {
                   void toggleLike(p.id);
                 }}
@@ -512,8 +525,8 @@ export function NastenkaScreen() {
         </div>
       </section>
 
-      {/* Modálne okno pre vytvorenie obsahu */}
-      {modal && (
+      {/* Modálne okno pre vytvorenie obsahu (bez prekrývania) */}
+      {modal && !lightboxPost && (
         <CreatePostModal
           mode={modal.kind}
           onClose={() => setModal(null)}
@@ -525,8 +538,8 @@ export function NastenkaScreen() {
         />
       )}
 
-      {/* Lightbox / Detail príspevku s komentármi */}
-      {lightboxViewPost && (
+      {/* Lightbox / Celooknový detail príspevku s komentármi */}
+      {lightboxViewPost && !modal && (
         <PostLightboxModal
           post={lightboxViewPost}
           replies={repliesByPost[lightboxViewPost.id] ?? []}
@@ -836,6 +849,7 @@ function PostLightboxModal({
 }) {
   const [replyContent, setReplyContent] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fullImageOpen, setFullImageOpen] = useState(false);
 
   async function handleSendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -858,101 +872,132 @@ function PostLightboxModal({
   const isAuthor = userId === post.userId;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-[color:var(--bg-surface)] shadow-xl border border-[color:var(--border-card)] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="chip-muted flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
-              {post.userName.charAt(0)}
+    <>
+      {/* Hlavné celooknové okno detailu príspevku */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm">
+        <div className="flex h-full max-h-[96vh] w-full max-w-3xl flex-col rounded-3xl bg-[color:var(--bg-surface)] shadow-2xl border border-[color:var(--border-card)] overflow-hidden">
+          
+          {/* Header s tlačidlom X */}
+          <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-5 py-4 bg-card/50">
+            <div className="flex items-center gap-3">
+              <div className="chip-muted flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold">
+                {post.userName.charAt(0)}
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">{post.userName}</div>
+                <div className="text-xs text-muted-foreground">{timeAgo(post.createdAt)}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-foreground">{post.userName}</div>
-              <div className="text-[10px] text-muted-foreground">{timeAgo(post.createdAt)}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isAuthor && (
+            <div className="flex items-center gap-2">
+              {isAuthor && (
+                <button
+                  onClick={onDelete}
+                  className="rounded-full p-2 text-rose-600 hover:bg-rose-50 transition"
+                  title="Vymazať príspevok"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
               <button
-                onClick={onDelete}
-                className="rounded-full p-1.5 text-rose-600 hover:bg-rose-50"
-                title="Vymazať príspevok"
+                onClick={onClose}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted transition flex items-center gap-1 text-xs font-semibold"
+                title="Zavrieť"
               >
-                <Trash2 className="h-4 w-4" />
+                <X className="h-6 w-6" />
+                <span className="hidden sm:inline">Zavrieť</span>
               </button>
-            )}
-            <button onClick={onClose} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {post.title && <h3 className="text-sm font-semibold text-foreground">{post.title}</h3>}
-          <p className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">{post.content}</p>
-
-          {post.imageUrl && (
-            <img src={post.imageUrl} alt="" className="max-h-80 w-full rounded-xl object-cover" />
-          )}
-
-          {/* Likes & Actions info */}
-          <div className="flex items-center gap-4 pt-2 border-t border-[color:var(--border-card)] text-xs">
-            <button
-              onClick={onLike}
-              disabled={!canWrite}
-              className={`flex items-center gap-1.5 font-medium transition ${liked ? "text-rose-600" : "text-muted-foreground"}`}
-            >
-              <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-              <span>{post.likes?.length || 0} Páči sa mi</span>
-            </button>
-            <span className="text-muted-foreground">💬 {replies.length} komentárov</span>
+            </div>
           </div>
 
-          {/* Comments list */}
-          <div className="space-y-3 pt-3 border-t border-[color:var(--border-card)]">
-            <h4 className="text-xs font-semibold text-foreground">Komentáre a odpovede</h4>
-            {replies.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Zatiaľ žiadne odpovede. Buď prvý!</p>
-            ) : (
-              replies.map((reply) => (
-                <div key={reply.id} className="rounded-xl bg-muted/40 p-2.5 text-xs space-y-1">
-                  <div className="flex items-center justify-between font-semibold text-foreground">
-                    <span>{reply.userName}</span>
-                    <span className="text-[9px] text-muted-foreground">{timeAgo(reply.createdAt)}</span>
-                  </div>
-                  <p className="text-muted-foreground">{reply.content}</p>
+          {/* Obsah príspevku (rolovateľný) */}
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+            {post.title && <h2 className="text-lg font-bold text-foreground">{post.title}</h2>}
+            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">{post.content}</p>
+
+            {/* Fotografia s možnosťou kliknutia na celú plochu */}
+            {post.imageUrl && (
+              <div className="relative group cursor-pointer overflow-hidden rounded-2xl border border-border bg-black/5" onClick={() => setFullImageOpen(true)}>
+                <img src={post.imageUrl} alt="" className="max-h-[50vh] w-full object-contain mx-auto" />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white gap-2 text-xs font-semibold">
+                  <Maximize2 className="h-5 w-5" /> Zväčšiť fotografiu
                 </div>
-              ))
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Reply Input Footer */}
-        {canWrite ? (
-          <form onSubmit={handleSendReply} className="border-t border-[color:var(--border-card)] p-3 flex gap-2 bg-card">
-            <input
-              type="text"
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              placeholder="Napíšte odpoveď..."
-              className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground outline-none"
-            />
-            <button
-              type="submit"
-              disabled={busy || !replyContent.trim()}
-              className="btn-primary-glow flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </button>
-          </form>
-        ) : (
-          <div className="border-t border-[color:var(--border-card)] p-3 text-center text-xs text-amber-800 bg-amber-50">
-            Na pridávanie komentárov je potrebný aktívny pozývací kód.
+            {/* Lajky a akcie */}
+            <div className="flex items-center gap-4 pt-4 border-t border-[color:var(--border-card)] text-sm">
+              <button
+                onClick={onLike}
+                disabled={!canWrite}
+                className={`flex items-center gap-2 font-medium transition px-3 py-1.5 rounded-full bg-muted/50 ${liked ? "text-rose-600 bg-rose-50 dark:bg-rose-950/30" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+                <span>{post.likes?.length || 0} Páči sa mi</span>
+              </button>
+              <span className="text-muted-foreground">💬 {replies.length} komentárov</span>
+            </div>
+
+            {/* Sekcia komentárov */}
+            <div className="space-y-3 pt-4 border-t border-[color:var(--border-card)]">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Komentáre a odpovede</h4>
+              {replies.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic py-2">Zatiaľ žiadne komentáre. Buď prvý!</p>
+              ) : (
+                replies.map((reply) => (
+                  <div key={reply.id} className="rounded-2xl bg-muted/40 p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-semibold text-foreground">
+                      <span>{reply.userName}</span>
+                      <span className="text-[10px] text-muted-foreground">{timeAgo(reply.createdAt)}</span>
+                    </div>
+                    <p className="text-muted-foreground">{reply.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Vstup pre komentár (Footer) */}
+          {canWrite ? (
+            <form onSubmit={handleSendReply} className="border-t border-[color:var(--border-card)] p-3 sm:p-4 flex gap-2 bg-card">
+              <input
+                type="text"
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Napíšte komentár alebo odpoveď..."
+                className="flex-1 rounded-2xl border border-border bg-background px-4 py-2.5 text-xs sm:text-sm text-foreground outline-none"
+              />
+              <button
+                type="submit"
+                disabled={busy || !replyContent.trim()}
+                className="btn-primary-glow flex items-center justify-center rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-semibold disabled:opacity-50 gap-1.5"
+              >
+                <span>Odoslať</span>
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          ) : (
+            <div className="border-t border-[color:var(--border-card)] p-3 text-center text-xs text-amber-800 bg-amber-50">
+              Na pridávanie komentárov je potrebný aktívny pozývací kód.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Samostatné zobrazenie fotografie na celú plochu (Lightbox pre obrázok, z-index vyšší, obsahuje tlačidlo X) */}
+      {fullImageOpen && post.imageUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md">
+          <button
+            onClick={() => setFullImageOpen(false)}
+            className="absolute top-4 right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition flex items-center gap-1.5 text-sm font-semibold"
+            title="Zavrieť obrázok"
+          >
+            <X className="h-6 w-6" />
+            <span>Zavrieť</span>
+          </button>
+          <img src={post.imageUrl} alt="" className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl" />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1016,13 +1061,13 @@ function CreatePostModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-[color:var(--bg-surface)] p-5 shadow-xl border border-[color:var(--border-card)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-3xl bg-[color:var(--bg-surface)] p-6 shadow-2xl border border-[color:var(--border-card)]">
         <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border-card)]">
           <h3 className="text-base font-semibold text-foreground">
             {isOfficial ? "📢 Pridať úradný oznam" : "✍️ Nový susedský príspevok"}
           </h3>
-          <button onClick={onClose} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+          <button onClick={onClose} className="rounded-full p-2 text-muted-foreground hover:bg-muted transition" title="Zavrieť">
             <X className="h-5 w-5" />
           </button>
         </div>
