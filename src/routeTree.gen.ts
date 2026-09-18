@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAktualityRouteImport } from './routes/_authenticated/aktuality'
+import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticated/kalendar'
 import { Route as AuthenticatedNastenkaRouteImport } from './routes/_authenticated/nastenka'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedSkladRouteImport } from './routes/_authenticated/sklad'
@@ -45,6 +46,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedAktualityRoute = AuthenticatedAktualityRouteImport.update({
   id: '/aktuality',
   path: '/aktuality',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedKalendarRoute = AuthenticatedKalendarRouteImport.update({
+  id: '/kalendar',
+  path: '/kalendar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNastenkaRoute = AuthenticatedNastenkaRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/aktuality': typeof AuthenticatedAktualityRoute
+  '/kalendar': typeof AuthenticatedKalendarRoute
   '/nastenka': typeof AuthenticatedNastenkaRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/sklad': typeof AuthenticatedSkladRouteWithChildren
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/aktuality': typeof AuthenticatedAktualityRoute
+  '/kalendar': typeof AuthenticatedKalendarRoute
   '/nastenka': typeof AuthenticatedNastenkaRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/sklad': typeof AuthenticatedSkladRouteWithChildren
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/aktuality': typeof AuthenticatedAktualityRoute
+  '/_authenticated/kalendar': typeof AuthenticatedKalendarRoute
   '/_authenticated/nastenka': typeof AuthenticatedNastenkaRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/sklad': typeof AuthenticatedSkladRouteWithChildren
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/aktuality'
+    | '/kalendar'
     | '/nastenka'
     | '/profil'
     | '/sklad'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/aktuality'
+    | '/kalendar'
     | '/nastenka'
     | '/profil'
     | '/sklad'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/aktuality'
+    | '/_authenticated/kalendar'
     | '/_authenticated/nastenka'
     | '/_authenticated/profil'
     | '/_authenticated/sklad'
@@ -221,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/aktuality'
       fullPath: '/aktuality'
       preLoaderRoute: typeof AuthenticatedAktualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/kalendar': {
+      id: '/_authenticated/kalendar'
+      path: '/kalendar'
+      fullPath: '/kalendar'
+      preLoaderRoute: typeof AuthenticatedKalendarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/nastenka': {
@@ -295,6 +314,7 @@ const AuthenticatedSkladRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAktualityRoute: typeof AuthenticatedAktualityRoute
+  AuthenticatedKalendarRoute: typeof AuthenticatedKalendarRoute
   AuthenticatedNastenkaRoute: typeof AuthenticatedNastenkaRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedSkladRoute: typeof AuthenticatedSkladRouteWithChildren
@@ -306,6 +326,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAktualityRoute: AuthenticatedAktualityRoute,
+  AuthenticatedKalendarRoute: AuthenticatedKalendarRoute,
   AuthenticatedNastenkaRoute: AuthenticatedNastenkaRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedSkladRoute: AuthenticatedSkladRouteWithChildren,

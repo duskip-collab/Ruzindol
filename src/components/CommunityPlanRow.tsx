@@ -65,6 +65,7 @@ export function CommunityPlanRow() {
         {/* 1. Fixná dlaždica: Najbližší zber odpadu */}
         <Link
           to="/kalendar"
+          search={{ category: "odpad" }}
           className="snap-start group shrink-0 w-44 h-32 rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col justify-between transition-all hover:shadow-md hover:border-amber-500/50"
         >
           <div className="flex items-center gap-2 text-foreground">
