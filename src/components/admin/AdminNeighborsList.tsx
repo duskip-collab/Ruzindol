@@ -26,7 +26,8 @@ type NeighborProfile = {
   is_active_neighbor: boolean;
   is_verified: boolean | null;
   created_at: string;
-  municipality_id: string | null;
+  invited_by_user_id: string | null;
+  inviter_name?: string | null;
 };
 
 export function AdminNeighborsList() {
@@ -34,7 +35,6 @@ export function AdminNeighborsList() {
   const municipalityId = currentUserProfile?.municipality_id;
 
   const [neighbors, setNeighbors] = useState<NeighborProfile[]>([]);
-  const [inviteMap, setInviteMap] = useState<Record<string, { inviterName: string; code: string }>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending">("all");
@@ -46,10 +46,10 @@ export function AdminNeighborsList() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // 1. Načítanie profilov (ideálne filtrované podľa obce, ak je k dispozícii)
+      // 1. Načítame profily vrátane ID toho, kto ich pozval
       let query = supabase
         .from("profiles")
-        .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, municipality_id")
+        .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id")
         .order("created_at", { ascending: false });
 
       if (municipalityId) {
@@ -58,48 +58,50 @@ export function AdminNeighborsList() {
 
       const { data: profilesData, error: profilesError } = await query;
       if (profilesError) throw profilesError;
-      
-      const loadedProfiles = (profilesData as NeighborProfile[] | null) ?? [];
-      setNeighbors(loadedProfiles);
+
+      const loadedProfiles = (profilesData as any[] | null) ?? [];
 
       if (loadedProfiles.length === 0) {
+        setNeighbors([]);
         setLoading(false);
         return;
       }
 
-      const profileIds = loadedProfiles.map(p => p.id);
+      // 2. Zozbierame všetky unikátne ID pozývateľov (invited_by_user_id)
+      const inviterIds = Array.from(
+        new Set(loadedProfiles.map((p) => p.invited_by_user_id).filter(Boolean))
+      );
 
-      // 2. Bezpečné načítanie pozvánok podľa ID použitých používateľov
-      const { data: invitesData, error: invitesError } = await supabase
-        .from("invite_codes")
-        .select("code, created_by, used_by")
-        .in("used_by", profileIds);
-
-      if (!invitesError && invitesData && invitesData.length > 0) {
-        // Získame aj mená tvorcov kódov z profilov
-        const creatorIds = Array.from(new Set(invitesData.map(i => i.created_by).filter(Boolean)));
-        
-        const { data: creatorsData } = await supabase
+      // 3. Načítame mená pozývateľov z tabuľky profiles naraz
+      let inviterNameMap: Record<string, string> = {};
+      if (inviterIds.length > 0) {
+        const { data: invitersData } = await supabase
           .from("profiles")
           .select("id, name")
-          .in("id", creatorIds);
+          .in("id", inviterIds);
 
-        const creatorNameMap: Record<string, string> = {};
-        (creatorsData ?? []).forEach((c: any) => {
-          creatorNameMap[c.id] = c.name || "Neznámy sused";
-        });
-
-        const map: Record<string, { inviterName: string; code: string }> = {};
-        invitesData.forEach((inv: any) => {
-          if (inv.used_by) {
-            map[inv.used_by] = {
-              inviterName: inv.created_by ? (creatorNameMap[inv.created_by] || "Neznámy sused") : "Administrátor",
-              code: inv.code,
-            };
-          }
-        });
-        setInviteMap(map);
+        if (invitersData) {
+          invitersData.forEach((inv) => {
+            inviterNameMap[inv.id] = inv.name || "Neznámy sused";
+          });
+        }
       }
+
+      // 4. Priradíme meno pozývateľa ku každému susedovi
+      const mappedNeighbors: NeighborProfile[] = loadedProfiles.map((p) => ({
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        street: p.street,
+        role: p.role,
+        is_active_neighbor: p.is_active_neighbor,
+        is_verified: p.is_verified,
+        created_at: p.created_at,
+        invited_by_user_id: p.invited_by_user_id,
+        inviter_name: p.invited_by_user_id ? inviterNameMap[p.invited_by_user_id] || "Neznámy sused" : null,
+      }));
+
+      setNeighbors(mappedNeighbors);
     } catch (err: any) {
       console.error("Chyba pri načítaní zoznamu susedov:", err);
       setErrorMessage(err?.message || "Nepodarilo sa načítať zoznam obyvateľov.");
@@ -252,7 +254,6 @@ export function AdminNeighborsList() {
               ) : (
                 filteredNeighbors.map((neighbor) => {
                   const isVerified = Boolean(neighbor.is_verified || neighbor.is_active_neighbor);
-                  const inviteInfo = inviteMap[neighbor.id];
                   const isBusy = busyId === neighbor.id;
 
                   return (
@@ -292,14 +293,14 @@ export function AdminNeighborsList() {
                       </td>
 
                       <td className="py-3 px-4">
-                        {inviteInfo ? (
+                        {neighbor.inviter_name ? (
                           <div className="space-y-0.5">
                             <div className="font-medium text-foreground flex items-center gap-1">
-                              <UserPlus className="w-3 h-3 text-muted-foreground" />
-                              {inviteInfo.inviterName}
+                              <UserPlus className="w-3 h-3 text-primary" />
+                              {neighbor.inviter_name}
                             </div>
-                            <div className="text-[10px] text-muted-foreground font-mono">
-                              Kód: {inviteInfo.code}
+                            <div className="text-[10px] text-muted-foreground">
+                              (cez pozvánku)
                             </div>
                           </div>
                         ) : (
