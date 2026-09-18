@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type NeighborProfile = {
   id: string;
@@ -25,10 +26,13 @@ type NeighborProfile = {
   is_active_neighbor: boolean;
   is_verified: boolean | null;
   created_at: string;
-  invited_by_user_id: string | null;
+  municipality_id: string | null;
 };
 
 export function AdminNeighborsList() {
+  const { profile: currentUserProfile } = useCurrentUser();
+  const municipalityId = currentUserProfile?.municipality_id;
+
   const [neighbors, setNeighbors] = useState<NeighborProfile[]>([]);
   const [inviteMap, setInviteMap] = useState<Record<string, { inviterName: string; code: string }>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,24 +46,54 @@ export function AdminNeighborsList() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const { data: profilesData, error: profilesError } = await supabase
+      // 1. Načítanie profilov (ideálne filtrované podľa obce, ak je k dispozícii)
+      let query = supabase
         .from("profiles")
-        .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id")
+        .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, municipality_id")
         .order("created_at", { ascending: false });
 
-      if (profilesError) throw profilesError;
-      setNeighbors((profilesData as NeighborProfile[] | null) ?? []);
+      if (municipalityId) {
+        query = query.eq("municipality_id", municipalityId);
+      }
 
+      const { data: profilesData, error: profilesError } = await query;
+      if (profilesError) throw profilesError;
+      
+      const loadedProfiles = (profilesData as NeighborProfile[] | null) ?? [];
+      setNeighbors(loadedProfiles);
+
+      if (loadedProfiles.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const profileIds = loadedProfiles.map(p => p.id);
+
+      // 2. Bezpečné načítanie pozvánok podľa ID použitých používateľov
       const { data: invitesData, error: invitesError } = await supabase
         .from("invite_codes")
-        .select("id, code, created_by, used_by, created_by_profile:profiles!invite_codes_created_by_fkey(name)");
+        .select("code, created_by, used_by")
+        .in("used_by", profileIds);
 
-      if (!invitesError && invitesData) {
+      if (!invitesError && invitesData && invitesData.length > 0) {
+        // Získame aj mená tvorcov kódov z profilov
+        const creatorIds = Array.from(new Set(invitesData.map(i => i.created_by).filter(Boolean)));
+        
+        const { data: creatorsData } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", creatorIds);
+
+        const creatorNameMap: Record<string, string> = {};
+        (creatorsData ?? []).forEach((c: any) => {
+          creatorNameMap[c.id] = c.name || "Neznámy sused";
+        });
+
         const map: Record<string, { inviterName: string; code: string }> = {};
-        (invitesData as any[]).forEach((inv) => {
+        invitesData.forEach((inv: any) => {
           if (inv.used_by) {
             map[inv.used_by] = {
-              inviterName: inv.created_by_profile?.name || "Neznámy sused",
+              inviterName: inv.created_by ? (creatorNameMap[inv.created_by] || "Neznámy sused") : "Administrátor",
               code: inv.code,
             };
           }
@@ -85,7 +119,7 @@ export function AdminNeighborsList() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [municipalityId]);
 
   async function toggleVerification(userId: string, currentVerified: boolean | null | undefined) {
     const nextVal = !currentVerified;
@@ -95,7 +129,10 @@ export function AdminNeighborsList() {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ is_verified: nextVal, is_active_neighbor: nextVal })
+      .update({ 
+        is_verified: nextVal, 
+        is_active_neighbor: nextVal 
+      })
       .eq("id", userId);
 
     setBusyId(null);
@@ -111,7 +148,7 @@ export function AdminNeighborsList() {
   const filteredNeighbors = useMemo(() => {
     return neighbors.filter((n) => {
       const matchesSearch = 
-        n.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (n.name && n.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (n.email && n.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (n.street && n.street.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -221,7 +258,7 @@ export function AdminNeighborsList() {
                   return (
                     <tr key={neighbor.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-foreground text-sm">{neighbor.name}</div>
+                        <div className="font-semibold text-foreground text-sm">{neighbor.name || "Neznámy používateľ"}</div>
                         <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 shrink-0" />
                           <span>{neighbor.email || "Email neuvedený"}</span>
@@ -319,4 +356,3 @@ export function AdminNeighborsList() {
     </div>
   );
 }
-
