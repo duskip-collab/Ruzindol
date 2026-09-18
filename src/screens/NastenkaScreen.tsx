@@ -17,10 +17,10 @@ import {
   Building2,
   Siren,
   Volume2,
+  Trash2,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-import { PostLightbox } from "@/components/PostLightbox";
 import { ImageInput } from "@/components/ImageInput";
 import { BanBanner } from "@/components/BanBanner";
 import { uploadCompressedImage } from "@/lib/upload-image";
@@ -319,6 +319,23 @@ export function NastenkaScreen() {
     }
   }
 
+  async function deletePost(postId: string) {
+    if (!userId) return;
+    if (!confirm("Naozaj vymazať tento príspevok?")) return;
+
+    const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
+
+    if (error) return;
+
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+    setRepliesByPost((prev) => {
+      const next = { ...prev };
+      delete next[postId];
+      return next;
+    });
+    if (lightboxPost?.id === postId) setLightboxPost(null);
+  }
+
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!q) return posts;
@@ -361,6 +378,16 @@ export function NastenkaScreen() {
     if (!NEIGHBOR_CATEGORIES.includes(p.category as Category)) return false;
     return true;
   });
+
+  const lightboxViewPost = useMemo(() => {
+    if (!lightboxPost) return null;
+    const likesCount = likesCountByPost[lightboxPost.id] ?? 0;
+    return {
+      ...lightboxPost,
+      likes: Array.from({ length: likesCount }, () => ""),
+      isReported: lightboxPost.isReported || !!reportedByPost[lightboxPost.id],
+    };
+  }, [lightboxPost, likesCountByPost, reportedByPost]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-y-auto">
@@ -498,11 +525,18 @@ export function NastenkaScreen() {
         />
       )}
 
-      {lightboxPost && (
-        <PostLightbox
-          post={lightboxPost}
+      {/* Lightbox / Detail príspevku s komentármi */}
+      {lightboxViewPost && (
+        <PostLightboxModal
+          post={lightboxViewPost}
+          replies={repliesByPost[lightboxViewPost.id] ?? []}
+          userId={userId}
+          canWrite={canWrite}
           onClose={() => setLightboxPost(null)}
           onUpdate={() => void loadPosts()}
+          onDelete={() => void deletePost(lightboxViewPost.id)}
+          onLike={() => void toggleLike(lightboxViewPost.id)}
+          liked={!!likesByPost[lightboxViewPost.id]}
         />
       )}
     </div>
@@ -776,6 +810,149 @@ function NeighborCard({
         </span>
       </div>
     </article>
+  );
+}
+
+function PostLightboxModal({
+  post,
+  replies,
+  userId,
+  canWrite,
+  onClose,
+  onUpdate,
+  onDelete,
+  onLike,
+  liked,
+}: {
+  post: Post & { isReported?: boolean };
+  replies: PostReply[];
+  userId: string | null;
+  canWrite: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+  onDelete: () => void;
+  onLike: () => void;
+  liked: boolean;
+}) {
+  const [replyContent, setReplyContent] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleSendReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userId || !replyContent.trim() || busy) return;
+
+    setBusy(true);
+    const { error } = await supabase.from("post_replies").insert({
+      post_id: post.id,
+      user_id: userId,
+      content: replyContent.trim(),
+    });
+    setBusy(false);
+
+    if (!error) {
+      setReplyContent("");
+      onUpdate();
+    }
+  }
+
+  const isAuthor = userId === post.userId;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-[color:var(--bg-surface)] shadow-xl border border-[color:var(--border-card)] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="chip-muted flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
+              {post.userName.charAt(0)}
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-foreground">{post.userName}</div>
+              <div className="text-[10px] text-muted-foreground">{timeAgo(post.createdAt)}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {isAuthor && (
+              <button
+                onClick={onDelete}
+                className="rounded-full p-1.5 text-rose-600 hover:bg-rose-50"
+                title="Vymazať príspevok"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+            <button onClick={onClose} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {post.title && <h3 className="text-sm font-semibold text-foreground">{post.title}</h3>}
+          <p className="text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap">{post.content}</p>
+
+          {post.imageUrl && (
+            <img src={post.imageUrl} alt="" className="max-h-80 w-full rounded-xl object-cover" />
+          )}
+
+          {/* Likes & Actions info */}
+          <div className="flex items-center gap-4 pt-2 border-t border-[color:var(--border-card)] text-xs">
+            <button
+              onClick={onLike}
+              disabled={!canWrite}
+              className={`flex items-center gap-1.5 font-medium transition ${liked ? "text-rose-600" : "text-muted-foreground"}`}
+            >
+              <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+              <span>{post.likes?.length || 0} Páči sa mi</span>
+            </button>
+            <span className="text-muted-foreground">💬 {replies.length} komentárov</span>
+          </div>
+
+          {/* Comments list */}
+          <div className="space-y-3 pt-3 border-t border-[color:var(--border-card)]">
+            <h4 className="text-xs font-semibold text-foreground">Komentáre a odpovede</h4>
+            {replies.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">Zatiaľ žiadne odpovede. Buď prvý!</p>
+            ) : (
+              replies.map((reply) => (
+                <div key={reply.id} className="rounded-xl bg-muted/40 p-2.5 text-xs space-y-1">
+                  <div className="flex items-center justify-between font-semibold text-foreground">
+                    <span>{reply.userName}</span>
+                    <span className="text-[9px] text-muted-foreground">{timeAgo(reply.createdAt)}</span>
+                  </div>
+                  <p className="text-muted-foreground">{reply.content}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Reply Input Footer */}
+        {canWrite ? (
+          <form onSubmit={handleSendReply} className="border-t border-[color:var(--border-card)] p-3 flex gap-2 bg-card">
+            <input
+              type="text"
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder="Napíšte odpoveď..."
+              className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground outline-none"
+            />
+            <button
+              type="submit"
+              disabled={busy || !replyContent.trim()}
+              className="btn-primary-glow flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          </form>
+        ) : (
+          <div className="border-t border-[color:var(--border-card)] p-3 text-center text-xs text-amber-800 bg-amber-50">
+            Na pridávanie komentárov je potrebný aktívny pozývací kód.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
