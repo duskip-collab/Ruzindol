@@ -1,10 +1,12 @@
 import { Download, Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/hooks/useCurrentUser";
 import ruzindolErb from "@/assets/ruzindol-erb.png";
 import { cn } from "@/lib/utils";
 import { NotificationBellTip } from "./NotificationBellTip";
+import { NotificationDropdown } from "./NotificationDropdown"; // Pridaný import pre históriu
 
 export function Header({
   profile,
@@ -26,6 +28,7 @@ export function Header({
   subtitle?: string;
 }) {
   const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Stav pre otvorenie histórie
 
   async function handleSignOut() {
     try {
@@ -37,7 +40,10 @@ export function Header({
   }
 
   async function handleBellClick() {
+    // Spustí pôvodnú logiku (napr. push notifikácie z NotificationBellTip)
     onBellClick();
+    // Prepne stav otvorenia/zatvorenia in-app histórie správ
+    setIsDropdownOpen((prev) => !prev);
   }
 
   const initials =
@@ -79,10 +85,19 @@ export function Header({
             <span className="hidden sm:inline">Pridať na plochu</span>
           </button>
         )}
-        <NotificationBellTip
-          hasNotificationDot={hasNotificationDot}
-          onBellClick={handleBellClick}
-        />
+
+        {/* Kontajner pre zvonček a rozbaľovacie okno histórie */}
+        <div className="relative">
+          <NotificationBellTip
+            hasNotificationDot={hasNotificationDot}
+            onBellClick={handleBellClick}
+          />
+          <NotificationDropdown
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+          />
+        </div>
+
         <div
           className="grid h-10 w-10 place-items-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-sm"
           title={profile?.name ?? ""}
