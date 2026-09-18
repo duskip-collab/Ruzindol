@@ -23,7 +23,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PostLightbox } from "@/components/PostLightbox";
 import { ImageInput } from "@/components/ImageInput";
 import { BanBanner } from "@/components/BanBanner";
-import { CommunityPlanRow } from "@/components/CommunityPlanRow";
 import { uploadCompressedImage } from "@/lib/upload-image";
 import type { CompressedImage } from "@/lib/compress-image";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,15 +130,12 @@ export function NastenkaScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [repliesByPost, setRepliesByPost] = useState<Record<string, PostReply[]>>({});
-  const [replyDraftByPost, setReplyDraftByPost] = useState<Record<string, string>>({});
-  const [replyBusyByPost, setReplyBusyByPost] = useState<Record<string, boolean>>({});
   const [likesByPost, setLikesByPost] = useState<Record<string, boolean>>({});
   const [likesCountByPost, setLikesCountByPost] = useState<Record<string, number>>({});
   const [reportedByPost, setReportedByPost] = useState<Record<string, boolean>>({});
   const isReadonly = !(profile?.is_active_neighbor ?? false);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalMode>(null);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
 
   const canCreateOfficialNotice = profile?.role === "Starosta" || profile?.role === "Uradnik";
@@ -264,52 +260,6 @@ export function NastenkaScreen() {
     }, 0);
     return () => window.clearTimeout(id);
   }, [loadPosts]);
-
-  useEffect(() => {
-    let channel: any = null;
-    let isMounted = true;
-
-    const setupRealtime = async () => {
-      try {
-        const channelName = `nastenka-live-${Date.now()}`;
-        channel = supabase.channel(channelName, {
-          config: { broadcast: { ack: true } }
-        });
-        
-        channel
-          .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-            if (isMounted) {
-              void loadPosts();
-            }
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "post_replies" }, () => {
-            if (isMounted) {
-              void loadPosts();
-            }
-          });
-
-        await channel.subscribe((status: string) => {
-          if (!isMounted) return;
-          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
-            console.warn('Nastenka realtime status:', status);
-          }
-        });
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error setting up nastenka realtime:', err);
-        }
-      }
-    };
-
-    void setupRealtime();
-
-    return () => {
-      isMounted = false;
-      if (channel) {
-        void supabase.removeChannel(channel);
-      }
-    };
-  }, []);
 
   async function toggleLike(postId: string) {
     if (!userId) return;
@@ -489,9 +439,6 @@ export function NastenkaScreen() {
           </div>
         )}
       </section>
-
-      {/* INTEGRÁCIA: Komunitný plán (Horizontálny riadok) */}
-      <CommunityPlanRow />
 
       {/* Susedský život */}
       <section className="flex flex-col">
