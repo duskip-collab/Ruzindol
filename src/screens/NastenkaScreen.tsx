@@ -743,19 +743,17 @@ function OfficialCard({
   reported: boolean;
   locked: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <article
-      onClick={() => setExpanded((prev) => !prev)}
+      onClick={onOpen}
       className="flex h-full w-72 shrink-0 cursor-pointer flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
     >
-      <div className="mb-1.5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div className="grid h-6 w-6 place-items-center rounded-md bg-blue-500/10 text-blue-500">
-            <Megaphone className="h-3.5 w-3.5" />
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
+            <Megaphone className="h-4 w-4" />
           </div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
             Úradný oznam
           </span>
         </div>
@@ -764,7 +762,7 @@ function OfficialCard({
 
       <h3 className="text-sm font-semibold text-foreground leading-snug">{post.title}</h3>
       
-      <p className={`mt-1 text-xs leading-relaxed text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>
+      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
         {post.content}
       </p>
 
@@ -772,57 +770,44 @@ function OfficialCard({
         <div className="mt-1 text-[10px] font-medium text-rose-600">Nahlásené</div>
       )}
 
-      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40">
-        <span className="text-[10px] text-muted-foreground">{post.userName}</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-            className="text-[10px] font-medium text-primary hover:underline"
-          >
-            {expanded ? "Zbaliť" : "Detail →"}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onReport();
-            }}
-            disabled={reported || locked}
-            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-muted disabled:opacity-40"
-            title={locked ? "Aktivuj pozývací kód" : undefined}
-          >
-            <Flag className="h-3 w-3" /> Nahlásiť
-          </button>
-        </div>
+      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40 text-[10px] text-muted-foreground">
+        <span>{post.userName}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onReport();
+          }}
+          disabled={reported || locked}
+          className="flex items-center gap-1 rounded-full px-2 py-0.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
+          title={locked ? "Aktivuj pozývací kód" : undefined}
+        >
+          <Flag className="h-3 w-3" /> Nahlásiť
+        </button>
       </div>
     </article>
   );
 }
 
 function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }) {
-  const [expanded, setExpanded] = useState(false);
-
   const priorityConfig: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> = {
     vystraha: {
       label: "Výstraha",
-      icon: <Siren className="h-3.5 w-3.5 text-red-500" />,
+      icon: <Siren className="h-4 w-4 text-red-500" />,
       colorClass: "bg-red-500/10",
     },
     urgentne: {
       label: "Urgentné",
-      icon: <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />,
+      icon: <AlertTriangle className="h-4 w-4 text-orange-500" />,
       colorClass: "bg-orange-500/10",
     },
     prioritne: {
       label: "Prioritné",
-      icon: <Info className="h-3.5 w-3.5 text-yellow-500" />,
+      icon: <Info className="h-4 w-4 text-yellow-500" />,
       colorClass: "bg-yellow-500/10",
     },
     oznam: {
       label: "Digitálny rozhlas",
-      icon: <Radio className="h-3.5 w-3.5 text-orange-500" />,
+      icon: <Radio className="h-4 w-4 text-orange-500" />,
       colorClass: "bg-orange-500/10",
     },
   };
@@ -830,16 +815,13 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
   const currentConfig = priorityConfig[announcement.priority] ?? priorityConfig.oznam;
 
   return (
-    <article
-      onClick={() => setExpanded((prev) => !prev)}
-      className="flex h-full w-72 shrink-0 cursor-pointer flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
-    >
-      <div className="mb-1.5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div className={`grid h-6 w-6 place-items-center rounded-md ${currentConfig.colorClass}`}>
+    <article className="flex h-full w-72 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`flex h-7 w-7 items-center justify-center rounded-full ${currentConfig.colorClass}`}>
             {currentConfig.icon}
           </div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
             {currentConfig.label}
           </span>
         </div>
@@ -848,29 +830,23 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
 
       <h3 className="text-sm font-semibold text-foreground leading-snug">{announcement.title}</h3>
       
-      <p className={`mt-1 text-xs leading-relaxed text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}>
+      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
         {announcement.content}
       </p>
 
       {announcement.audio_url && (
-        <div onClick={(e) => e.stopPropagation()} className="mt-2.5 rounded-xl bg-muted/40 p-2 border border-border/50">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary mb-1">
-            <span>🔊 Zvukový záznam hlásenia</span>
-          </div>
-          <audio controls preload="none" className="w-full h-8" playsInline>
+        <div className="mt-2 rounded-xl bg-muted/40 p-2 border border-border/50">
+          <audio controls preload="none" className="w-full h-7" playsInline>
             <source src={announcement.audio_url} />
           </audio>
         </div>
       )}
 
-      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40">
-        <span className="text-[10px] font-medium text-muted-foreground">
-          {expanded ? "Zbaliť" : "Rozbaliť ▾"}
-        </span>
+      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40 text-[10px]">
+        <span className="text-muted-foreground">Obecný rozhlas</span>
         <Link
           to="/aktuality"
-          onClick={(e) => e.stopPropagation()}
-          className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+          className="font-semibold text-primary hover:underline flex items-center gap-0.5"
         >
           Archív rozhlasu →
         </Link>
