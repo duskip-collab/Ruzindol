@@ -80,10 +80,31 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
     queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
   };
 
+  // Pomocná funkcia na čistenie a zabránenie duplicity title a body
+  const getCleanNotificationContent = (notif: Notification) => {
+    let title = (notif.title ?? "").trim();
+    let body = (notif.body ?? "").trim();
+
+    // Ak sú title a body identické, vrátime len jedno
+    if (title.toLowerCase() === body.toLowerCase()) {
+      return { title: "", body: title };
+    }
+
+    // Ak body začína na title, odstránime duplicitný prefix z body
+    if (body.toLowerCase().startsWith(title.toLowerCase())) {
+      body = body.slice(title.length).trim();
+      if (body.startsWith(":") || body.startsWith("-")) {
+        body = body.slice(1).trim();
+      }
+    }
+
+    return { title, body };
+  };
+
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-card border border-border shadow-2xl z-[999] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="fixed right-4 top-16 z-[9999] w-[calc(100vw-32px)] max-w-[400px] sm:absolute sm:right-0 sm:top-auto sm:mt-3 sm:w-96 sm:max-w-none rounded-2xl bg-card border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Hlavička */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
@@ -117,41 +138,50 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
             Žiadne predchádzajúce upozornenia
           </div>
         ) : (
-          notifications.map((notif) => (
-            <div
-              key={notif.id}
-              onClick={() => handleNotificationClick(notif)}
-              className={`p-3.5 transition-colors cursor-pointer flex gap-3 items-start ${
-                notif.is_read ? "bg-card opacity-75" : "bg-emerald-50/50 dark:bg-emerald-950/20"
-              } hover:bg-muted/50`}
-            >
+          notifications.map((notif) => {
+            const { title, body } = getCleanNotificationContent(notif);
+            return (
               <div
-                className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
-                  notif.is_read ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-700"
-                }`}
+                key={notif.id}
+                onClick={() => handleNotificationClick(notif)}
+                className={`p-3.5 transition-colors cursor-pointer flex gap-3 items-start ${
+                  notif.is_read ? "bg-card opacity-75" : "bg-emerald-50/50 dark:bg-emerald-950/20"
+                } hover:bg-muted/50`}
               >
-                {notif.type === "inquiry" ? <MessageSquare className="h-4 w-4" /> : <Info className="h-4 w-4" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-xs font-semibold truncate ${
-                    notif.is_read ? "text-foreground" : "text-emerald-900 dark:text-emerald-300"
+                <div
+                  className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
+                    notif.is_read ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-700"
                   }`}
                 >
-                  {notif.title}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>
-                <span className="text-[10px] text-muted-foreground/70 mt-1 block">
-                  {new Date(notif.created_at).toLocaleDateString("sk-SK", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+                  {notif.type === "inquiry" ? <MessageSquare className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {title && (
+                    <p
+                      className={`text-xs font-semibold truncate ${
+                        notif.is_read ? "text-foreground" : "text-emerald-900 dark:text-emerald-300"
+                      }`}
+                    >
+                      {title}
+                    </p>
+                  )}
+                  {body && (
+                    <p className={`text-xs text-muted-foreground mt-0.5 line-clamp-2 ${!title ? "font-semibold text-foreground" : ""}`}>
+                      {body}
+                    </p>
+                  )}
+                  <span className="text-[10px] text-muted-foreground/70 mt-1 block">
+                    {new Date(notif.created_at).toLocaleDateString("sk-SK", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
