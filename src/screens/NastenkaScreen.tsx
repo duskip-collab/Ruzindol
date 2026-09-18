@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Plus,
@@ -513,39 +513,39 @@ function OfficialCard({
   return (
     <article
       onClick={onOpen}
-      className="flex h-full w-72 shrink-0 cursor-pointer flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
+      className="flex h-full w-64 shrink-0 cursor-pointer flex-col rounded-xl border border-border bg-card p-2.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
     >
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-            <Megaphone className="h-4 w-4" />
+      <div className="mb-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-500">
+            <Megaphone className="h-3.5 w-3.5" />
           </div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
             Úradný oznam
           </span>
         </div>
-        <span className="text-[10px] text-muted-foreground">{timeAgo(post.createdAt)}</span>
+        <span className="text-[9px] text-muted-foreground">{timeAgo(post.createdAt)}</span>
       </div>
 
-      <h3 className="text-sm font-semibold text-foreground leading-snug">{post.title}</h3>
+      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">{post.title}</h3>
       
-      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
         {post.content}
       </p>
 
       {reported && (
-        <div className="mt-1 text-[10px] font-medium text-rose-600">Nahlásené</div>
+        <div className="mt-1 text-[9px] font-medium text-rose-600">Nahlásené</div>
       )}
 
-      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40 text-[10px] text-muted-foreground">
-        <span>{post.userName}</span>
+      <div className="mt-2 flex items-center justify-between pt-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
+        <span className="truncate max-w-[100px]">{post.userName}</span>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onReport();
           }}
           disabled={reported || locked}
-          className="flex items-center gap-1 rounded-full px-2 py-0.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
+          className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
           title={locked ? "Aktivuj pozývací kód" : undefined}
         >
           <Flag className="h-3 w-3" /> Nahlásiť
@@ -556,67 +556,102 @@ function OfficialCard({
 }
 
 function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const priorityConfig: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> = {
     vystraha: {
       label: "Výstraha",
-      icon: <Siren className="h-4 w-4 text-red-500" />,
+      icon: <Siren className="h-3.5 w-3.5 text-red-500" />,
       colorClass: "bg-red-500/10",
     },
     urgentne: {
       label: "Urgentné",
-      icon: <AlertTriangle className="h-4 w-4 text-orange-500" />,
+      icon: <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />,
       colorClass: "bg-orange-500/10",
     },
     prioritne: {
       label: "Prioritné",
-      icon: <Info className="h-4 w-4 text-yellow-500" />,
+      icon: <Info className="h-3.5 w-3.5 text-yellow-500" />,
       colorClass: "bg-yellow-500/10",
     },
     oznam: {
       label: "Digitálny rozhlas",
-      icon: <Volume2 className="h-4 w-4 text-orange-500" />,
+      icon: <Volume2 className="h-3.5 w-3.5 text-orange-500" />,
       colorClass: "bg-orange-500/10",
     },
   };
 
   const currentConfig = priorityConfig[announcement.priority] ?? priorityConfig.oznam;
 
+  const togglePlayAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!announcement.audio_url || !audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.error("Chyba pri prehrávaní audia:", err);
+      });
+    }
+  };
+
   return (
-    <article className="flex h-full w-72 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${currentConfig.colorClass}`}>
+    <article className="flex h-full w-64 shrink-0 flex-col rounded-xl border border-border bg-card p-2.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
+      <div className="mb-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className={`flex h-6 w-6 items-center justify-center rounded-md ${currentConfig.colorClass}`}>
             {currentConfig.icon}
           </div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
             {currentConfig.label}
           </span>
         </div>
-        <span className="text-[10px] text-muted-foreground">{timeAgo(announcement.published_at)}</span>
+        <span className="text-[9px] text-muted-foreground">{timeAgo(announcement.published_at)}</span>
       </div>
 
-      <h3 className="text-sm font-semibold text-foreground leading-snug">{announcement.title}</h3>
+      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">{announcement.title}</h3>
       
-      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
         {announcement.content}
       </p>
 
       {announcement.audio_url && (
-        <div className="mt-2 rounded-xl bg-muted/40 p-2 border border-border/50">
-          <audio controls preload="none" className="w-full h-7" playsInline>
-            <source src={announcement.audio_url} />
-          </audio>
-        </div>
+        <audio
+          ref={audioRef}
+          src={announcement.audio_url}
+          onEnded={() => setIsPlaying(false)}
+          preload="none"
+        />
       )}
 
-      <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-border/40 text-[10px]">
+      <div className="mt-2 flex items-center justify-between pt-1.5 border-t border-border/40 text-[10px]">
         <span className="text-muted-foreground">Obecný rozhlas</span>
-        <Link
-          to="/aktuality"
-          className="font-semibold text-primary hover:underline flex items-center gap-0.5"
-        >
-          Archív rozhlasu →
-        </Link>
+        <div className="flex items-center gap-2">
+          {announcement.audio_url && (
+            <button
+              onClick={togglePlayAudio}
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 font-medium transition ${
+                isPlaying 
+                  ? "bg-orange-500 text-white animate-pulse" 
+                  : "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20"
+              }`}
+            >
+              <Volume2 className="h-3 w-3" />
+              <span>{isPlaying ? "Hrať" : "Prehrať"}</span>
+            </button>
+          )}
+          <Link
+            to="/aktuality"
+            className="font-semibold text-primary hover:underline flex items-center gap-0.5"
+          >
+            Archív →
+          </Link>
+        </div>
       </div>
     </article>
   );
