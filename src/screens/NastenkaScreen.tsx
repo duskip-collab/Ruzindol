@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Plus,
   X,
@@ -774,35 +775,56 @@ function OfficialCard({
 
 function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }) {
   const priorityColors: Record<string, string> = {
-    oznam: "border-neutral-200 bg-neutral-50",
-    prioritne: "border-yellow-200 bg-yellow-50",
-    urgentne: "border-orange-200 bg-orange-50",
-    vystraha: "border-red-200 bg-red-50",
+    oznam: "border-neutral-200 bg-neutral-50 dark:bg-neutral-900/50 dark:border-neutral-800",
+    prioritne: "border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-900",
+    urgentne: "border-orange-200 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-900",
+    vystraha: "border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900",
   };
 
   const priorityBadge: Record<string, string> = {
-    oznam: "text-neutral-700",
-    prioritne: "text-yellow-700",
-    urgentne: "text-orange-700",
-    vystraha: "text-red-700",
+    oznam: "text-neutral-700 dark:text-neutral-300",
+    prioritne: "text-yellow-700 dark:text-yellow-400",
+    urgentne: "text-orange-700 dark:text-orange-400",
+    vystraha: "text-red-700 dark:text-red-400",
   };
 
   return (
     <article
-      className={`flex h-full w-64 shrink-0 flex-col rounded-2xl border ${priorityColors[announcement.priority]} p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink`}
+      className={`flex h-full w-72 shrink-0 flex-col rounded-2xl border ${priorityColors[announcement.priority]} p-3.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink`}
     >
-      <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider">
-        <span className={`text-brand ${priorityBadge[announcement.priority]}`}>
-          📻 {announcement.priority === "oznam" ? "Rozhlas" : announcement.priority}
+      <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider">
+        <span className={`flex items-center gap-1 font-semibold ${priorityBadge[announcement.priority]}`}>
+          📻 {announcement.priority === "oznam" ? "Digitálny rozhlas" : announcement.priority}
         </span>
         <span className="text-[10px] text-muted-foreground">{timeAgo(announcement.published_at)}</span>
       </div>
-      <h3 className="text-sm font-semibold text-foreground">{announcement.title}</h3>
-      <p className="mt-1 line-clamp-3 flex-1 text-xs leading-snug text-muted-foreground">
+
+      <h3 className="text-sm font-semibold text-foreground leading-snug">{announcement.title}</h3>
+      
+      <p className="mt-1.5 line-clamp-3 flex-1 text-xs leading-relaxed text-muted-foreground">
         {announcement.content}
       </p>
-      <div className="mt-2">
-        <span className="text-[10px] text-muted-foreground">Digitálny rozhlas</span>
+
+      {/* Audio prehrávač pre digitálny rozhlas */}
+      {announcement.audio_url && (
+        <div className="mt-3 rounded-xl bg-background/80 p-2 border border-border/50">
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary mb-1">
+            <span>🔊 Zvukový záznam hlásenia</span>
+          </div>
+          <audio controls preload="none" className="w-full h-8" playsInline>
+            <source src={announcement.audio_url} />
+          </audio>
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/40">
+        <span className="text-[10px] font-medium text-muted-foreground">Digitálny rozhlas</span>
+        <Link
+          to="/aktuality"
+          className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+        >
+          Archív rozhlasu →
+        </Link>
       </div>
     </article>
   );
