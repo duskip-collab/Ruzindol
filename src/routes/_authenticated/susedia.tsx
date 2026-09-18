@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { CheckCircle2, Loader2, Search, Users, Check, Clock, UserPlus, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Loader2, Search, Users, Check, Clock, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +13,6 @@ type Neighbor = {
   street: string | null;
   avatar_url: string | null;
   is_verified: boolean;
-  invited_by_name: string | null;
-  invite_code_used: string | null;
 };
 
 export const Route = createFileRoute("/_authenticated/susedia")({
@@ -65,28 +63,24 @@ function NeighborsScreen() {
       if (profilesError) throw profilesError;
       if (!profilesData) return [];
 
-      // 2. Načítame informácie o použitých pozvánkach z tabuľky invite_codes
+      // 2. Zistíme, ktorí používatelia použili invite kód, aby sme ich automaticky označili ako overených
       const { data: invitesData, error: invitesError } = await supabase
         .from("invite_codes")
-        .select("code, used_by, created_by, created_by_profile:profiles!invite_codes_created_by_fkey(name)");
+        .select("used_by");
 
-      // Vytvoríme mapu pre rýchle vyhľadanie: used_by_id -> { inviterName, code }
-      const inviteMap: Record<string, { inviterName: string; code: string }> = {};
+      const invitedUserIdsSet = new Set<string>();
       if (!invitesError && invitesData) {
         (invitesData as any[]).forEach((inv) => {
           if (inv.used_by) {
-            inviteMap[inv.used_by] = {
-              inviterName: inv.created_by_profile?.name || "Neznámy sused",
-              code: inv.code,
-            };
+            invitedUserIdsSet.add(inv.used_by);
           }
         });
       }
 
-      // Spojíme dáta dohromady
+      // Vráti čistý zoznam susedov bez zbytočných väzieb na pozvánky
       return profilesData.map((row: any) => {
-        const invInfo = inviteMap[row.id];
-        const verified = Boolean(row.is_verified || row.is_active_neighbor);
+        const hasCode = invitedUserIdsSet.has(row.id);
+        const verified = hasCode ? true : Boolean(row.is_verified || row.is_active_neighbor);
         
         return {
           id: row.id,
@@ -94,8 +88,6 @@ function NeighborsScreen() {
           street: row.street,
           avatar_url: row.avatar_url,
           is_verified: verified,
-          invited_by_name: invInfo ? invInfo.inviterName : null,
-          invite_code_used: invInfo ? invInfo.code : null,
         };
       }) as Neighbor[];
     },
@@ -112,13 +104,11 @@ function NeighborsScreen() {
     setVerifySuccess(null);
 
     try {
-      // Pokus o volanie RPC funkcie, ak existuje v DB
       const { error: rpcError } = await supabase.rpc("verify_neighbor_manual", {
         _neighbor_id: neighborId,
         target_user_id: neighborId,
       });
 
-      // Ak RPC zlyhá alebo neexistuje, urobíme priamy update profilu
       if (rpcError) {
         const { error: updateError } = await supabase
           .from("profiles")
@@ -201,20 +191,6 @@ function NeighborsScreen() {
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                     <Clock className="h-3.5 w-3.5" /> Čaká na overenie
                   </span>
-                )}
-              </div>
-
-              {/* Informácie o pozvánke / kóde */}
-              <div className="mt-2 text-xs">
-                {neighbor.invited_by_name ? (
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <UserPlus className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>Pozval ho: <strong className="text-foreground">{neighbor.invited_by_name}</strong></span>
-                  </p>
-                ) : (
-                  <p className="text-amber-600 dark:text-amber-400 italic">
-                    Bez invite kódu (registratúra bez pozvánky)
-                  </p>
                 )}
               </div>
               
