@@ -17,6 +17,20 @@ type WasteCollection = {
   types: string;
 };
 
+// Bezpečné parsovanie dátumu bez UTC posunu (iOS vs Android timezone fix)
+function parseLocalDate(dateStr: string) {
+  if (!dateStr) return new Date();
+  const cleanStr = dateStr.split("T")[0];
+  const parts = cleanStr.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m, d);
+  }
+  return new Date(dateStr);
+}
+
 export function CommunityPlanRow() {
   // Načítanie nadchádzajúcich akcií z kalendára Supabase
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
@@ -91,15 +105,17 @@ export function CommunityPlanRow() {
           </div>
         ) : events.length > 0 ? (
           events.map((event) => {
-            const eventDate = new Date(event.start_date);
+            const eventDate = parseLocalDate(event.start_date);
             const dateShort = eventDate.toLocaleDateString("sk-SK", {
               day: "numeric",
               month: "short",
             });
-            const timeStr = eventDate.toLocaleTimeString("sk-SK", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
+            const timeStr = event.start_date.includes("T")
+              ? new Date(event.start_date).toLocaleTimeString("sk-SK", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Celý deň";
 
             return (
               <Link
@@ -127,7 +143,7 @@ export function CommunityPlanRow() {
           })
         ) : (
           <div className="shrink-0 w-40 h-32 rounded-2xl border border-dashed border-border bg-card p-4 flex items-center justify-center text-center">
-            <p className="text-xs text-muted-foreground">Žiadne nadchádzajúce akcie</p>
+            <p className="text-xs text-muted-foreground">Žiadne ďalšie plánované akcie</p>
           </div>
         )}
       </div>
