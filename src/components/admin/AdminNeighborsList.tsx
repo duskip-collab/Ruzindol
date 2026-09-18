@@ -47,7 +47,7 @@ export function AdminNeighborsList() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // 1. Načítame profily
+      // 1. Načítame profily vrátane invited_by_user_id
       let query = supabase
         .from("profiles")
         .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id")
@@ -68,7 +68,7 @@ export function AdminNeighborsList() {
         return;
       }
 
-      // 2. Načítame informácie o použitých pozvánkach z tabuľky invite_codes s väzbou na profil pozývateľa
+      // 2. Načítame informácie z tabuľky invite_codes pre prípad, že väzba je uložená tam
       const { data: invitesData, error: invitesError } = await supabase
         .from("invite_codes")
         .select("code, used_by, created_by, created_by_profile:profiles!invite_codes_created_by_fkey(name)");
@@ -85,9 +85,35 @@ export function AdminNeighborsList() {
         });
       }
 
-      // 3. Spojíme dáta dohromady
+      // 3. Zozbierame aj ID priamych pozývateľov z invited_by_user_id (ak nie sú v inviteMap)
+      const missingInviterIds = loadedProfiles
+        .filter(p => p.invited_by_user_id && !inviteMap[p.id])
+        .map(p => p.invited_by_user_id);
+
+      const directInviterMap: Record<string, string> = {};
+      if (missingInviterIds.length > 0) {
+        const { data: directInviters } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", missingInviterIds);
+
+        if (directInviters) {
+          directInviters.forEach((di) => {
+            directInviterMap[di.id] = di.name || "Neznámy sused";
+          });
+        }
+      }
+
+      // 4. Finálne spojenie a namapovanie dát
       const mappedNeighbors: NeighborProfile[] = loadedProfiles.map((p) => {
         const invInfo = inviteMap[p.id];
+        let inviterName = invInfo ? invInfo.inviterName : null;
+        let codeUsed = invInfo ? invInfo.code : null;
+
+        // Fallback na priamy invited_by_user_id v profiles ak inviteMap nič nenašiel
+        if (!inviterName && p.invited_by_user_id) {
+          inviterName = directInviterMap[p.invited_by_user_id] || "Neznámy sused";
+        }
 
         return {
           id: p.id,
@@ -99,8 +125,8 @@ export function AdminNeighborsList() {
           is_verified: p.is_verified,
           created_at: p.created_at,
           invited_by_user_id: p.invited_by_user_id,
-          inviter_name: invInfo ? invInfo.inviterName : null,
-          invite_code_used: invInfo ? invInfo.code : null,
+          inviter_name: inviterName,
+          invite_code_used: codeUsed,
         };
       });
 
@@ -303,7 +329,7 @@ export function AdminNeighborsList() {
                               {neighbor.inviter_name}
                             </div>
                             <div className="text-[10px] text-muted-foreground">
-                              (cez pozvánku)
+                              {neighbor.invite_code_used ? `(kód: ${neighbor.invite_code_used})` : "(cez pozvánku)"}
                             </div>
                           </div>
                         ) : (
