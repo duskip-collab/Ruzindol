@@ -484,6 +484,27 @@ export function NastenkaScreen() {
           </div>
         </div>
       </section>
+
+      {/* Modálne okno pre vytvorenie obsahu */}
+      {modal && (
+        <CreatePostModal
+          mode={modal.kind}
+          onClose={() => setModal(null)}
+          onCreated={() => {
+            setModal(null);
+            void loadPosts();
+          }}
+          userId={userId}
+        />
+      )}
+
+      {lightboxPost && (
+        <PostLightbox
+          post={lightboxPost}
+          onClose={() => setLightboxPost(null)}
+          onUpdate={() => void loadPosts()}
+        />
+      )}
     </div>
   );
 }
@@ -755,5 +776,150 @@ function NeighborCard({
         </span>
       </div>
     </article>
+  );
+}
+
+function CreatePostModal({
+  mode,
+  onClose,
+  onCreated,
+  userId,
+}: {
+  mode: "official" | "neighbor";
+  onClose: () => void;
+  onCreated: () => void;
+  userId: string | null;
+}) {
+  const isOfficial = mode === "official";
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState<Category>(NEIGHBOR_CATEGORIES[0]);
+  const [compressedImage, setCompressedImage] = useState<CompressedImage | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userId) return;
+    if (!title.trim() || !content.trim()) {
+      setError("Vyplňte názov aj obsah.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      let imageUrl: string | null = null;
+      if (compressedImage) {
+        imageUrl = await uploadCompressedImage(compressedImage, "posts");
+      }
+
+      const postType: PostType = isOfficial ? "hlasnik" : "susedsky_zivot";
+      const postCategory = isOfficial ? "Hlasnik" : category;
+
+      const { error: insertErr } = await supabase.from("posts").insert({
+        user_id: userId,
+        type: postType,
+        category: postCategory,
+        title: title.trim(),
+        content: content.trim(),
+        image_url: imageUrl,
+      });
+
+      if (insertErr) throw insertErr;
+
+      onCreated();
+    } catch (err: any) {
+      console.error("Chyba pri vytváraní príspevku:", err);
+      setError("Nepodarilo sa vytvoriť príspevok. Skúste to znova.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-[color:var(--bg-surface)] p-5 shadow-xl border border-[color:var(--border-card)]">
+        <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border-card)]">
+          <h3 className="text-base font-semibold text-foreground">
+            {isOfficial ? "📢 Pridať úradný oznam" : "✍️ Nový susedský príspevok"}
+          </h3>
+          <button onClick={onClose} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
+          {error && (
+            <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</div>
+          )}
+
+          {!isOfficial && (
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Kategória</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground outline-none"
+              >
+                {NEIGHBOR_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_LABEL[cat]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Názov</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Zadajte názov..."
+              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Obsah</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Napíšte podrobnosti..."
+              rows={4}
+              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground outline-none resize-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Obrázok (nepovinné)</label>
+            <ImageInput onImageSelect={setCompressedImage} />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-[color:var(--border-card)]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted"
+            >
+              Zrušiť
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary-glow flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>Publikovať</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
