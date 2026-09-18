@@ -11,10 +11,10 @@ type CalendarEvent = {
   category?: string | null;
 };
 
-type WasteCollection = {
-  date: string;
-  dayOfWeek: string;
-  types: string;
+type WasteItem = {
+  id: string;
+  collection_date: string;
+  waste_types: string;
 };
 
 // Bezpečné parsovanie dátumu bez UTC posunu (iOS vs Android timezone fix)
@@ -32,11 +32,12 @@ function parseLocalDate(dateStr: string) {
 }
 
 export function CommunityPlanRow() {
+  const today = new Date().toISOString().split("T")[0];
+
   // Načítanie nadchádzajúcich akcií z kalendára Supabase
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
     queryKey: ["community-plan-events"],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase
         .from("calendar")
         .select("*")
@@ -52,12 +53,25 @@ export function CommunityPlanRow() {
     },
   });
 
-  // Najbližší zber odpadu (môže byť dynamický alebo statický konfigurovateľný)
-  const nextWaste: WasteCollection = {
-    date: "22. SEP",
-    dayOfWeek: "Utorok",
-    types: "Zmesový + Plasty",
-  };
+  // Dynamické načítanie najbližšieho zberu odpadu zo Supabase
+  const { data: nextWaste, isLoading: isLoadingWaste } = useQuery({
+    queryKey: ["community-plan-next-waste"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("waste_collection")
+        .select("*")
+        .gte("collection_date", today)
+        .order("collection_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching waste collection:", error);
+        return null;
+      }
+      return data as WasteItem | null;
+    },
+  });
 
   return (
     <div className="my-5">
@@ -76,27 +90,48 @@ export function CommunityPlanRow() {
 
       {/* Horizontálny posuvný kontajner s čistým skrytím scrollbaru cez Tailwind */}
       <div className="flex gap-3 px-4 md:px-6 overflow-x-auto [&-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory pb-2">
-        {/* 1. Fixná dlaždica: Najbližší zber odpadu */}
-        <Link
-          to="/kalendar"
-          search={{ category: "odpad" }}
-          className="snap-start group shrink-0 w-44 h-28 rounded-2xl border border-border bg-card p-3.5 shadow-sm flex flex-col justify-between transition-all hover:shadow-md hover:border-amber-500/50"
-        >
-          <div className="flex items-center gap-1.5 text-foreground">
-            <div className="grid h-6 w-6 place-items-center rounded-md bg-amber-500/10 text-amber-500">
-              <Trash2 className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Zber odpadu</span>
+        {/* 1. Dynamická dlaždica: Najbližší zber odpadu */}
+        {isLoadingWaste ? (
+          <div className="shrink-0 w-44 h-28 rounded-2xl border border-border bg-card p-3.5 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : nextWaste ? (
+          (() => {
+            const wasteDateObj = parseLocalDate(nextWaste.collection_date);
+            const dateShort = wasteDateObj.toLocaleDateString("sk-SK", {
+              day: "numeric",
+              month: "short",
+            }).toUpperCase();
+            const dayOfWeek = wasteDateObj.toLocaleDateString("sk-SK", {
+              weekday: "long",
+            });
+            // Prvé písmeno dňa veľké
+            const formattedDay = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
 
-          <div className="mt-1.5">
-            <p className="text-lg font-bold text-foreground leading-none">{nextWaste.date}</p>
-            <p className="text-xs font-medium text-muted-foreground mt-0.5">{nextWaste.dayOfWeek}</p>
-            <p className="text-[10px] text-muted-foreground/90 mt-1 truncate group-hover:text-primary transition-colors">
-              {nextWaste.types}
-            </p>
-          </div>
-        </Link>
+            return (
+              <Link
+                to="/kalendar"
+                search={{ category: "odpad" }}
+                className="snap-start group shrink-0 w-44 h-28 rounded-2xl border border-border bg-card p-3.5 shadow-sm flex flex-col justify-between transition-all hover:shadow-md hover:border-amber-500/50"
+              >
+                <div className="flex items-center gap-1.5 text-foreground">
+                  <div className="grid h-6 w-6 place-items-center rounded-md bg-amber-500/10 text-amber-500">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Zber odpadu</span>
+                </div>
+
+                <div className="mt-1.5">
+                  <p className="text-lg font-bold text-foreground leading-none">{dateShort}</p>
+                  <p className="text-xs font-medium text-muted-foreground mt-0.5">{formattedDay}</p>
+                  <p className="text-[10px] text-muted-foreground/90 mt-1 truncate group-hover:text-primary transition-colors">
+                    {nextWaste.waste_types}
+                  </p>
+                </div>
+              </Link>
+            );
+          })()
+        ) : null}
 
         {/* 2. Dynamické dlaždice: Komunitné podujatia */}
         {isLoadingEvents ? (
@@ -141,11 +176,11 @@ export function CommunityPlanRow() {
               </Link>
             );
           })
-        ) : (
-          <div className="shrink-0 w-40 h-28 rounded-2xl border border-dashed border-border bg-card p-3.5 flex items-center justify-center text-center">
+        ) : !nextWaste ? (
+          <div className="shrink-0 w-full h-28 rounded-2xl border border-dashed border-border bg-card p-3.5 flex items-center justify-center text-center">
             <p className="text-xs text-muted-foreground">Žiadne ďalšie plánované akcie</p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

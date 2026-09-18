@@ -16,6 +16,7 @@ import {
   Info,
   Building2,
   Siren,
+  Volume2,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -368,79 +369,6 @@ export function NastenkaScreen() {
     }
   }
 
-  async function addReply(postId: string) {
-    if (!userId || replyBusyByPost[postId]) return;
-    const content = (replyDraftByPost[postId] ?? "").trim();
-    if (!content) return;
-
-    setReplyBusyByPost((prev) => ({ ...prev, [postId]: true }));
-    const { error } = await supabase.from("post_replies").insert({
-      post_id: postId,
-      user_id: userId,
-      content,
-    });
-    setReplyBusyByPost((prev) => ({ ...prev, [postId]: false }));
-
-    if (error) {
-      return;
-    }
-
-    setReplyDraftByPost((prev) => ({ ...prev, [postId]: "" }));
-    await loadPosts();
-  }
-
-  async function deletePost(postId: string) {
-    if (!userId) return;
-    if (!confirm("Naozaj vymazať tento príspevok?")) return;
-
-    const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
-
-    if (error) return;
-
-    setPosts((prev) => prev.filter((post) => post.id !== postId));
-    setRepliesByPost((prev) => {
-      const next = { ...prev };
-      delete next[postId];
-      return next;
-    });
-    if (lightboxPost?.id === postId) setLightboxPost(null);
-  }
-
-  async function updatePost(payload: {
-    postId: string;
-    title: string;
-    content: string;
-    category: Category;
-  }) {
-    if (!userId) return;
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        title: payload.title,
-        content: payload.content,
-        category: payload.category,
-      })
-      .eq("id", payload.postId)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === payload.postId
-          ? {
-              ...post,
-              title: payload.title,
-              content: payload.content,
-              category: payload.category,
-            }
-          : post,
-      ),
-    );
-  }
-
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!q) return posts;
@@ -483,16 +411,6 @@ export function NastenkaScreen() {
     if (!NEIGHBOR_CATEGORIES.includes(p.category as Category)) return false;
     return true;
   });
-
-  const lightboxViewPost = useMemo(() => {
-    if (!lightboxPost) return null;
-    const likesCount = likesCountByPost[lightboxPost.id] ?? 0;
-    return {
-      ...lightboxPost,
-      likes: Array.from({ length: likesCount }, () => ""),
-      isReported: lightboxPost.isReported || !!reportedByPost[lightboxPost.id],
-    };
-  }, [lightboxPost, likesCountByPost, reportedByPost]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-y-auto">
@@ -709,7 +627,7 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
     },
     oznam: {
       label: "Digitálny rozhlas",
-      icon: <Radio className="h-4 w-4 text-orange-500" />,
+      icon: <Volume2 className="h-4 w-4 text-orange-500" />,
       colorClass: "bg-orange-500/10",
     },
   };
