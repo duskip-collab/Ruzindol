@@ -750,7 +750,7 @@ function OfficialCard({
     >
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
             <Megaphone className="h-4 w-4" />
           </div>
           <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
@@ -818,7 +818,7 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
     <article className="flex h-full w-72 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-full ${currentConfig.colorClass}`}>
+          <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${currentConfig.colorClass}`}>
             {currentConfig.icon}
           </div>
           <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
