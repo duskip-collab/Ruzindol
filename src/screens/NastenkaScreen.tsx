@@ -1034,7 +1034,8 @@ function CreatePostModal({
     try {
       let imageUrl: string | null = null;
       if (compressedImage) {
-        imageUrl = await uploadCompressedImage(compressedImage, "posts");
+        const upload = await uploadCompressedImage(compressedImage, userId);
+        imageUrl = upload.imageUrl;
       }
 
       const postType: PostType = isOfficial ? "hlasnik" : "susedsky_zivot";
@@ -1120,7 +1121,7 @@ function CreatePostModal({
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Obrázok (nepovinné)</label>
-            <ImageInput onImageSelect={setCompressedImage} />
+            <ImageInput value={compressedImage} onChange={setCompressedImage} />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-[color:var(--border-card)]">
