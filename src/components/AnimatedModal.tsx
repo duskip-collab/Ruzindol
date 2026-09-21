@@ -155,7 +155,7 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
               {children && <div className={cn(description ? "mt-4" : "")}>{children}</div>}
             </div>
 
-            {/* Footer Buttons - Sticky na dne, bezpečne pred notch/navbar */}
+            {/* Footer Buttons - Sticky na dne, bezpečne pred notch/navbar + Spodné tlačidlo pre ľahšie zatvorenie na iPhone */}
             <div className="shrink-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 pb-safe flex items-center justify-end gap-3 sticky bottom-0">
               <button
                 type="button"
