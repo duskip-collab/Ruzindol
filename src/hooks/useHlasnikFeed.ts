@@ -23,14 +23,11 @@ import { supabase } from "@/integrations/supabase/client";
  * takže sa komponent vôbec nevykreslí.
  */
 
-/** Koľko najnovších záznamov ťaháme z jedného zdroja pred zlúčením. */
-const PER_SOURCE_LIMIT = 4;
-
-/** Koľko položiek napokon zostane v kompaktnom feede (kvôli miestu na obrazovke). */
-const FEED_LIMIT = 4;
-
-/** Zberový kalendár – v kompaktnom feede stačia dnešné termíny (max. dva). */
-const WASTE_LIMIT = 2;
+/**
+ * RSS aktuality – v hlásniku zobrazujeme maximálne 2 najčerstvejšie správy.
+ * (Z kalendára aj zberu odpadu sa naopak zobrazujú VŠETKY položky platné pre daný deň.)
+ */
+const NEWS_LIMIT = 2;
 
 /** RSS aktuality – zobrazujeme maximálne 5 dní od publikovania. */
 const NEWS_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
@@ -100,7 +97,8 @@ function mapAnnouncements(rows: AnnouncementFeedRow[] | null): FeedItem[] {
         const ts = new Date(row.published_at).getTime();
         return Number.isFinite(ts) && ts >= oldestAllowed;
       })
-      .slice(0, PER_SOURCE_LIMIT)
+      // V hlásniku len 2 najčerstvejšie RSS aktuality.
+      .slice(0, NEWS_LIMIT)
       .map((row) => ({
         id: `aktuality:${row.id}`,
         source: "aktuality",
@@ -112,9 +110,9 @@ function mapAnnouncements(rows: AnnouncementFeedRow[] | null): FeedItem[] {
 }
 
 function mapCalendarEvents(rows: EventFeedRow[] | null): FeedItem[] {
+  // Všetky dnešné podujatia – žiadne obmedzenie počtu.
   return (rows ?? [])
     .filter((row) => (row.type ?? "").toLowerCase() !== "odpad")
-    .slice(0, PER_SOURCE_LIMIT)
     .map((row) => ({
       id: `kalendar:${row.id}`,
       source: "kalendar",
@@ -125,9 +123,9 @@ function mapCalendarEvents(rows: EventFeedRow[] | null): FeedItem[] {
 }
 
 function mapWasteEvents(rows: EventFeedRow[] | null): FeedItem[] {
+  // Všetky dnešné termíny vývozu odpadu – žiadne obmedzenie počtu.
   return (rows ?? [])
     .filter((row) => (row.type ?? "").toLowerCase() === "odpad")
-    .slice(0, WASTE_LIMIT)
     .map((row) => ({
       id: `odpad:${row.id}`,
       source: "odpad",
@@ -155,25 +153,23 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
       .select("id, title, content, published_at, expires_at")
       .eq("source", "rss")
       .order("published_at", { ascending: false })
-      .limit(PER_SOURCE_LIMIT * 2),
-    // Udalosti kalendára – len tie, ktoré sa konajú DNES.
+      .limit(NEWS_LIMIT * 2),
+    // Udalosti kalendára – len tie, ktoré sa konajú DNES (všetky, bez limitu počtu).
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .neq("type", "odpad")
       .gte("starts_at", todayIso)
       .lt("starts_at", endOfTodayIso)
-      .order("starts_at", { ascending: false })
-      .limit(PER_SOURCE_LIMIT),
-    // Zberový kalendár (vývoz odpadu) – len termíny pripadajúce na DNES.
+      .order("starts_at", { ascending: false }),
+    // Zberový kalendár (vývoz odpadu) – len termíny pripadajúce na DNES (všetky).
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .eq("type", "odpad")
       .gte("starts_at", todayIso)
       .lt("starts_at", endOfTodayIso)
-      .order("starts_at", { ascending: true })
-      .limit(WASTE_LIMIT),
+      .order("starts_at", { ascending: true }),
   ]);
 
   if (announcementsRes.error) {
@@ -192,10 +188,11 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
     ...mapWasteEvents(wasteRes.data as unknown as EventFeedRow[] | null),
   ];
 
+  // Zoradenie zostupne podľa dátumu; počty položiek sa neobmedzujú – RSS prichádza
+  // už limitované na 2, kalendár/odpad obsahujú všetky položky platné pre daný deň.
   return items
     .filter((item) => Number.isFinite(new Date(item.date).getTime()))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, FEED_LIMIT);
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 /**

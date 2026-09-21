@@ -99,7 +99,7 @@ export function ObecnyHlasnik() {
       triggerHaptic("light");
 
       if (item.source === "aktuality") {
-        void navigate({ to: "/aktuality" });
+        void navigate({ to: "/aktuality", search: { tile: "oznamy", sub: "rss" } });
         return;
       }
 

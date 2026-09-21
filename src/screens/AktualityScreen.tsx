@@ -23,7 +23,10 @@ import {
   Vote,
   MessageSquare,
   Info,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanupExpiredAnnouncements, syncRssIfNeeded } from "@/lib/rss-sync";
 import { isIosDevice } from "@/lib/pwa";
@@ -95,16 +98,22 @@ const TILES = [
     colorClass: "bg-blue-500 text-white",
   },
   {
-    id: "rss",
-    label: "RSS oznamy obce",
-    icon: <Rss className="h-5 w-5" />,
+    id: "kalendar",
+    label: "Kalendár",
+    icon: <CalendarDays className="h-5 w-5" />,
+    colorClass: "bg-blue-500 text-white",
+  },
+  {
+    id: "oznamy",
+    label: "Oznamy",
+    icon: <Megaphone className="h-5 w-5" />,
     colorClass: "bg-emerald-500 text-white",
   },
   {
-    id: "odpad",
-    label: "Kalendár zberu odpadu",
-    icon: <Recycle className="h-5 w-5" />,
-    colorClass: "bg-amber-800 text-white",
+    id: "organizacie",
+    label: "Organizácie v obci",
+    icon: <Users className="h-5 w-5" />,
+    colorClass: "bg-violet-600 text-white",
   },
   {
     id: "kontakty",
@@ -113,42 +122,63 @@ const TILES = [
     colorClass: "bg-slate-600 text-white",
   },
   {
-    id: "rozhlas",
-    label: "Digitálny rozhlas",
-    icon: <Radio className="h-5 w-5" />,
-    colorClass: "bg-orange-500 text-white",
-  },
-  {
-    id: "dhz",
-    label: "DHZ Ružindol",
-    icon: <Flame className="h-5 w-5" />,
-    colorClass: "bg-red-500 text-white",
-  },
-  {
-    id: "osk",
-    label: "OŠK Ružindol",
-    icon: <Trophy className="h-5 w-5" />,
-    colorClass: "bg-indigo-500 text-white",
-  },
-  {
-    id: "seniori",
-    label: "Dôchodcovia",
-    icon: <HeartHandshake className="h-5 w-5" />,
-    colorClass: "bg-rose-500 text-white",
-  },
-  {
-    id: "farnost",
-    label: "Farnosť",
-    icon: <Church className="h-5 w-5" />,
-    colorClass: "bg-purple-600 text-white",
-  },
-  {
     id: "sluzby",
     label: "Služby & Firmy",
     icon: <Wrench className="h-5 w-5" />,
     colorClass: "bg-teal-600 text-white",
   },
 ];
+
+/**
+ * Podvoľby zlúčených sekcií. Ikony, farby a názvy sú 1:1 pôvodné (z pôvodných
+ * samostatných dlaždíc), takže dizajn ani prekliky sa nijako nemenia.
+ */
+type SubTile = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  colorClass: string;
+};
+
+const SUBTILES_BY_TILE: Record<string, SubTile[]> = {
+  // Kalendár = zberový kalendár (odpad) + kalendár podujatí v jednej sekcii.
+  kalendar: [
+    {
+      id: "podujatia",
+      label: "Podujatia",
+      icon: CalendarDays,
+      colorClass: "bg-blue-500 text-white",
+    },
+    {
+      id: "odpad",
+      label: "Kalendár zberu odpadu",
+      icon: Recycle,
+      colorClass: "bg-amber-800 text-white",
+    },
+  ],
+  // Oznamy = RSS oznamy obce + digitálny rozhlas v jednej sekcii.
+  oznamy: [
+    { id: "rss", label: "RSS oznamy obce", icon: Rss, colorClass: "bg-emerald-500 text-white" },
+    {
+      id: "rozhlas",
+      label: "Digitálny rozhlas",
+      icon: Radio,
+      colorClass: "bg-orange-500 text-white",
+    },
+  ],
+  // Organizácie v obci = DHZ, OŠK, Dôchodcovia, Farnosť.
+  organizacie: [
+    { id: "dhz", label: "DHZ Ružindol", icon: Flame, colorClass: "bg-red-500 text-white" },
+    { id: "osk", label: "OŠK Ružindol", icon: Trophy, colorClass: "bg-indigo-500 text-white" },
+    {
+      id: "seniori",
+      label: "Dôchodcovia",
+      icon: HeartHandshake,
+      colorClass: "bg-rose-500 text-white",
+    },
+    { id: "farnost", label: "Farnosť", icon: Church, colorClass: "bg-purple-600 text-white" },
+  ],
+};
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -166,11 +196,23 @@ function isExpired(item: Announcement) {
 export function AktualityScreen() {
   const { profile, userId } = useCurrentUser();
   const { electionsEnabled } = useAppSettings();
+  const navigate = useNavigate();
+  // Hĺbkový preklik z iných sekcií (napr. Obecný hlásnik): /aktuality?tile=oznamy&sub=rss
+  const search = useSearch({ strict: false }) as { tile?: string; sub?: string };
+
+  const knownTiles = new Set(TILES.map((t) => t.id).concat("elections"));
+  const initialTile = search.tile && knownTiles.has(search.tile) ? search.tile : null;
+  const initialSub =
+    initialTile && search.sub && SUBTILES_BY_TILE[initialTile]?.some((s) => s.id === search.sub)
+      ? search.sub
+      : null;
+
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [activeTile, setActiveTile] = useState<string | null>(null);
+  const [activeTile, setActiveTile] = useState<string | null>(initialTile);
+  const [activeSub, setActiveSub] = useState<string | null>(initialSub);
 
   const currentYear = new Date().getFullYear();
   const isOfficial = profile?.role === "Starosta" || profile?.role === "Uradnik";
@@ -210,6 +252,31 @@ export function AktualityScreen() {
 
   const isAdmin = profile?.role === "Starosta" || profile?.role === "Uradnik";
   const useIosBackNav = isIosDevice();
+
+  /** Synchronizuje aktívnu sekciu do URL, aby fungovali hĺbkové prekliky (replace, bez histórie). */
+  const syncUrl = useCallback(
+    (tile: string | null, sub: string | null = null) => {
+      void navigate({
+        to: "/aktuality",
+        search: () => (tile ? (sub ? { tile, sub } : { tile }) : {}),
+        replace: true,
+      });
+    },
+    [navigate],
+  );
+
+  function openTile(tileId: string) {
+    triggerHaptic("light");
+    setActiveTile(tileId);
+    setActiveSub(null);
+    syncUrl(tileId, null);
+  }
+
+  function openSubTile(subId: string) {
+    triggerHaptic("light");
+    setActiveSub(subId);
+    syncUrl(activeTile, subId);
+  }
 
   const load = useCallback(async () => {
     const [rssRes, internalRes, officeRes] = await Promise.all([
@@ -321,6 +388,10 @@ export function AktualityScreen() {
   const rest = items.filter((i) => !pinOrder.includes(i.priority));
   const rssAnnouncements = items.filter((i) => i.source === "rss");
   const internalAnnouncements = items.filter((i) => i.source === "internal");
+  const activeTileMeta = dynamicTiles.find((t) => t.id === activeTile);
+  const activeSubMeta = activeTile
+    ? SUBTILES_BY_TILE[activeTile]?.find((s) => s.id === activeSub)
+    : undefined;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col">
@@ -367,10 +438,7 @@ export function AktualityScreen() {
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setActiveTile(t.id);
-                  }}
+                  onClick={() => openTile(t.id)}
                   className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)] shadow-sm"
                 >
                   <span
@@ -392,7 +460,14 @@ export function AktualityScreen() {
                 type="button"
                 onClick={() => {
                   triggerHaptic("light");
+                  if (activeSub) {
+                    // Späť na výber podsekcii v zlúčenej dlaždici.
+                    setActiveSub(null);
+                    syncUrl(activeTile, null);
+                    return;
+                  }
                   setActiveTile(null);
+                  syncUrl(null);
                 }}
                 className="btn-primary-glow flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold"
                 aria-label="Zatvoriť a späť na ponuku"
@@ -400,16 +475,29 @@ export function AktualityScreen() {
                 <ArrowLeft className="h-4 w-4" /> Zatvoriť / Späť na ponuku ikon
               </button>
               <span className="text-xs font-semibold text-primary">
-                {dynamicTiles.find((t) => t.id === activeTile)?.label}
+                {activeTileMeta?.label}
+                {activeSubMeta ? ` · ${activeSubMeta.label}` : ""}
               </span>
             </div>
 
             <div className="flex-1 pb-8">
               {activeTile === "elections" && <ElectionsScreen />}
               {activeTile === "podnety" && <InquiriesScreen />}
-              {activeTile === "calendar" && <SharedCalendar />}
-              {activeTile === "odpad" && <SharedCalendar categoryFilter="odpad" />}
-              {activeTile === "rss" && (
+
+              {/* Kalendár – zlúčená sekcia (podujatia + zber odpadu): najprv výber podsekcii */}
+              {activeTile === "kalendar" && !activeSub && (
+                <SubTileGrid tiles={SUBTILES_BY_TILE.kalendar} onPick={openSubTile} />
+              )}
+              {activeTile === "kalendar" && activeSub === "podujatia" && <SharedCalendar />}
+              {activeTile === "kalendar" && activeSub === "odpad" && (
+                <SharedCalendar categoryFilter="odpad" />
+              )}
+
+              {/* Oznamy – zlúčená sekcia (RSS + digitálny rozhlas): najprv výber podsekcii */}
+              {activeTile === "oznamy" && !activeSub && (
+                <SubTileGrid tiles={SUBTILES_BY_TILE.oznamy} onPick={openSubTile} />
+              )}
+              {activeTile === "oznamy" && activeSub === "rss" && (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-foreground">
@@ -454,7 +542,7 @@ export function AktualityScreen() {
                   )}
                 </div>
               )}
-              {activeTile === "rozhlas" && (
+              {activeTile === "oznamy" && activeSub === "rozhlas" && (
                 <div className="flex flex-col gap-5">
                   <div className="app-card rounded-3xl p-5 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
@@ -633,10 +721,22 @@ export function AktualityScreen() {
                   )}
                 </div>
               )}
-              {activeTile === "dhz" && <AktualityGroupsPanel initialGroup="dhz" />}
-              {activeTile === "osk" && <AktualityGroupsPanel initialGroup="osk_ruzindol" />}
-              {activeTile === "seniori" && <AktualityGroupsPanel initialGroup="dochodcovia" />}
-              {activeTile === "farnost" && <AktualityGroupsPanel initialGroup="farnost" />}
+              {/* Organizácie v obci – zlúčená sekcia: najprv výber podsekcii */}
+              {activeTile === "organizacie" && !activeSub && (
+                <SubTileGrid tiles={SUBTILES_BY_TILE.organizacie} onPick={openSubTile} />
+              )}
+              {activeTile === "organizacie" && activeSub === "dhz" && (
+                <AktualityGroupsPanel initialGroup="dhz" />
+              )}
+              {activeTile === "organizacie" && activeSub === "osk" && (
+                <AktualityGroupsPanel initialGroup="osk_ruzindol" />
+              )}
+              {activeTile === "organizacie" && activeSub === "seniori" && (
+                <AktualityGroupsPanel initialGroup="dochodcovia" />
+              )}
+              {activeTile === "organizacie" && activeSub === "farnost" && (
+                <AktualityGroupsPanel initialGroup="farnost" />
+              )}
               {activeTile === "sluzby" && <AktualityGroupsPanel initialGroup="sluzby" />}
             </div>
           </div>
@@ -654,6 +754,35 @@ export function AktualityScreen() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Výber podsekcii v zlúčenej dlaždici – vizuálne 1:1 rovnaké dlaždice ako v hlavnej
+ * ponuke (rovnaké karty, veľkosť ikon `h-12 w-12` s `rounded-full` a farebné pozadia).
+ */
+function SubTileGrid({ tiles, onPick }: { tiles: SubTile[]; onPick: (id: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {tiles.map((t) => {
+        const Icon = t.icon;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onPick(t.id)}
+            className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center shadow-sm transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)]"
+          >
+            <span
+              className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm ${t.colorClass}`}
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="text-xs font-semibold leading-tight text-foreground">{t.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
