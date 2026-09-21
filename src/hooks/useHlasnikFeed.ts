@@ -6,9 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
  * Obecný hlásnik – kompaktný feed oficiálnych a dôležitých informácií.
  *
  * Zdrojové tabuľky (zámerne len oficiálne zdroje):
- *  - `announcements` (`source = 'rss'`)  → RSS aktuality
- *  - `events` (typ ≠ `odpad`, od dneška) → udalosti z kalendára
- *  - `events` (typ = `odpad`, od dneška) → zberový kalendár / harmonogram vývozu
+ *  - `announcements` (`source = 'rss'`)  → RSS aktuality, maximálne 5 dní od publikovania
+ *  - `events` (typ ≠ `odpad`, iba DNES)  → udalosti z kalendára konajúce sa dnešným dňom
+ *  - `events` (typ = `odpad`, iba DNES)  → zberový kalendár / vývoz odpadu, len dnešný termín
+ *
+ * Pre kalendár aj zber odpadu platí prísne pravidlo: zobrazujú sa VÝHRADNE udalosti
+ * pripadajúce na dnešný deň (porovnanie dátumu, bez ohľadu na čas) – žiadne včerajšie,
+ * staršie ani budúce.
  *
  * Susedské príspevky (`posts`), susedské dopyty/ponuky zo skladu (`warehouse_items`)
  * a ostatné komunitné moduly tu zámerne nie sú – majú vlastné záložky a nesmú sa
@@ -25,8 +29,11 @@ const PER_SOURCE_LIMIT = 4;
 /** Koľko položiek napokon zostane v kompaktnom feede (kvôli miestu na obrazovke). */
 const FEED_LIMIT = 4;
 
-/** Zberový kalendár – v kompaktnom feede stačia najbližšie dva termíny. */
+/** Zberový kalendár – v kompaktnom feede stačia dnešné termíny (max. dva). */
 const WASTE_LIMIT = 2;
+
+/** RSS aktuality – zobrazujeme maximálne 5 dní od publikovania. */
+const NEWS_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
 
 /** Maximálna dĺžka doplňujúcej informácie (zobrazuje sa len ako tooltip). */
 const META_MAX_LENGTH = 160;
@@ -83,16 +90,25 @@ function buildMeta(...values: Array<string | null | undefined>): string | undefi
 }
 
 function mapAnnouncements(rows: AnnouncementFeedRow[] | null): FeedItem[] {
-  return (rows ?? [])
-    .filter((row) => !isExpiredIso(row.expires_at))
-    .slice(0, PER_SOURCE_LIMIT)
-    .map((row) => ({
-      id: `aktuality:${row.id}`,
-      source: "aktuality",
-      title: normalizeText(row.title) || "Aktualita",
-      date: row.published_at,
-      meta: buildMeta("RSS obecného úradu", row.content),
-    }));
+  const oldestAllowed = Date.now() - NEWS_MAX_AGE_MS;
+
+  return (
+    (rows ?? [])
+      .filter((row) => !isExpiredIso(row.expires_at))
+      // Len čerstvé aktuality – maximálne 5 dní od publikovania.
+      .filter((row) => {
+        const ts = new Date(row.published_at).getTime();
+        return Number.isFinite(ts) && ts >= oldestAllowed;
+      })
+      .slice(0, PER_SOURCE_LIMIT)
+      .map((row) => ({
+        id: `aktuality:${row.id}`,
+        source: "aktuality",
+        title: normalizeText(row.title) || "Aktualita",
+        date: row.published_at,
+        meta: buildMeta("RSS obecného úradu", row.content),
+      }))
+  );
 }
 
 function mapCalendarEvents(rows: EventFeedRow[] | null): FeedItem[] {
@@ -126,6 +142,13 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
   startOfToday.setHours(0, 0, 0, 0);
   const todayIso = startOfToday.toISOString();
 
+  // Koniec dnešného dňa (exkluzívna hranica) – spolu s `todayIso` tak vyberieme
+  // VÝHRADNE udalosti pripadajúce na dnešný deň (žiadne včerajšie, staršie ani budúce).
+  const endOfToday = new Date();
+  endOfToday.setHours(0, 0, 0, 0);
+  endOfToday.setDate(endOfToday.getDate() + 1);
+  const endOfTodayIso = endOfToday.toISOString();
+
   const [announcementsRes, eventsRes, wasteRes] = await Promise.all([
     supabase
       .from("announcements")
@@ -133,18 +156,22 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
       .eq("source", "rss")
       .order("published_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT * 2),
+    // Udalosti kalendára – len tie, ktoré sa konajú DNES.
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .neq("type", "odpad")
       .gte("starts_at", todayIso)
+      .lt("starts_at", endOfTodayIso)
       .order("starts_at", { ascending: false })
       .limit(PER_SOURCE_LIMIT),
+    // Zberový kalendár (vývoz odpadu) – len termíny pripadajúce na DNES.
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .eq("type", "odpad")
       .gte("starts_at", todayIso)
+      .lt("starts_at", endOfTodayIso)
       .order("starts_at", { ascending: true })
       .limit(WASTE_LIMIT),
   ]);
