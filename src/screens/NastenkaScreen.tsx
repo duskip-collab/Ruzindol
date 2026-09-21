@@ -422,15 +422,15 @@ export function NastenkaScreen() {
         </div>
       )}
 
-      {/* Obecný hlásnik – jednotná časová os najnovších informácií zo všetkých zdrojov */}
+      {/* Obecný hlásnik – kompaktný feed (RSS aktuality, kalendár, vývoz odpadu) */}
       <ObecnyHlasnik />
 
-      {/* Hlásnik */}
+      {/* Úradné oznamy (pôvodná sekcia „Obecný hlásnik“ – oficiálne oznamy a rozhlas) */}
       <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
         <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
           <div>
             <h2 className="text-base font-semibold tracking-tight text-foreground">
-              📢 Obecný hlásnik
+              📢 Úradné oznamy
             </h2>
             <p className="text-[11px] text-muted-foreground">
               Oficiálne oznamy a digitálny rozhlas
