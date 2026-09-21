@@ -41,8 +41,12 @@ const SOURCE_META: Record<FeedSource, SourceMeta> = {
   },
 };
 
-/** Krátky dátum pre kompaktný riadok (dnes / zajtra / včera / d. m.). */
-function compactDate(iso: string) {
+/**
+ * Kompaktný dátum do pätičky kartičky.
+ * Najbližšie dni relatívne („DNES“, „ZAJTRA“, „VČERA“), inak krátky tvar „22. SEP“
+ * (pri inom roku doplnený o rok), aby zaberal minimum miesta.
+ */
+function cardDate(iso: string) {
   const ts = new Date(iso).getTime();
   if (!Number.isFinite(ts)) return "";
 
@@ -56,12 +60,18 @@ function compactDate(iso: string) {
   ).getTime();
   const dayDiff = Math.round((startOfTarget - startOfToday) / 86400000);
 
-  if (dayDiff === 0) return "dnes";
-  if (dayDiff === 1) return "zajtra";
-  if (dayDiff === -1) return "včera";
-  if (dayDiff < -1 && dayDiff >= -7) return `pred ${Math.abs(dayDiff)} d.`;
+  if (dayDiff === 0) return "DNES";
+  if (dayDiff === 1) return "ZAJTRA";
+  if (dayDiff === -1) return "VČERA";
 
-  return target.toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" });
+  const month = target
+    .toLocaleDateString("sk-SK", { month: "short" })
+    .replace(".", "")
+    .toLocaleUpperCase("sk-SK");
+  const withMonth = `${target.getDate()}. ${month}`;
+
+  if (target.getFullYear() === now.getFullYear()) return withMonth;
+  return `${withMonth} ${target.getFullYear()}`;
 }
 
 /** Plný popis pre tooltip (na dotykových zariadeniach sa nezobrazuje, ale nič nekazí). */
@@ -73,9 +83,10 @@ function tooltipFor(item: FeedItem) {
  * Obecný hlásnik – kompaktný prehľad najnovších oficiálnych informácií:
  * RSS aktuality, udalosti z kalendára a termíny vývozu odpadu.
  *
- * Každá položka je jeden nízky riadok (ikonka · štítok · názov · dátum · šípka),
- * kliknutie presmeruje na príslušnú záložku. Susedské príspevky a sklad tu nie sú –
- * majú vlastné záložky a nesmú sa duplikovať.
+ * Položky sú malé kartičky v jednom vodorovne posúvateľnom riadku (bez viditeľného
+ * scrollbaru). Každá kartička má hore ikonku so štítkom zdroja, názov na max. 2 riadky
+ * a dole kompaktný dátum. Kliknutie presmeruje na príslušnú záložku. Susedské príspevky
+ * a sklad tu nie sú – majú vlastné záložky a nesmú sa duplikovať.
  *
  * Ak nie sú k dispozícii žiadne dáta, komponent sa vôbec nevykreslí.
  */
@@ -106,58 +117,62 @@ export function ObecnyHlasnik() {
   if (items.length === 0) return null;
 
   return (
-    <div className="px-4 pt-3 md:px-6">
-      <section className="rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] px-2 py-1.5 shadow-sm">
-        <header className="flex items-center justify-between px-1 pb-0.5 pt-1">
-          <h2 className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground">
-            <Radio className="h-3.5 w-3.5 text-primary" />
-            Obecný hlásnik
-          </h2>
-          <Link to="/aktuality" className="text-[11px] font-medium text-primary hover:underline">
-            Všetky aktuality
-          </Link>
-        </header>
+    <section className="pt-3">
+      <header className="flex items-center justify-between gap-2 px-4 pb-1.5 md:px-6">
+        <h2 className="flex items-center gap-1.5 text-[13px] font-semibold tracking-tight text-foreground">
+          <Radio className="h-3.5 w-3.5 text-primary" />
+          Obecný hlásnik
+        </h2>
+        <Link to="/aktuality" className="text-[11px] font-medium text-primary hover:underline">
+          Všetky aktuality
+        </Link>
+      </header>
 
-        <ul className="divide-y divide-[color:var(--border-card)]">
-          {items.map((item) => {
-            const meta = SOURCE_META[item.source];
-            const Icon = meta.icon;
+      {/* Vodorovný posuvný pruh kartičiek – jeden riadok, skrytý scrollbar, snap na kartičku. */}
+      <div className="scrollbar-none flex flex-nowrap snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 pt-0.5 md:px-6 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => {
+          const meta = SOURCE_META[item.source];
+          const Icon = meta.icon;
 
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => handleOpen(item)}
-                  title={tooltipFor(item)}
-                  className="group flex min-h-11 w-full items-center gap-2 rounded-xl px-1 py-1.5 text-left transition-colors hover:bg-muted/60"
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleOpen(item)}
+              title={tooltipFor(item)}
+              aria-label={`${meta.label}: ${item.title}`}
+              className="group flex w-36 shrink-0 snap-start flex-col rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] p-2.5 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98]"
+            >
+              {/* Ikonka zdroja + farebný štítok */}
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-lg ${meta.iconClass}`}
                 >
-                  <span
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${meta.iconClass}`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
+                  <Icon className="h-3 w-3" />
+                </span>
+                <span
+                  className={`truncate rounded-full border px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}
+                >
+                  {meta.label}
+                </span>
+              </span>
 
-                  <span
-                    className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}
-                  >
-                    {meta.label}
-                  </span>
+              {/* Názov – vždy max. 2 riadky, aby výška kartičky nerástla */}
+              <span className="mt-1.5 line-clamp-2 min-h-[1.9rem] text-[11px] font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+                {item.title}
+              </span>
 
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground transition-colors group-hover:text-primary">
-                    {item.title}
-                  </span>
-
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {compactDate(item.date)}
-                  </span>
-
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    </div>
+              {/* Pätička – kompaktný dátum + šípka */}
+              <span className="mt-auto flex items-center justify-between gap-1 border-t border-[color:var(--border-card)] pt-1.5">
+                <span className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {cardDate(item.date)}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
