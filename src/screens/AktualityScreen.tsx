@@ -92,12 +92,6 @@ const TILES = [
     colorClass: "bg-emerald-600 text-white",
   },
   {
-    id: "calendar",
-    label: "Zdieľaný kalendár",
-    icon: <CalendarDays className="h-5 w-5" />,
-    colorClass: "bg-blue-500 text-white",
-  },
-  {
     id: "kalendar",
     label: "Kalendár",
     icon: <CalendarDays className="h-5 w-5" />,
