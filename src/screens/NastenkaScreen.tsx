@@ -24,6 +24,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 import { ImageInput } from "@/components/ImageInput";
 import { BanBanner } from "@/components/BanBanner";
+import { ObecnyHlasnik } from "@/components/ObecnyHlasnik";
 import { uploadCompressedImage } from "@/lib/upload-image";
 import type { CompressedImage } from "@/lib/compress-image";
 import { supabase } from "@/integrations/supabase/client";
@@ -420,6 +421,9 @@ export function NastenkaScreen() {
           </div>
         </div>
       )}
+
+      {/* Obecný hlásnik – jednotná časová os najnovších informácií zo všetkých zdrojov */}
+      <ObecnyHlasnik />
 
       {/* Hlásnik */}
       <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
