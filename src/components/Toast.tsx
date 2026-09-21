@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { triggerHaptic, HapticType } from '../lib/haptics';
-import { cn } from '../lib/utils';
+import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, AlertCircle, X } from "lucide-react";
+import { triggerHaptic, HapticType } from "../lib/haptics";
+import { cn } from "../lib/utils";
 
-export type ToastType = 'success' | 'error';
+export type ToastType = "success" | "error";
 
 export interface ToastProps {
   isVisible: boolean;
@@ -27,7 +27,7 @@ export const Toast: React.FC<ToastProps> = ({
 }) => {
   useEffect(() => {
     if (isVisible) {
-      const hapticType: HapticType = type === 'success' ? 'success' : 'error';
+      const hapticType: HapticType = type === "success" ? "success" : "error";
       triggerHaptic(hapticType);
 
       if (duration > 0) {
@@ -40,7 +40,7 @@ export const Toast: React.FC<ToastProps> = ({
     }
   }, [isVisible, type, duration, onClose]);
 
-  const isSuccess = type === 'success';
+  const isSuccess = type === "success";
 
   return (
     <AnimatePresence>
@@ -52,13 +52,13 @@ export const Toast: React.FC<ToastProps> = ({
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
         >
           <div
             className={cn(
-              'pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur-md transition-colors',
-              'bg-white/95 text-slate-900 border-slate-200 dark:bg-slate-900/95 dark:text-white dark:border-slate-800',
-              className
+              "pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur-md transition-colors",
+              "bg-white/95 text-slate-900 border-slate-200 dark:bg-slate-900/95 dark:text-white dark:border-slate-800",
+              className,
             )}
           >
             <div className="mt-0.5 shrink-0">

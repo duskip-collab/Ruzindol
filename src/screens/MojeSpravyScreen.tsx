@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SafeChat } from "@/components/SafeChat";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 import { resolveWarehouseExpiry } from "@/lib/warehouse";
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
 type ChatRow = {
   id: string;
@@ -14,7 +15,14 @@ type ChatRow = {
   created_at: string;
 };
 
-type ItemRow = { id: string; title: string; user_id: string; type: string; created_at: string; expires_at: string | null };
+type ItemRow = {
+  id: string;
+  title: string;
+  user_id: string;
+  type: string;
+  created_at: string;
+  expires_at: string | null;
+};
 type ProfileRow = { id: string; name: string | null };
 type LastMessage = { chat_id: string; text: string; created_at: string; sender_id: string };
 
@@ -88,7 +96,11 @@ export function MojeSpravyScreen() {
         withTimeout(
           () =>
             retryAsync(
-              () => supabase.from("warehouse_items").select("id, title, user_id, type, created_at, expires_at").in("id", itemIds),
+              () =>
+                supabase
+                  .from("warehouse_items")
+                  .select("id, title, user_id, type, created_at, expires_at")
+                  .in("id", itemIds),
               { retries: 1, delayMs: 250 },
             ),
           7000,
@@ -124,11 +136,13 @@ export function MojeSpravyScreen() {
         .filter((chat) => {
           const item = itemMap.get(chat.item_id);
           if (!item) return true;
-          return resolveWarehouseExpiry(
-            item.type as "trh" | "darovanie" | "sklad_ponuka" | "sklad_dopyt",
-            item.created_at,
-            item.expires_at,
-          ).getTime() <= Date.now();
+          return (
+            resolveWarehouseExpiry(
+              item.type as "trh" | "darovanie" | "sklad_ponuka" | "sklad_dopyt",
+              item.created_at,
+              item.expires_at,
+            ).getTime() <= Date.now()
+          );
         })
         .map((chat) => chat.id);
       if (expiredChatIds.length > 0) {
@@ -183,46 +197,42 @@ export function MojeSpravyScreen() {
   // Realtime: new chats / new messages → refresh list.
   useEffect(() => {
     if (!userId) return;
-    
+
     let isMounted = true;
-    let channel: any = null;
-    
+    let channel: RealtimeChannel | null = null;
+
     const setupRealtime = async () => {
       try {
         // Generuj channel name VO VNÚTRI setupRealtime - NE v hlavnom tele!
         const randomSuffix = Math.random().toString(36).substring(2, 7);
         const channelName = `inbox-live-${userId}-${randomSuffix}`;
-        
+
         channel = supabase.channel(channelName, {
-          config: { broadcast: { ack: true } }
+          config: { broadcast: { ack: true } },
         });
-        
+
         channel
           .on(
             "postgres_changes",
             { event: "INSERT", schema: "public", table: "chats" },
-            (payload: any) => {
+            (payload: RealtimePostgresInsertPayload<ChatRow>) => {
               if (!isMounted) return;
-              const row = payload.new as ChatRow;
+              const row = payload.new;
               if (row.buyer_id === userId || row.seller_id === userId) void load();
-            }
+            },
           )
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "messages" },
-            () => {
-              if (isMounted) void load();
-            }
-          );
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+            if (isMounted) void load();
+          });
 
         await channel.subscribe((status: string) => {
           if (!isMounted) return;
-          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
-            console.warn('Inbox realtime status:', status);
+          if (status !== "SUBSCRIBED" && status !== "SUBSCRIBING") {
+            console.warn("Inbox realtime status:", status);
           }
         });
       } catch (err) {
-        console.error('Error setting up inbox realtime:', err);
+        console.error("Error setting up inbox realtime:", err);
       }
     };
 
@@ -234,7 +244,7 @@ export function MojeSpravyScreen() {
         void supabase.removeChannel(channel);
       }
     };
-  }, [userId]);
+  }, [userId, load]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -347,7 +357,9 @@ export function MojeSpravyScreen() {
                       </div>
                       <p className="truncate text-[11px] text-muted-foreground">📦 {c.itemTitle}</p>
                       <p className="mt-0.5 truncate text-xs text-[color:var(--text-secondary)]">
-                        {c.lastText ?? <span className="italic text-muted-foreground">Bez správ</span>}
+                        {c.lastText ?? (
+                          <span className="italic text-muted-foreground">Bez správ</span>
+                        )}
                       </p>
                     </div>
                     <span

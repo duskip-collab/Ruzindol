@@ -1,7 +1,9 @@
 # Implementácia Mazania Podnetov (Mayor Inquiries)
 
 ## Prehľad
+
 Bola implementovaná kompletná logika mazania podnetov s troma komponentami:
+
 1. **Autori** môžu zmazať svoje vlastné podnety
 2. **Starosta/Admin** môžu zmazať akýkoľvek podnet
 3. Automatické **notifikácie** pre autorov keď ich podnet vymažeme
@@ -9,9 +11,11 @@ Bola implementovaná kompletná logika mazania podnetov s troma komponentami:
 ---
 
 ## SQL Migrácia
+
 **Súbor:** `supabase/migrations/20260904131000_mayor_inquiries_delete_policy.sql`
 
 ### DELETE RLS Politika
+
 ```sql
 CREATE POLICY "podnety_delete_author_or_manager" ON public.mayor_inquiries
   FOR DELETE TO authenticated
@@ -22,10 +26,12 @@ CREATE POLICY "podnety_delete_author_or_manager" ON public.mayor_inquiries
 ```
 
 **Pravidlá:**
+
 - Autori (`user_id = auth.uid()`) môžu zmazať svoje podnety
 - Starosta/Admin (`is_inquiry_manager(auth.uid())`) môžu zmazať ľubovoľné podnety
 
 ### Trigger na Notifikácie
+
 Keď **admin/úradník** (nie autor) zmaže podnet, automaticky sa vytvorí notifikácia:
 
 ```sql
@@ -61,6 +67,7 @@ $$;
 ```
 
 **Ako funguje:**
+
 - Spustí sa pred zmazaním podnetu (BEFORE DELETE)
 - Kontroluje či mazačom je admin/úradník a či nie je autorom
 - Vytvorí notifikáciu len keď admin zmaže cudzi podnet
@@ -73,6 +80,7 @@ $$;
 ### 1. InquiryCard.tsx (Zmeny)
 
 **Nové importy:**
+
 - `useState` pre state mazania
 - `Trash2`, `Loader2` ikony
 - `supabase` klient
@@ -80,34 +88,33 @@ $$;
 - `triggerHaptic` haptic feedback
 
 **Nové props:**
+
 ```typescript
 export interface InquiryCardProps {
   inquiry: MayorInquiry;
   className?: string;
-  onDeleted?: () => void;  // Callback na refresh
+  onDeleted?: () => void; // Callback na refresh
 }
 ```
 
 **Nová logika:**
+
 ```typescript
 const { userId } = useCurrentUser();
 const [isDeleting, setIsDeleting] = useState(false);
 const isAuthor = userId === inquiry.user_id;
 
 const handleDelete = async () => {
-  if (!confirm('Naozaj chceš zmazať tento podnet? Túto akciu sa nedá vrátiť.')) return;
+  if (!confirm("Naozaj chceš zmazať tento podnet? Túto akciu sa nedá vrátiť.")) return;
 
   setIsDeleting(true);
   try {
-    const { error } = await supabase
-      .from('mayor_inquiries')
-      .delete()
-      .eq('id', inquiry.id);
+    const { error } = await supabase.from("mayor_inquiries").delete().eq("id", inquiry.id);
 
     if (error) throw error;
-    onDeleted?.();  // Refresh parent list
+    onDeleted?.(); // Refresh parent list
   } catch (err) {
-    alert('Nepodarilo sa zmazať podnet: ' + err.message);
+    alert("Nepodarilo sa zmazať podnet: " + err.message);
   } finally {
     setIsDeleting(false);
   }
@@ -115,22 +122,27 @@ const handleDelete = async () => {
 ```
 
 **Nový Footer s Delete Tlačidlom:**
+
 ```jsx
-{/* Delete button for author */}
-{isAuthor && (
-  <button
-    onClick={handleDelete}
-    disabled={isDeleting}
-    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors disabled:opacity-50"
-  >
-    {isDeleting ? (
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-    ) : (
-      <Trash2 className="h-3.5 w-3.5" />
-    )}
-    {isDeleting ? 'Mazanie...' : 'Zmazať podnet'}
-  </button>
-)}
+{
+  /* Delete button for author */
+}
+{
+  isAuthor && (
+    <button
+      onClick={handleDelete}
+      disabled={isDeleting}
+      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors disabled:opacity-50"
+    >
+      {isDeleting ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Trash2 className="h-3.5 w-3.5" />
+      )}
+      {isDeleting ? "Mazanie..." : "Zmazať podnet"}
+    </button>
+  );
+}
 ```
 
 ---
@@ -138,14 +150,17 @@ const handleDelete = async () => {
 ### 2. InquiriesScreen.tsx (Zmeny)
 
 **Callback na delete:**
+
 ```jsx
-{filteredInquiries.map((inq) => (
-  <InquiryCard 
-    key={inq.id} 
-    inquiry={inq} 
-    onDeleted={loadInquiries}  // Refresh list
-  />
-))}
+{
+  filteredInquiries.map((inq) => (
+    <InquiryCard
+      key={inq.id}
+      inquiry={inq}
+      onDeleted={loadInquiries} // Refresh list
+    />
+  ));
+}
 ```
 
 ---
@@ -160,27 +175,24 @@ const handleSubmitAnswers = async () => {
   // ... validation
 
   for (const inquiryId of selectedInquiries) {
-    const status = statuses[inquiryId] || 'pending';
+    const status = statuses[inquiryId] || "pending";
 
     // If status is "resolved", delete the inquiry
-    if (status === 'resolved') {
-      const { error } = await supabase
-        .from('mayor_inquiries')
-        .delete()
-        .eq('id', inquiryId);
+    if (status === "resolved") {
+      const { error } = await supabase.from("mayor_inquiries").delete().eq("id", inquiryId);
 
       if (error) throw error;
     } else {
       // Otherwise update normally
       const { error } = await supabase
-        .from('mayor_inquiries')
+        .from("mayor_inquiries")
         .update({
           answer: answer || null,
           status,
           answered_at: answer ? new Date().toISOString() : null,
           answered_by: userId,
         })
-        .eq('id', inquiryId);
+        .eq("id", inquiryId);
 
       if (error) throw error;
     }
@@ -193,6 +205,7 @@ const handleSubmitAnswers = async () => {
 ## User Flow (Scenáre)
 
 ### Scenár 1: Autor maže svoj podnet
+
 1. Autor otvorí InquiriesScreen
 2. V karte svojho podnetu vidí tlačidlo **"Zmazať podnet"** (ružové)
 3. Klikne na tlačidlo
@@ -202,6 +215,7 @@ const handleSubmitAnswers = async () => {
 7. **Bez notifikácie** (autor si to vymazal sám)
 
 ### Scenár 2: Admin zmaže podnet v MayorInquiriesDashboard
+
 1. Admin otvorí MayorInquiriesDashboard (panel rolí)
 2. Vyberie jeden/viacero podnetov
 3. Zmení stav na **"Vyriešené"**
@@ -209,8 +223,8 @@ const handleSubmitAnswers = async () => {
 5. Podnet sa zmaže (nie len update)
 6. Autor podnetu dostane **notifikáciu**:
    - Typ: `inquiry_deleted`
-   - Titulok: *"Váš podnet bol vymazaný"*
-   - Správa: *"Podnet '...' bol vymazaný. Dôvod: [Meno Admina]"*
+   - Titulok: _"Váš podnet bol vymazaný"_
+   - Správa: _"Podnet '...' bol vymazaný. Dôvod: [Meno Admina]"_
    - Priorita: `high`, `is_critical: true`
 
 ---
@@ -218,9 +232,11 @@ const handleSubmitAnswers = async () => {
 ## Tabuľky a Funkcie
 
 ### Tabuľka: `notifications`
+
 Už existujúca tabuľka s plnou RLS ochranou.
 
 **Polia:**
+
 - `user_id` - Komu ide notifikácia (author podnetu)
 - `type` - `'inquiry_deleted'`
 - `title` - Titulok notifikácie
@@ -230,9 +246,11 @@ Už existujúca tabuľka s plnou RLS ochranou.
 - `is_critical` - `true` (dôležitá notifikácia)
 
 ### Funkcia: `is_inquiry_manager(uuid)`
+
 Už existuje v `20260910120000_fix_podnety_rls_visibility_and_insert.sql`
 
 **Kontroluje či je používateľ:**
+
 - `is_admin = true` v profiles
 - `is_official = true` v profiles
 - `role IN ('Starosta', 'Uradnik')` v profiles
@@ -243,6 +261,7 @@ Už existuje v `20260910120000_fix_podnety_rls_visibility_and_insert.sql`
 ## Aplikovanie Migrácií
 
 V Supabase Dashboard (SQL Editor):
+
 ```bash
 1. Kopíruj obsah `20260904131000_mayor_inquiries_delete_policy.sql`
 2. Vložte do SQL Editora
@@ -250,6 +269,7 @@ V Supabase Dashboard (SQL Editor):
 ```
 
 Alebo cez CLI:
+
 ```bash
 supabase migration up --project-ref <project-id>
 ```
@@ -259,6 +279,7 @@ supabase migration up --project-ref <project-id>
 ## Testovanie
 
 ### Test 1: Autor maže svoj podnet
+
 - [ ] Prihlás sa ako obvyklý užívateľ (nie admin)
 - [ ] Vytvor nový podnet
 - [ ] V InquiriesScreen by si mal vidieť "Zmazať podnet" tlačidlo
@@ -266,6 +287,7 @@ supabase migration up --project-ref <project-id>
 - [ ] Podnet zmizne zo zoznamu
 
 ### Test 2: Admin zmaže podnet
+
 - [ ] Prihlás sa ako Starosta/Admin
 - [ ] Otvri panel rolí (RolePanels)
 - [ ] Prejdi na "Správa Podnetov"
@@ -275,6 +297,7 @@ supabase migration up --project-ref <project-id>
 - [ ] Autor by mal dostať notifikáciu
 
 ### Test 3: Notifications
+
 - [ ] Prihlás sa ako autor podnetu
 - [ ] Otvri NotificationCenter
 - [ ] Mali by si vidieť notifikáciu typu "inquiry_deleted" s červeným znakom (critical)
@@ -292,6 +315,7 @@ supabase migration up --project-ref <project-id>
 ---
 
 ## Súbory Zmenené
+
 1. ✅ `supabase/migrations/20260904131000_mayor_inquiries_delete_policy.sql` (nový)
 2. ✅ `src/components/mayor/InquiryCard.tsx` (delete button + logika)
 3. ✅ `src/components/mayor/MayorInquiriesDashboard.tsx` (auto-delete na "Vyriešené")
@@ -300,6 +324,7 @@ supabase migration up --project-ref <project-id>
 ---
 
 ## Build Status
+
 ✅ **npm run build** — Bez chýb
 ✅ **TypeScript** — Všetky typy OK
 ✅ **Production bundle** — ~735KB gzip

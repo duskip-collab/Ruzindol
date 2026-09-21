@@ -3,8 +3,9 @@
 ## ✅ Vykonané zmeny
 
 ### 1. **ElectionsScreen.tsx** - Rozšírenie o prílohy
-   
+
 #### Pridané:
+
 - **Type `Attachment`** - Typ pre prílohy z databázy
 - **State `attachments`** - Stav na uloženie načítaných prílohy
 - **Funkcia `handleEditElections()`** - Načítava existujúce voľby, kandidátov a prílohy
@@ -12,6 +13,7 @@
 - **Edit tlačítko** - Zmeny na zavolanie `handleEditElections()`
 
 #### Prílohy Sekcia:
+
 ```
 - Zobrazuje prílohy ako grid (1 stĺpec na mobiloch, 2 na desktop)
 - Obrázky: Náhľad s aspect-ratio 16:9
@@ -23,6 +25,7 @@
 ### 2. **ElectionsScreen.tsx** - Oprava uloženia prílohy
 
 #### Zmena v `handleSaveElection()`:
+
 - Všetky prílohy s `file_url` sa upsertujú do `elections_attachments` tabuľky
 - Dôvodejšej logiky: Filtroval sa iba prílohy bez ID začínajúceho 'new' (ktoré nikdy nie sú vytvárané)
 - Nová logika: Všetky prílohy s URL sa vložia do databázy
@@ -30,17 +33,20 @@
 ### 3. **Databáza - RLS a štruktúra**
 
 #### Existujúce tabuľky (bez zmien):
+
 - `elections` - Voľby (id, name, description, election_date, status, created_by, created_at, updated_at)
 - `election_candidates` - Kandidáti (election_id, sort_order)
 - `elections_attachments` - Prílohy (election_id, file_name, file_type, file_url, file_size_bytes, description, sort_order, uploaded_by)
 
 #### RLS Politiky:
+
 - **Čítanie**: Všetci autentifikovaní môžu čítať aktívne voľby a prílohy
 - **Písanie**: Iba admin, starosta a úradník (is_admin=true, is_official=true)
 
 ## 🧪 Testovací plán
 
 ### Test 1: Vytvorenie novej voľby s prílohou
+
 1. Prejdite na "Aktuality" → "Voľby"
 2. Kliknite na Edit ikonu (iba ak ste admin/starosta/úradník)
 3. Vyplňte základné informácie (názov, popis, dátum)
@@ -51,6 +57,7 @@
 8. **Očakávané**: Prílohy sa zobrazia v sekcii "Dokumenty a fotografie"
 
 ### Test 2: Editácia existujúcej voľby
+
 1. Kliknite na Edit ikonu
 2. **Očakávané**: Modal by mal obsahovať všetky existujúce kandidáty a prílohy
 3. Zmene niečo (napr. názov, pridajte kandidáta)
@@ -58,12 +65,14 @@
 5. **Očakávané**: Všetky zmeny by mali byť uložené
 
 ### Test 3: Zobrazenie prílohy pre susedov
+
 1. Prejdite na "Aktuality" → "Voľby" (ako normálny sused bez práv na úpravu)
 2. **Očakávané**: Vidíte kandidátov a prílohy
 3. Kliknite na prílohu (obrázok alebo PDF)
 4. **Očakávané**: Súbor sa otvorí v novej záložke
 
 ### Test 4: Mazanie prílohy
+
 1. Otvrite Edit modál (ako admin/starosta/úradník)
 2. Prejdite na "Prílohy"
 3. Nájdite prílohu v zozname
@@ -73,6 +82,7 @@
 7. **Očakávané**: Príloha je vymazaná z databázy a v Voľby sekcie
 
 ### Test 5: Mazanie kandidátov
+
 1. Otvrite Edit modál
 2. Prejdite na "Starosta" alebo "Poslanci"
 3. Kliknite na ikonku koša vedľa kandidáta
@@ -81,6 +91,7 @@
 6. **Očakávané**: Kandidát je vymazaný z databázy
 
 ### Test 6: Mobilný responsive
+
 1. Otvorte aplikáciu na mobilnom zariadení (390px - iPhone 12)
 2. Prejdite na "Voľby"
 3. **Očakávané**: Prílohy sa zobrazia ako 1-stĺpcový grid
@@ -91,6 +102,7 @@
 ## 📊 Štruktúra súborov
 
 ### Zmenené súbory:
+
 ```
 src/screens/ElectionsScreen.tsx
 ├── Importy: +FileText, +Image, +Download
@@ -104,6 +116,7 @@ src/screens/ElectionsScreen.tsx
 ```
 
 ### Nezmenené súbory:
+
 ```
 src/components/elections/ElectionsEditModal.tsx ✓
 src/components/elections/ElectionsAttachmentUpload.tsx ✓
@@ -118,27 +131,30 @@ src/components/AnimatedModal.tsx ✓
 ### API Volania:
 
 **Načítanie prílohy volieb:**
+
 ```javascript
 const { data: aData } = await supabase
-  .from('elections_attachments')
-  .select('*')
-  .order('sort_order', { ascending: true });
+  .from("elections_attachments")
+  .select("*")
+  .order("sort_order", { ascending: true });
 ```
 
 **Uloženie prílohy volieb:**
+
 ```javascript
 const { error: attachError } = await supabase
-  .from('elections_attachments')
+  .from("elections_attachments")
   .upsert(attachmentsToUpsert); // Všetky s file_url
 ```
 
 **Načítanie existujúcej voľby na edit:**
+
 ```javascript
 const { data: electionsData } = await supabase
-  .from('elections')
-  .select('*')
-  .eq('is_active', true)
-  .order('created_at', { ascending: false })
+  .from("elections")
+  .select("*")
+  .eq("is_active", true)
+  .order("created_at", { ascending: false })
   .limit(1);
 ```
 
@@ -162,13 +178,13 @@ transition-all transition-transform - Animácie
 
 ## 🚀 Budúce zlepšenia
 
-1. [  ] Súčasný PDF viewer v aplikácii (bez novej záložky)
-2. [  ] Image gallery s zoom a fullscreen
-3. [  ] Drag & drop reorder prílohy
-4. [  ] Súbor prílohy ako ZIP download
-5. [  ] Tagging prílohy (napr. "Kandidáti", "Info", atď.)
-6. [  ] Komentáre na prílohy
-7. [  ] Verzia histórie prílohy
+1. [ ] Súčasný PDF viewer v aplikácii (bez novej záložky)
+2. [ ] Image gallery s zoom a fullscreen
+3. [ ] Drag & drop reorder prílohy
+4. [ ] Súbor prílohy ako ZIP download
+5. [ ] Tagging prílohy (napr. "Kandidáti", "Info", atď.)
+6. [ ] Komentáre na prílohy
+7. [ ] Verzia histórie prílohy
 
 ## ✨ Záverečné poznámky
 
@@ -177,4 +193,3 @@ transition-all transition-transform - Animácie
 - RLS politiky sú bez zmien
 - Mobile-first prístup na zobrazenie prílohy
 - Aplikácia je pripravená na produkciu
-

@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { Upload, X, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
-import { triggerHaptic } from '@/lib/haptics';
+import React, { useState, useRef } from "react";
+import { Upload, X, Loader2, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
 
 export interface CandidatePhotoUploadProps {
   photo_url?: string | null;
@@ -15,7 +15,7 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
   photo_url,
   onChange,
   candidateId,
-  disabled = false
+  disabled = false,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,18 +23,18 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
 
   const validateFile = (file: File): boolean => {
     // Check file type (JPG, PNG, WebP)
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
-      setError('Iba JPG, PNG alebo WebP formáty sú povolené');
-      triggerHaptic('error');
+      setError("Iba JPG, PNG alebo WebP formáty sú povolené");
+      triggerHaptic("error");
       return false;
     }
 
     // Check file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setError('Súbor je príliš veľký (max 5MB)');
-      triggerHaptic('error');
+      setError("Súbor je príliš veľký (max 5MB)");
+      triggerHaptic("error");
       return false;
     }
 
@@ -49,52 +49,50 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
 
     setError(null);
     setUploading(true);
-    triggerHaptic('light');
+    triggerHaptic("light");
 
     try {
       // Generate unique file name
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(7);
-      const fileName = `${candidateId || 'new'}-${timestamp}-${randomStr}.jpg`;
+      const fileName = `${candidateId || "new"}-${timestamp}-${randomStr}.jpg`;
       const storagePath = `elections/candidates/${fileName}`;
 
       // Upload to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
-        .from('elections')
+        .from("elections")
         .upload(storagePath, file, {
           upsert: false,
-          contentType: file.type
+          contentType: file.type,
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
-        setError('Chyba pri nahrávaní fotky. Skúste neskôr.');
-        triggerHaptic('error');
+        console.error("Upload error:", uploadError);
+        setError("Chyba pri nahrávaní fotky. Skúste neskôr.");
+        triggerHaptic("error");
         setUploading(false);
         return;
       }
 
       // Get public URL
-      const { data: publicData } = supabase.storage
-        .from('elections')
-        .getPublicUrl(storagePath);
+      const { data: publicData } = supabase.storage.from("elections").getPublicUrl(storagePath);
 
       if (publicData?.publicUrl) {
         onChange(publicData.publicUrl);
         setError(null);
-        triggerHaptic('success');
+        triggerHaptic("success");
       } else {
-        setError('Chyba pri získavaní URL fotky');
-        triggerHaptic('error');
+        setError("Chyba pri získavaní URL fotky");
+        triggerHaptic("error");
       }
     } catch (err) {
-      console.error('Upload exception:', err);
-      setError('Neznáma chyba pri nahrávaní');
-      triggerHaptic('error');
+      console.error("Upload exception:", err);
+      setError("Neznáma chyba pri nahrávaní");
+      triggerHaptic("error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -102,7 +100,7 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
   const handleRemovePhoto = () => {
     setError(null);
     onChange(null);
-    triggerHaptic('light');
+    triggerHaptic("light");
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -124,8 +122,8 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
           input.files = dataTransfer.files;
-          
-          const event = new Event('change', { bubbles: true });
+
+          const event = new Event("change", { bubbles: true });
           input.dispatchEvent(event);
         }
       }
@@ -167,10 +165,10 @@ export const CandidatePhotoUpload: React.FC<CandidatePhotoUploadProps> = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         className={cn(
-          'relative rounded-lg border-2 border-dashed transition-all p-4 text-center',
+          "relative rounded-lg border-2 border-dashed transition-all p-4 text-center",
           uploading || disabled
-            ? 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 cursor-not-allowed opacity-50'
-            : 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 hover:border-blue-400 dark:hover:border-blue-600 cursor-pointer'
+            ? "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 cursor-not-allowed opacity-50"
+            : "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 hover:border-blue-400 dark:hover:border-blue-600 cursor-pointer",
         )}
       >
         <input

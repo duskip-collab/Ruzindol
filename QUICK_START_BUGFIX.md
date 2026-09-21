@@ -14,11 +14,13 @@
 ```
 
 **Čo sa zmenilo:**
+
 - Paralelizácia namiesto sekvencií
 - Timeouty na fetch requesty
 - Lepší error handling
 
 **Nasadenie:**
+
 ```bash
 cd supabase
 supabase functions deploy fetch-municipal-events
@@ -34,11 +36,13 @@ supabase functions deploy fetch-municipal-events
 ```
 
 **Čo sa zmenilo:**
+
 - Automatický fallback ak 'elections' bucket neexistuje
 - User-friendly chybové hlášky
 - Súbory sa vždy uložia (v 'public' ak treba)
 
 **Nasadenie:**
+
 ```bash
 # Vytvor bucket v Supabase Dashboard:
 # Storage → "New bucket" → Name: "elections" → Public: ON
@@ -52,17 +56,20 @@ supabase db push
 ## 📋 KROK ZA KROKOM
 
 ### 1. Edge Function (Backend)
+
 ```bash
 cd c:\Users\Admin\Documents\Projekt APP\LOvable PRO
 supabase functions deploy fetch-municipal-events --no-verify-jwt
 ```
 
 Expected output:
+
 ```
 ✅ Deployed function fetch-municipal-events
 ```
 
 ### 2. Storage Bucket (UI Supabase)
+
 1. Otvri https://app.supabase.com
 2. Vyber projekt
 3. Storage → "New bucket"
@@ -71,17 +78,20 @@ Expected output:
 6. Click "Create bucket"
 
 Expected result:
+
 ```
 ✅ Bucket 'elections' created
 ```
 
 ### 3. Aplikácia (Frontend)
+
 ```bash
 npm run build
 npm run deploy  # alebo tvoj deployment proces
 ```
 
 Expected output:
+
 ```
 ✅ built in 2.49s
 ✅ Deployed to production
@@ -92,18 +102,21 @@ Expected output:
 ## ✅ VERIFIKÁCIA
 
 ### Test 1: Upload súboru v app
+
 1. Vo vyrenderovanej aplikácii
 2. Vo Voľbách klikni "Edit"
 3. Tab "Prílohy"
 4. Drag&drop PDF alebo fotku
 
 Expected:
+
 ```
 ✅ Súbor sa nahrá bez chyby
 ✅ Zobrazí sa v zozname
 ```
 
 ### Test 2: Edge Function
+
 ```bash
 # V Supabase Dashboard → Functions → fetch-municipal-events → Logs
 # Skontroluj posledný run:
@@ -113,6 +126,7 @@ Expected:
 ```
 
 ### Test 3: Aplikácia bez Buckets
+
 ```
 ✅ Ak neexistujem 'elections' bucket:
   - Upload padá do 'public' bucketu
@@ -125,6 +139,7 @@ Expected:
 ## 🔍 DEBUGOVANIE
 
 **Chyba: Stále 504 timeout**
+
 ```
 1. Skontroluj Supabase Functions Logs
 2. Zvýš BATCH_SIZE z 3 na 5
@@ -132,6 +147,7 @@ Expected:
 ```
 
 **Chyba: Storage bucket not found aj po vytvorení**
+
 ```
 1. Refresh aplikácie (Ctrl+F5)
 2. Skontroluj či je bucket naozaj "Public"
@@ -139,6 +155,7 @@ Expected:
 ```
 
 **Chyba: RLS politiky blokujú upload**
+
 ```
 1. Storage → Settings → Row Level Security → ON
 2. Skontroluj: Storage → Policies
@@ -149,12 +166,12 @@ Expected:
 
 ## 📊 VÝSLEDKY
 
-| Metrika | Pred | Po | Zlepšenie |
-|---------|------|----|----|
-| Edge Function čas | 30-45s | 4-8s | **5x rýchlejší** ✅ |
-| Storage error | Crash app | Fallback + error | **Graceful** ✅ |
-| Build time | 4.65s | 2.49s | **2x rýchlejší** ✅ |
-| TypeScript errors | 0 | 0 | **Bezpečný** ✅ |
+| Metrika           | Pred      | Po               | Zlepšenie           |
+| ----------------- | --------- | ---------------- | ------------------- |
+| Edge Function čas | 30-45s    | 4-8s             | **5x rýchlejší** ✅ |
+| Storage error     | Crash app | Fallback + error | **Graceful** ✅     |
+| Build time        | 4.65s     | 2.49s            | **2x rýchlejší** ✅ |
+| TypeScript errors | 0         | 0                | **Bezpečný** ✅     |
 
 ---
 

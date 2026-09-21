@@ -181,8 +181,9 @@ export function NastenkaScreen() {
 
     setPosts(mapped);
 
-    const announcementsList = ((announcementsRes.data as Announcement[] | null) ?? [])
-      .filter((ann) => !isAnnouncementExpired(ann));
+    const announcementsList = ((announcementsRes.data as Announcement[] | null) ?? []).filter(
+      (ann) => !isAnnouncementExpired(ann),
+    );
     setAnnouncements(announcementsList);
 
     const postIds = mapped.map((post) => post.id);
@@ -346,12 +347,12 @@ export function NastenkaScreen() {
   }, [posts, q]);
 
   const oznamy = filtered.filter((p) => p.type === "hlasnik" || p.type === "official_alert");
-  
+
   const allNotices = useMemo(() => {
     return [
-      ...oznamy.map(p => ({
+      ...oznamy.map((p) => ({
         id: p.id,
-        type: 'post' as const,
+        type: "post" as const,
         title: p.title,
         content: p.content,
         createdAt: p.createdAt,
@@ -359,16 +360,16 @@ export function NastenkaScreen() {
         userName: p.userName,
         post: p,
       })),
-      ...announcements.map(a => ({
+      ...announcements.map((a) => ({
         id: a.id,
-        type: 'announcement' as const,
+        type: "announcement" as const,
         title: a.title,
         content: a.content,
         createdAt: a.published_at,
         imageUrl: null,
-        userName: a.author_id ?? 'Obecný rozhlas',
+        userName: a.author_id ?? "Obecný rozhlas",
         announcement: a,
-      }))
+      })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [oznamy, announcements]);
 
@@ -424,8 +425,12 @@ export function NastenkaScreen() {
       <section className="border-b border-[color:var(--border-card)] bg-[color:var(--bg-surface)] pb-3 text-foreground">
         <div className="flex items-center justify-between px-4 pb-2 pt-1 md:px-6">
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">📢 Obecný hlásnik</h2>
-            <p className="text-[11px] text-muted-foreground">Oficiálne oznamy a digitálny rozhlas</p>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
+              📢 Obecný hlásnik
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Oficiálne oznamy a digitálny rozhlas
+            </p>
           </div>
           {canCreateOfficialNotice && !isReadonly && (
             <button
@@ -442,8 +447,8 @@ export function NastenkaScreen() {
         {hasNotices && (
           <div className="overflow-x-auto md:overflow-visible">
             <div className="flex gap-3 px-4 pb-2 md:grid md:grid-cols-2 md:px-6 xl:grid-cols-3">
-              {allNotices.map((notice) => (
-                notice.type === 'post' && notice.post ? (
+              {allNotices.map((notice) =>
+                notice.type === "post" && notice.post ? (
                   <OfficialCard
                     key={notice.id}
                     post={notice.post}
@@ -457,20 +462,15 @@ export function NastenkaScreen() {
                     reported={notice.post.isReported || !!reportedByPost[notice.post.id]}
                     locked={!canWrite}
                   />
-                ) : notice.type === 'announcement' && notice.announcement ? (
-                  <AnnouncementNoticeCard
-                    key={notice.id}
-                    announcement={notice.announcement}
-                  />
-                ) : null
-              ))}
+                ) : notice.type === "announcement" && notice.announcement ? (
+                  <AnnouncementNoticeCard key={notice.id} announcement={notice.announcement} />
+                ) : null,
+              )}
             </div>
           </div>
         )}
         {!hasNotices && (
-          <div className="text-center py-6 text-xs text-neutral-500">
-            Zatiaľ žiadne oznamy.
-          </div>
+          <div className="text-center py-6 text-xs text-neutral-500">Zatiaľ žiadne oznamy.</div>
         )}
       </section>
 
@@ -559,9 +559,7 @@ export function NastenkaScreen() {
 function CategoryBadge({ category }: { category: string }) {
   const label = CATEGORY_LABEL[category as Category] ?? category;
   return (
-    <span className="chip-muted rounded-full px-2 py-0.5 text-[10px] font-medium">
-      {label}
-    </span>
+    <span className="chip-muted rounded-full px-2 py-0.5 text-[10px] font-medium">{label}</span>
   );
 }
 
@@ -595,15 +593,15 @@ function OfficialCard({
         <span className="text-[9px] text-muted-foreground">{timeAgo(post.createdAt)}</span>
       </div>
 
-      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">{post.title}</h3>
-      
+      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
+        {post.title}
+      </h3>
+
       <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
         {post.content}
       </p>
 
-      {reported && (
-        <div className="mt-1 text-[9px] font-medium text-rose-600">Nahlásené</div>
-      )}
+      {reported && <div className="mt-1 text-[9px] font-medium text-rose-600">Nahlásené</div>}
 
       <div className="mt-2 flex items-center justify-between pt-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
         <span className="truncate max-w-[100px]">{post.userName}</span>
@@ -627,7 +625,10 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const priorityConfig: Record<string, { label: string; icon: React.ReactNode; colorClass: string }> = {
+  const priorityConfig: Record<
+    string,
+    { label: string; icon: React.ReactNode; colorClass: string }
+  > = {
     vystraha: {
       label: "Výstraha",
       icon: <Siren className="h-3.5 w-3.5 text-red-500" />,
@@ -660,11 +661,14 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch((err) => {
-        console.error("Chyba pri prehrávaní audia:", err);
-      });
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.error("Chyba pri prehrávaní audia:", err);
+        });
     }
   };
 
@@ -672,18 +676,24 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
     <article className="flex h-full w-64 shrink-0 flex-col rounded-xl border border-border bg-card p-2.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
       <div className="mb-1.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <div className={`flex h-6 w-6 items-center justify-center rounded-md ${currentConfig.colorClass}`}>
+          <div
+            className={`flex h-6 w-6 items-center justify-center rounded-md ${currentConfig.colorClass}`}
+          >
             {currentConfig.icon}
           </div>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
             {currentConfig.label}
           </span>
         </div>
-        <span className="text-[9px] text-muted-foreground">{timeAgo(announcement.published_at)}</span>
+        <span className="text-[9px] text-muted-foreground">
+          {timeAgo(announcement.published_at)}
+        </span>
       </div>
 
-      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">{announcement.title}</h3>
-      
+      <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
+        {announcement.title}
+      </h3>
+
       <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
         {announcement.content}
       </p>
@@ -704,8 +714,8 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
             <button
               onClick={togglePlayAudio}
               className={`flex items-center gap-1 rounded-full px-2 py-0.5 font-medium transition ${
-                isPlaying 
-                  ? "bg-orange-500 text-white animate-pulse" 
+                isPlaying
+                  ? "bg-orange-500 text-white animate-pulse"
                   : "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20"
               }`}
             >
@@ -762,20 +772,14 @@ function NeighborCard({
             {post.userName.charAt(0)}
           </div>
           <div>
-            <div className="text-xs font-semibold text-foreground">
-              {post.userName}
-            </div>
+            <div className="text-xs font-semibold text-foreground">{post.userName}</div>
             <div className="text-[10px] text-muted-foreground">{timeAgo(post.createdAt)}</div>
           </div>
         </div>
         <CategoryBadge category={post.category} />
       </div>
 
-      {post.title && (
-        <p className="mt-2 text-sm font-semibold text-foreground">
-          {post.title}
-        </p>
-      )}
+      {post.title && <p className="mt-2 text-sm font-semibold text-foreground">{post.title}</p>}
       <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
         {post.content}
       </p>
@@ -876,7 +880,6 @@ function PostLightboxModal({
       {/* Hlavné celooknové okno detailu príspevku */}
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm">
         <div className="flex h-full max-h-[96vh] w-full max-w-3xl flex-col rounded-3xl bg-[color:var(--bg-surface)] shadow-2xl border border-[color:var(--border-card)] overflow-hidden">
-          
           {/* Header s tlačidlom X */}
           <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-5 py-4 bg-card/50">
             <div className="flex items-center gap-3">
@@ -912,12 +915,21 @@ function PostLightboxModal({
           {/* Obsah príspevku (rolovateľný) */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
             {post.title && <h2 className="text-lg font-bold text-foreground">{post.title}</h2>}
-            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">{post.content}</p>
+            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+              {post.content}
+            </p>
 
             {/* Fotografia s možnosťou kliknutia na celú plochu */}
             {post.imageUrl && (
-              <div className="relative group cursor-pointer overflow-hidden rounded-2xl border border-border bg-black/5" onClick={() => setFullImageOpen(true)}>
-                <img src={post.imageUrl} alt="" className="max-h-[50vh] w-full object-contain mx-auto" />
+              <div
+                className="relative group cursor-pointer overflow-hidden rounded-2xl border border-border bg-black/5"
+                onClick={() => setFullImageOpen(true)}
+              >
+                <img
+                  src={post.imageUrl}
+                  alt=""
+                  className="max-h-[50vh] w-full object-contain mx-auto"
+                />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white gap-2 text-xs font-semibold">
                   <Maximize2 className="h-5 w-5" /> Zväčšiť fotografiu
                 </div>
@@ -939,15 +951,21 @@ function PostLightboxModal({
 
             {/* Sekcia komentárov */}
             <div className="space-y-3 pt-4 border-t border-[color:var(--border-card)]">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Komentáre a odpovede</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Komentáre a odpovede
+              </h4>
               {replies.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic py-2">Zatiaľ žiadne komentáre. Buď prvý!</p>
+                <p className="text-xs text-muted-foreground italic py-2">
+                  Zatiaľ žiadne komentáre. Buď prvý!
+                </p>
               ) : (
                 replies.map((reply) => (
                   <div key={reply.id} className="rounded-2xl bg-muted/40 p-3 text-xs space-y-1">
                     <div className="flex items-center justify-between font-semibold text-foreground">
                       <span>{reply.userName}</span>
-                      <span className="text-[10px] text-muted-foreground">{timeAgo(reply.createdAt)}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {timeAgo(reply.createdAt)}
+                      </span>
                     </div>
                     <p className="text-muted-foreground">{reply.content}</p>
                   </div>
@@ -958,7 +976,10 @@ function PostLightboxModal({
 
           {/* Vstup pre komentár (Footer) */}
           {canWrite ? (
-            <form onSubmit={handleSendReply} className="border-t border-[color:var(--border-card)] p-3 sm:p-4 flex gap-2 bg-card">
+            <form
+              onSubmit={handleSendReply}
+              className="border-t border-[color:var(--border-card)] p-3 sm:p-4 flex gap-2 bg-card"
+            >
               <input
                 type="text"
                 value={replyContent}
@@ -994,7 +1015,11 @@ function PostLightboxModal({
             <X className="h-6 w-6" />
             <span>Zavrieť</span>
           </button>
-          <img src={post.imageUrl} alt="" className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl" />
+          <img
+            src={post.imageUrl}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl"
+          />
         </div>
       )}
     </>
@@ -1053,7 +1078,7 @@ function CreatePostModal({
       if (insertErr) throw insertErr;
 
       onCreated();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Chyba pri vytváraní príspevku:", err);
       setError("Nepodarilo sa vytvoriť príspevok. Skúste to znova.");
     } finally {
@@ -1068,19 +1093,23 @@ function CreatePostModal({
           <h3 className="text-base font-semibold text-foreground">
             {isOfficial ? "📢 Pridať úradný oznam" : "✍️ Nový susedský príspevok"}
           </h3>
-          <button onClick={onClose} className="rounded-full p-2 text-muted-foreground hover:bg-muted transition" title="Zavrieť">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 text-muted-foreground hover:bg-muted transition"
+            title="Zavrieť"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          {error && (
-            <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</div>
-          )}
+          {error && <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{error}</div>}
 
           {!isOfficial && (
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Kategória</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                Kategória
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as Category)}
@@ -1120,7 +1149,9 @@ function CreatePostModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Obrázok (nepovinné)</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Obrázok (nepovinné)
+            </label>
             <ImageInput value={compressedImage} onChange={setCompressedImage} />
           </div>
 

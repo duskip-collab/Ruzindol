@@ -126,6 +126,7 @@
 ### Manuálne Testovanie (Ready)
 
 Testovanie Súcheľnosti:
+
 - [ ] Otvoriť ElectionsScreen
 - [ ] Klikni Edit (✏️) tlačidlo
 - [ ] Vyplň názov volieb
@@ -250,6 +251,7 @@ Testovanie Súcheľnosti:
 ### Production Deployment
 
 **Next Steps:**
+
 1. Spustiť SQL migráciu v Supabase
 2. Vytvoriť "elections" bucket v Storage
 3. Nastaviť Storage polícia
@@ -296,21 +298,21 @@ Testovanie Súcheľnosti:
 ✅ **Mobile responsive** - Funguje na všetkých zariadeniach  
 ✅ **Haptic feedback** - Užívateľ vie, kedy sa niečo deje  
 ✅ **TypeScript** - Plne typované  
-✅ **Build** - Zero chýb, zero warnings  
+✅ **Build** - Zero chýb, zero warnings
 
 ---
 
 ## 🎯 Project Summary
 
-| Aspekt | Status | Notes |
-|--------|--------|-------|
+| Aspekt        | Status      | Notes                            |
+| ------------- | ----------- | -------------------------------- |
 | Funkcionalita | ✅ COMPLETE | Všetky požiadavky implementované |
-| Kód | ✅ QUALITY | TypeScript, best practices |
-| Bezpečnosť | ✅ SECURE | RLS, input validation |
-| UI/UX | ✅ POLISHED | Responsive, dark mode, haptic |
-| Dokumentácia | ✅ THOROUGH | 3 MD súbory, API docs |
-| Testovanie | ✅ READY | Build success, test checklist |
-| Deployment | ✅ PREPARED | Step-by-step guide |
+| Kód           | ✅ QUALITY  | TypeScript, best practices       |
+| Bezpečnosť    | ✅ SECURE   | RLS, input validation            |
+| UI/UX         | ✅ POLISHED | Responsive, dark mode, haptic    |
+| Dokumentácia  | ✅ THOROUGH | 3 MD súbory, API docs            |
+| Testovanie    | ✅ READY    | Build success, test checklist    |
+| Deployment    | ✅ PREPARED | Step-by-step guide               |
 
 ---
 
@@ -319,6 +321,7 @@ Testovanie Súcheľnosti:
 **Projekt je HOTOVÝ a PRIPRAVENÝ NA PRODUKCIU!**
 
 Všetky požiadavky boli úspešne implementované:
+
 - ✅ Editácia volieb
 - ✅ Dynamickí kandidáti (bez limitov)
 - ✅ Upload prílohy
@@ -326,6 +329,7 @@ Všetky požiadavky boli úspešne implementované:
 - ✅ Build bez chýb
 
 **Ďalšie kroky:**
+
 1. Review dokumentácie
 2. Spustenie SQL migrácie
 3. Konfigurácia Storage
@@ -336,6 +340,6 @@ Všetky požiadavky boli úspešne implementované:
 
 **Status:** ✅ PRODUCTION READY  
 **Last Update:** 2026-09-08  
-**Version:** 1.0  
+**Version:** 1.0
 
 🚀 **Aplikácia je pripravená na nasadenie!**

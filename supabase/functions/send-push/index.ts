@@ -8,7 +8,8 @@ const PUBLIC_VAPID_KEY =
   Deno.env.get("PUBLIC_VAPID_KEY") ||
   Deno.env.get("VITE_PUBLIC_VAPID_KEY") ||
   "";
-const PRIVATE_VAPID_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || Deno.env.get("PRIVATE_VAPID_KEY") || "";
+const PRIVATE_VAPID_KEY =
+  Deno.env.get("VAPID_PRIVATE_KEY") || Deno.env.get("PRIVATE_VAPID_KEY") || "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:podpora@mojisusedia.sk";
 
 if (PUBLIC_VAPID_KEY && PRIVATE_VAPID_KEY) {
@@ -25,7 +26,9 @@ function json(data: unknown, status = 200) {
 function isMissingRelationOrColumnError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
   const msg = String(e?.message ?? "").toLowerCase();
-  return e?.code === "42703" || e?.code === "42P01" || msg.includes("column") || msg.includes("relation");
+  return (
+    e?.code === "42703" || e?.code === "42P01" || msg.includes("column") || msg.includes("relation")
+  );
 }
 
 function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): string {
@@ -36,7 +39,8 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
   const refId = typeof record.ref_id === "string" ? record.ref_id : null;
 
   if (type === "message" && refId) return `/chat/${refId}`;
-  if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post") return "/nastenka";
+  if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post")
+    return "/nastenka";
   if (type === "announcement" || type === "group_announcement") return "/aktuality";
   if (critical) return "/aktuality";
   return "/";
@@ -44,7 +48,13 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
 
 function isCommunityBroadcastNotification(record: Record<string, unknown>) {
   const type = String(record.type ?? "").toLowerCase();
-  return type === "announcement" || type === "official_alert" || type === "hlasnik" || type === "group_announcement" || type === "neighbor_post";
+  return (
+    type === "announcement" ||
+    type === "official_alert" ||
+    type === "hlasnik" ||
+    type === "group_announcement" ||
+    type === "neighbor_post"
+  );
 }
 
 async function loadSubscriptions(supabase: ReturnType<typeof createClient>, userId: string) {
@@ -150,7 +160,9 @@ serve(async (req) => {
       const enabled = await shouldSendOptionalNotification(supabase, userId);
       const optionalDecision = evaluatePushDecision(record, enabled);
       if (!optionalDecision.shouldSend) {
-        console.log(`[PUSH SKIPPED] Užívateľ ${userId} má vypnuté notifikácie (reason: ${optionalDecision.reason})`);
+        console.log(
+          `[PUSH SKIPPED] Užívateľ ${userId} má vypnuté notifikácie (reason: ${optionalDecision.reason})`,
+        );
         return json({ success: true, skipped: true, reason: optionalDecision.reason });
       }
     }
@@ -187,8 +199,8 @@ serve(async (req) => {
     const pushOptions = {
       TTL: critical ? 3600 : 86400,
       headers: {
-        "Urgency": critical || forceSend ? "high" : "normal",
-        "Topic": record.type || "system",
+        Urgency: critical || forceSend ? "high" : "normal",
+        Topic: record.type || "system",
       },
     };
 
@@ -214,7 +226,10 @@ serve(async (req) => {
       } catch (err: any) {
         failedCount += 1;
         const status = err?.statusCode ?? err?.status;
-        console.error(`[PUSH ERROR] Endpoint: ${endpointLabel} Status: ${status ?? "unknown"}`, err);
+        console.error(
+          `[PUSH ERROR] Endpoint: ${endpointLabel} Status: ${status ?? "unknown"}`,
+          err,
+        );
 
         if (status === 410 || status === 404) {
           if (endpoint) {

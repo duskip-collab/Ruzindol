@@ -3,7 +3,7 @@
 **Status:** ✅ OPRAVA HOTOVÁ  
 **Problém:** Po zmene layoutu auth stránky prestali všetky notifikácie fungovať  
 **Príčina:** Nekonzistentnosť v `send-push/index.ts` - chýbajúci typ "hlasnik"  
-**Oprava:** +1 riadok kódu  
+**Oprava:** +1 riadok kódu
 
 ---
 
@@ -18,7 +18,12 @@ Vedeli ste, že keď som pridaval notifikácie pre "Susedský život", bola v ed
 if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post") return "/nastenka";
 
 // Riadok 47 - ALE NEOBSAHUJE "hlasnik"!
-return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
+return (
+  type === "announcement" ||
+  type === "official_alert" ||
+  type === "group_announcement" ||
+  type === "neighbor_post"
+);
 ```
 
 **Dôsledok**: Ak používateľ mal notifikácie vypnuté, notifikácia typu "hlasnik" sa **NEODOSLALA**, pretože `isCommunityBroadcastNotification()` vrátila `false`.
@@ -61,6 +66,7 @@ supabase functions deploy send-push
 ```
 
 Alebo ručne:
+
 1. Prejdite na Supabase Dashboard → Functions → send-push
 2. Nahraďte obsah `index.ts` aktualizovanou verziou
 3. Kliknite "Deploy"
@@ -83,6 +89,7 @@ GROUP BY type;
 ### Krok 3: Otestovať notifikácie
 
 Vytvorte:
+
 1. Príspevek v "Susedský život" → Měj dostat push notifikáciu
 2. Oznámenie v "Obecnom hlásníku" → Měj dostat push notifikáciu
 
@@ -92,13 +99,13 @@ Vytvorte:
 
 ### Notifikácie, ktoré by teraz mali fungovať:
 
-| Notifikácia | Typ | Status | Popis |
-|------------|-----|--------|-------|
-| **Susedský život** | `neighbor_post` | ✅ OPRAVENO | Nová, pridaná v tejto relácii |
-| **Obecný hlásnik** | `official_alert` / `hlasnik` | ✅ OPRAVENO | Teraz sa VŽDY odošle (broadcast) |
-| **RSS Announcements** | `announcement` | ✅ OK | Nebol problém |
-| **Skupinové oznámenia** | `group_announcement` | ✅ OK | Nebol problém |
-| **Odpovede na podnety** | `inquiry_answer` | ✅ OK | Nebol problém |
+| Notifikácia             | Typ                          | Status      | Popis                            |
+| ----------------------- | ---------------------------- | ----------- | -------------------------------- |
+| **Susedský život**      | `neighbor_post`              | ✅ OPRAVENO | Nová, pridaná v tejto relácii    |
+| **Obecný hlásnik**      | `official_alert` / `hlasnik` | ✅ OPRAVENO | Teraz sa VŽDY odošle (broadcast) |
+| **RSS Announcements**   | `announcement`               | ✅ OK       | Nebol problém                    |
+| **Skupinové oznámenia** | `group_announcement`         | ✅ OK       | Nebol problém                    |
+| **Odpovede na podnety** | `inquiry_answer`             | ✅ OK       | Nebol problém                    |
 
 ---
 
@@ -122,15 +129,15 @@ Obecný hlásnik je **broadcast**, takže by sa mal VŽDY poslať všetkým.
 
 ## 🔄 TIMELINE
 
-| Čas | Udalosť |
-|-----|---------|
-| T-1h | Pridané notifikácie pre "Susedský život" |
-| T | Zmena layoutu auth stránky |
-| T+5m | Používateľ oznamuje: "Prestali fungovať všetky notifikácie" |
-| T+15m | Analýza a objavenie problému v `isCommunityBroadcastNotification()` |
-| T+20m | Aplikovaná oprava - pridaný chýbajúci typ "hlasnik" |
-| T+25m | Testovacia procedúra a dokumentácia hotová |
-| **TERAZ** | Oprava je hotová a čaká na nasadenie |
+| Čas       | Udalosť                                                             |
+| --------- | ------------------------------------------------------------------- |
+| T-1h      | Pridané notifikácie pre "Susedský život"                            |
+| T         | Zmena layoutu auth stránky                                          |
+| T+5m      | Používateľ oznamuje: "Prestali fungovať všetky notifikácie"         |
+| T+15m     | Analýza a objavenie problému v `isCommunityBroadcastNotification()` |
+| T+20m     | Aplikovaná oprava - pridaný chýbajúci typ "hlasnik"                 |
+| T+25m     | Testovacia procedúra a dokumentácia hotová                          |
+| **TERAZ** | Oprava je hotová a čaká na nasadenie                                |
 
 ---
 
@@ -139,6 +146,7 @@ Obecný hlásnik je **broadcast**, takže by sa mal VŽDY poslať všetkým.
 **Zmena layoutu auth stránky (lines 119-161 v `auth.tsx`) NEOVPLYVŇUJE notifikácie!**
 
 Problém bol v edge function od začiatku, ale nebol viditeľný, kým:
+
 1. Nebol test s notifikáciami od používateľov s vypnutými notifikáciami
 2. Alebo sa príspevok vytvorí v "Obecnom hlásníku"
 
@@ -155,6 +163,6 @@ Problém bol v edge function od začiatku, ale nebol viditeľný, kým:
 
 **Oprava aplikovaná:** ✅  
 **Pripravená na nasadenie:** ✅  
-**Čas na úpravu:** ~5 minút  
+**Čas na úpravu:** ~5 minút
 
 🎉 **Problém vyriešený!**

@@ -13,8 +13,8 @@ type CalendarEvent = {
 
 type WasteItem = {
   id: string;
-  collection_date: string;
-  waste_types: string;
+  starts_at: string;
+  title: string;
 };
 
 // Bezpečné parsovanie dátumu bez UTC posunu (iOS vs Android timezone fix)
@@ -58,10 +58,11 @@ export function CommunityPlanRow() {
     queryKey: ["community-plan-next-waste"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("waste_collection")
-        .select("*")
-        .gte("collection_date", today)
-        .order("collection_date", { ascending: true })
+        .from("events")
+        .select("id, starts_at, title")
+        .eq("type", "odpad")
+        .gte("starts_at", today)
+        .order("starts_at", { ascending: true })
         .limit(1)
         .maybeSingle();
 
@@ -69,7 +70,7 @@ export function CommunityPlanRow() {
         console.error("Error fetching waste collection:", error);
         return null;
       }
-      return data as WasteItem | null;
+      return data;
     },
   });
 
@@ -97,11 +98,13 @@ export function CommunityPlanRow() {
           </div>
         ) : nextWaste ? (
           (() => {
-            const wasteDateObj = parseLocalDate(nextWaste.collection_date);
-            const dateShort = wasteDateObj.toLocaleDateString("sk-SK", {
-              day: "numeric",
-              month: "short",
-            }).toUpperCase();
+            const wasteDateObj = parseLocalDate(nextWaste.starts_at);
+            const dateShort = wasteDateObj
+              .toLocaleDateString("sk-SK", {
+                day: "numeric",
+                month: "short",
+              })
+              .toUpperCase();
             const dayOfWeek = wasteDateObj.toLocaleDateString("sk-SK", {
               weekday: "long",
             });
@@ -118,14 +121,16 @@ export function CommunityPlanRow() {
                   <div className="grid h-6 w-6 place-items-center rounded-md bg-amber-500/10 text-amber-500">
                     <Trash2 className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Zber odpadu</span>
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Zber odpadu
+                  </span>
                 </div>
 
                 <div className="mt-1.5">
                   <p className="text-lg font-bold text-foreground leading-none">{dateShort}</p>
                   <p className="text-xs font-medium text-muted-foreground mt-0.5">{formattedDay}</p>
                   <p className="text-[10px] text-muted-foreground/90 mt-1 truncate group-hover:text-primary transition-colors">
-                    {nextWaste.waste_types}
+                    {nextWaste.title}
                   </p>
                 </div>
               </Link>

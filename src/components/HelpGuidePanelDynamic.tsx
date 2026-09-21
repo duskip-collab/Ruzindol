@@ -1,6 +1,8 @@
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import type { Json } from "@/integrations/supabase/types";
 import { Loader2 } from "lucide-react";
 import { HelpGuideEditPanel } from "@/components/HelpGuideEditPanel";
 
@@ -8,7 +10,7 @@ type HelpSection = {
   id: string;
   section_key: string;
   section_title: string;
-  section_emoji: string;
+  section_emoji: string | null;
   section_order: number;
   content: {
     description: string;
@@ -17,11 +19,28 @@ type HelpSection = {
       text: string;
     }>;
   };
-  updated_at: string;
+  updated_at: string | null;
 };
 
+function parseContent(value: Json): HelpSection["content"] {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { description: "", items: [] };
+  const record = value as Record<string, Json | undefined>;
+  const items = Array.isArray(record.items)
+    ? record.items.flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const entry = item as Record<string, Json | undefined>;
+        return typeof entry.label === "string" && typeof entry.text === "string"
+          ? [{ label: entry.label, text: entry.text }]
+          : [];
+      })
+    : [];
+  return { description: typeof record.description === "string" ? record.description : "", items };
+}
+
 export function HelpGuidePanel() {
-  const isAdmin = useIsAdmin();
+  const { userId } = useCurrentUser();
+  const { isAdmin } = useIsAdmin(userId);
   const [sections, setSections] = useState<HelpSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +56,14 @@ export function HelpGuidePanel() {
           .order("section_order", { ascending: true });
 
         if (fetchError) {
-          console.warn(
-            "Help guide sections not found in DB, using fallback content"
-          );
+          console.warn("Help guide sections not found in DB, using fallback content");
           // Fallback na hardkódovaný obsah ak tabuľka neexistuje
           setSections(getFallbackSections());
           setError(null);
         } else {
-          setSections(data || []);
+          setSections(
+            (data ?? []).map((section) => ({ ...section, content: parseContent(section.content) })),
+          );
         }
       } catch (err) {
         console.error("Error loading help sections:", err);
@@ -84,9 +103,8 @@ export function HelpGuidePanel() {
           📖 Kompletná nápoveda k aplikácii Moji Susedia
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Vitajte v užívateľskej príručke aplikácie{" "}
-          <strong>Moji Susedia</strong>, ktorá vám pomôže zorientovať sa vo
-          všetkých jej funkciách, sekciách a možnostiach nastavenia.
+          Vitajte v užívateľskej príručke aplikácie <strong>Moji Susedia</strong>, ktorá vám pomôže
+          zorientovať sa vo všetkých jej funkciách, sekciách a možnostiach nastavenia.
         </p>
       </div>
 
@@ -97,8 +115,7 @@ export function HelpGuidePanel() {
           className="rounded-2xl border border-border/80 bg-card/60 p-5 backdrop-blur-sm"
         >
           <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
-            <span className="text-lg">{section.section_emoji}</span>{" "}
-            {section.section_title}
+            <span className="text-lg">{section.section_emoji}</span> {section.section_title}
           </h3>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
             {section.content?.description}
@@ -106,9 +123,7 @@ export function HelpGuidePanel() {
           <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
             {section.content?.items?.map((item, idx) => (
               <li key={idx} className="flex gap-2">
-                <span className="font-semibold text-foreground min-w-fit">
-                  • {item.label}:
-                </span>
+                <span className="font-semibold text-foreground min-w-fit">• {item.label}:</span>
                 <span className="whitespace-pre-wrap">{item.text}</span>
               </li>
             ))}
@@ -119,9 +134,9 @@ export function HelpGuidePanel() {
       {/* Footer */}
       <div className="rounded-2xl border border-border/80 bg-gradient-to-br from-amber-50 to-orange-50 p-5 dark:from-amber-950/40 dark:to-orange-950/40">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          💡 <strong>Ďakujeme,</strong> že používate aplikáciu Moji Susedia.
-          Ak máte otázky alebo návrhy na zlepšenie, neváhajte nás kontaktovať
-          prostredníctvom správ alebo kontaktného formulára v aplikácii.
+          💡 <strong>Ďakujeme,</strong> že používate aplikáciu Moji Susedia. Ak máte otázky alebo
+          návrhy na zlepšenie, neváhajte nás kontaktovať prostredníctvom správ alebo kontaktného
+          formulára v aplikácii.
         </p>
       </div>
     </div>
@@ -151,7 +166,7 @@ function getFallbackSections(): HelpSection[] {
           },
           {
             label: "Ako si ich zapnúť",
-            text: "1. Kliknite na ikonu zvončeka 🔔\n2. Ak sa vám zobrazuje nápoveda, kliknite na \"Kliknúť a povoliť\"\n3. V kontextovom okne vášho zariadenia potvrďte povolenie notifikácií\n💡 Tip: Zelená pulzujúca bodka pri zvončeku vás upozorňuje na to, že ešte nemáte povolené doručovanie upozornení do zariadenia.",
+            text: '1. Kliknite na ikonu zvončeka 🔔\n2. Ak sa vám zobrazuje nápoveda, kliknite na "Kliknúť a povoliť"\n3. V kontextovom okne vášho zariadenia potvrďte povolenie notifikácií\n💡 Tip: Zelená pulzujúca bodka pri zvončeku vás upozorňuje na to, že ešte nemáte povolené doručovanie upozornení do zariadenia.',
           },
         ],
       },
@@ -228,8 +243,7 @@ function getFallbackSections(): HelpSection[] {
       section_emoji: "🛡️",
       section_order: 4,
       content: {
-        description:
-          "Aplikácia spája rôzne zložky a komunity pôsobiace priamo v obci:",
+        description: "Aplikácia spája rôzne zložky a komunity pôsobiace priamo v obci:",
         items: [
           {
             label: "OŠK Ružindol",
@@ -314,8 +328,7 @@ function getFallbackSections(): HelpSection[] {
       section_emoji: "👤",
       section_order: 7,
       content: {
-        description:
-          "V sekcii Profil nájdete kompletnú správu svojho účtu a aplikácie:",
+        description: "V sekcii Profil nájdete kompletnú správu svojho účtu a aplikácie:",
         items: [
           {
             label: "Osobné informácie",

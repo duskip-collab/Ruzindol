@@ -1,7 +1,7 @@
 # 🔧 ANALÝZA A OPRAVA PROBLÉMU S NOTIFIKÁCIAMI
 
 **Dátum:** 2026-09-10  
-**Status:** 🟢 PROBLÉM NÁJDENÝ A OPRAVENÝ  
+**Status:** 🟢 PROBLÉM NÁJDENÝ A OPRAVENÝ
 
 ---
 
@@ -12,15 +12,22 @@
 V funkcii `isCommunityBroadcastNotification()` **chýbalo `"hlasnik"`** ako typ notifikácie.
 
 #### Riadok 47 PRED:
+
 ```typescript
 function isCommunityBroadcastNotification(record: Record<string, unknown>) {
   const type = String(record.type ?? "").toLowerCase();
-  return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
+  return (
+    type === "announcement" ||
+    type === "official_alert" ||
+    type === "group_announcement" ||
+    type === "neighbor_post"
+  );
   // ❌ CHÝBA: type === "hlasnik"
 }
 ```
 
 Ale na riadku 39 sa **kontroluje** `type === "hlasnik"`:
+
 ```typescript
 if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post") return "/nastenka";
 // ✅ ALE TU JE ZAHRNUTÝ!
@@ -31,10 +38,17 @@ if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post")
 ## ✅ OPRAVA
 
 ### Riadok 47 PO:
+
 ```typescript
 function isCommunityBroadcastNotification(record: Record<string, unknown>) {
   const type = String(record.type ?? "").toLowerCase();
-  return type === "announcement" || type === "official_alert" || type === "hlasnik" || type === "group_announcement" || type === "neighbor_post";
+  return (
+    type === "announcement" ||
+    type === "official_alert" ||
+    type === "hlasnik" ||
+    type === "group_announcement" ||
+    type === "neighbor_post"
+  );
   // ✅ OPRAVENÉ: Pridaný type === "hlasnik"
 }
 ```
@@ -53,6 +67,7 @@ function isCommunityBroadcastNotification(record: Record<string, unknown>) {
 6. **Problém**: "Hlásnik" (obecný hlásnik) by mal byť **vždy** odoslaný (broadcast), ale kvôli chybajúcemu type sa kontrolovala preferencia
 
 ### Vplyv na notifikácie:
+
 - ✅ **RSS Announcements** - Fungovali (správne zahrnuté ako "announcement")
 - ✅ **Group Announcements** - Fungovali (správne zahrnuté ako "group_announcement")
 - ✅ **Inquiry Answers** - Fungovali (nie je súčasť broadcast check)
@@ -66,6 +81,7 @@ function isCommunityBroadcastNotification(record: Record<string, unknown>) {
 ### Súbor: `supabase/functions/send-push/index.ts`
 
 **Zmena na riadku 47:**
+
 ```diff
   function isCommunityBroadcastNotification(record: Record<string, unknown>) {
     const type = String(record.type ?? "").toLowerCase();
@@ -96,6 +112,7 @@ function isCommunityBroadcastNotification(record: Record<string, unknown>) {
 ### Kroky na nasadenie:
 
 1. **Aplikujte zmenu na edge function**:
+
    ```bash
    # Upraviť: supabase/functions/send-push/index.ts
    # Zmena: riadok 47 - pridať "hlasnik"
@@ -138,6 +155,7 @@ function isCommunityBroadcastNotification(record: Record<string, unknown>) {
 ## ✨ VÝSLEDOK
 
 **Všetky notifikácie by mali teraz fungovať korektne:**
+
 - ✅ Obecný hlásnik - **VŽDY** sa odošle (broadcast)
 - ✅ Susedský život - **VŽDY** sa odošle (broadcast)
 - ✅ RSS Announcements - Sa odoslajú

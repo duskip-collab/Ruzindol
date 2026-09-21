@@ -1,11 +1,5 @@
-import {
-  evaluatePushDecision,
-  isCriticalNotification,
-  parseWebhookRecord,
-} from "./logic.ts";
-import {
-  assertEquals,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { evaluatePushDecision, isCriticalNotification, parseWebhookRecord } from "./logic.ts";
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 Deno.test("parseWebhookRecord reads payload.record", () => {
   const payload = { record: { user_id: "u1", priority: "high" } };

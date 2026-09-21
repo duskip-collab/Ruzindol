@@ -9,9 +9,11 @@
 ## 🎯 Čo Bolo Implementované
 
 ### 1. **Databázové Tabuľky**
+
 Vytvorené dve nové tabuľky v Supabase:
 
 #### `elections` - Tabuľka volieb
+
 ```sql
 - id (UUID, PRIMARY KEY)
 - name (TEXT) - Názov volieb
@@ -25,6 +27,7 @@ Vytvorené dve nové tabuľky v Supabase:
 ```
 
 #### `elections_attachments` - Prílohy volieb
+
 ```sql
 - id (UUID, PRIMARY KEY)
 - election_id (UUID, FK) - Viazané na voľby
@@ -39,6 +42,7 @@ Vytvorené dve nové tabuľky v Supabase:
 ```
 
 #### `election_candidates` - Rozšírenie
+
 ```sql
 -- Pridané stĺpce:
 - election_id (UUID, FK) - Viazanosť na voľby
@@ -54,12 +58,14 @@ Vytvorené dve nové tabuľky v Supabase:
 Hlavný modal pre správu volieb s 4 kartami:
 
 #### 📝 Karta "Informácie"
+
 - Názov volieb (povinný)
 - Popis volieb
 - Dátum konania volieb
 - Stav volieb (draft/active/closed)
 
 #### 👤 Karta "Starosta"
+
 - Dynamické pridávanie/odstraňovanie kandidátov
 - Rozbaľovacia sekcia s detailnými údajmi:
   - Meno a priezvisko (povinný)
@@ -68,14 +74,16 @@ Hlavný modal pre správu volieb s 4 kartami:
   - Motto, Životopis
   - Email, Webová stránka, Facebook
   - Program - Priority (pole)
-  
+
 Bez limitov - možnosť pridať koľko chceš kandidátov!
 
 #### 👥 Karta "Poslanci"
+
 - Rovnaká logika ako "Starosta"
 - Môžeš pridať neobmedzený počet poslancov do zastupiteľstva
 
 #### 📎 Karta "Prílohy"
+
 - Upload PDF dokumentov (volebný program)
 - Upload obrázkov (JPEG, PNG, WebP, GIF)
 - Max veľkosť súboru: 10MB
@@ -102,12 +110,14 @@ Komponent na upload súborov s nasledovnými vlastnosťami:
 ### 3. **Rozšírenie ElectionsScreen** (`src/screens/ElectionsScreen.tsx`)
 
 #### Nové Funkcie
+
 - ✅ **Edit tlačidlo** - Viditeľné pre starostov, úradníkov a adminov
 - ✅ **handleSaveElection** - Logika na uloženie volieb a kandidátov
 - ✅ Integrácia s ElectionsEditModal
 - ✅ Automatické načítanie dát po uložení
 
 #### Workflow Uloženia
+
 1. Validácia vstupov (názov volieb, min. 1 kandidát)
 2. Vytvorenie/Aktualizácia záznamu v `elections` tabuľke
 3. Vymazanie starých kandidátov (ak sú updates)
@@ -123,14 +133,17 @@ Komponent na upload súborov s nasledovnými vlastnosťami:
 Všetky tabuľky majú Row Level Security:
 
 ### **elections** - Read
+
 - Autentifikovaní používatelia môžu čítať iba aktívne voľby
 - Starosta/Úradník/Admin: Môžu všetko
 
 ### **elections_attachments** - Read
+
 - Autentifikovaní používatelia: Len k aktívnym voľbám
 - Starosta/Úradník/Admin: Plný prístup (write/delete)
 
 ### **election_candidates** - Existing RLS
+
 - Public read pre aktívnych kandidátov
 - Admin/Official write
 
@@ -141,10 +154,11 @@ Všetky tabuľky majú Row Level Security:
 Potrebuješ nakonfigurovať bucket v Supabase Storage:
 
 ### Vytvorenie Bucketu
+
 ```
 Bucket Name: elections
 Public: ✅ Áno (pre public URL)
-Allowed MIME Types: 
+Allowed MIME Types:
   - application/pdf
   - image/jpeg
   - image/png
@@ -154,6 +168,7 @@ Max File Size: 10485760 (10MB)
 ```
 
 ### Folder Štruktúra v Buckete
+
 ```
 elections/
 ├── {electionId}/
@@ -234,13 +249,14 @@ CLOSE modal + SUCCESS feedback
 ## 🔧 API Rozhrania
 
 ### ElectionsData Interface
+
 ```typescript
 interface ElectionsData {
   id?: string;
   name: string;
   description?: string;
   election_date?: string;
-  status?: 'draft' | 'active' | 'closed';
+  status?: "draft" | "active" | "closed";
   candidates_mayor: CandidateRow[];
   candidates_council: CandidateRow[];
   attachments: AttachmentFile[];
@@ -248,12 +264,13 @@ interface ElectionsData {
 ```
 
 ### CandidateRow Interface
+
 ```typescript
 interface CandidateRow {
   id?: string;
   full_name: string;
   party_or_independent: string;
-  position_type: 'starosta' | 'poslanec';
+  position_type: "starosta" | "poslanec";
   age?: number | null;
   profession?: string | null;
   motto?: string | null;

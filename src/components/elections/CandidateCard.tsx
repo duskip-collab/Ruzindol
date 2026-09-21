@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { User, Award, ArrowRight } from 'lucide-react';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
-import { PhotoLightbox } from './PhotoLightbox';
+import React, { useState } from "react";
+import { User, Award, ArrowRight } from "lucide-react";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 export interface Candidate {
   id: string;
   full_name: string;
   photo_url?: string | null;
-  position_type: 'starosta' | 'poslanec';
+  position_type: "starosta" | "poslanec";
   party_or_independent: string;
   age?: number | null;
   profession?: string | null;
@@ -31,23 +31,23 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelec
   const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
 
   const handleClick = () => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     onSelect(candidate);
   };
 
   const handlePhotoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    triggerHaptic('light');
+    triggerHaptic("light");
     setShowPhotoLightbox(true);
   };
 
-  const isMayor = candidate.position_type === 'starosta';
+  const isMayor = candidate.position_type === "starosta";
 
   return (
     <div
       className={cn(
-        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-white',
-        className
+        "group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-white",
+        className,
       )}
     >
       <div>
@@ -55,14 +55,14 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelec
         <div className="flex items-center justify-between gap-2 mb-4">
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
               isMayor
-                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
-                : 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300"
+                : "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300",
             )}
           >
             <Award className="h-3.5 w-3.5" />
-            Kandidát na {isMayor ? 'starostu' : 'poslanca'}
+            Kandidát na {isMayor ? "starostu" : "poslanca"}
           </span>
 
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
@@ -98,7 +98,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onSelec
               <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400 truncate">
                 {[candidate.profession, candidate.age ? `${candidate.age} rokov` : null]
                   .filter(Boolean)
-                  .join(' • ')}
+                  .join(" • ")}
               </p>
             )}
 

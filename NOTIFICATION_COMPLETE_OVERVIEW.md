@@ -3,16 +3,18 @@
 **Dátum:** 2026-09-10  
 **Dlhosť opravy:** < 5 minút  
 **Komplexnosť:** Jednoduchá  
-**Stav:** ✅ Hotovo a pripravené na nasadenie  
+**Stav:** ✅ Hotovo a pripravené na nasadenie
 
 ---
 
 ## 🔍 ČO SA STALO
 
 ### Situácia
+
 Používateľ hlásil: **"Po poslednej zmene prestali všetky notifikácie fungovať"**
 
 ### Analýza
+
 - Posledná zmena bola v `src/routes/auth.tsx` (layout opravy)
 - Layout zmeny by nemali ovplyvniť notifikácie
 - Nový migration súbor `20260910121000_add_neighbor_post_notifications.sql` bol spustený
@@ -23,6 +25,7 @@ Používateľ hlásil: **"Po poslednej zmene prestali všetky notifikácie fungo
 ## 🐛 PROBLÉM
 
 ### Lokalita
+
 **Súbor**: `supabase/functions/send-push/index.ts`
 
 ### Čo bolo špatné
@@ -75,9 +78,11 @@ VÝSLEDOK: Notifikácia sa neposle používateľom s vypnutými notifikáciami!
 ## ✅ OPRAVA
 
 ### Súbor
+
 `supabase/functions/send-push/index.ts`
 
 ### Zmena
+
 Riadok 47:
 
 ```diff
@@ -156,20 +161,21 @@ Pošle sa bez kontroly preferenčných nastavení
 
 ## 🧪 TESTOVACIA MATICA
 
-| Notifikácia | Typ | Broadcast? | Stav Pred | Stav Po |
-|-------------|-----|-----------|----------|---------|
-| Susedský život | `neighbor_post` | ✅ Yes | ✅ Funguje | ✅ Funguje |
-| Obecný hlásnik | `official_alert` | ✅ Yes | ✅ Funguje | ✅ Funguje |
-| Obecný hlásnik (fallback) | `hlasnik` | ✅ Yes | ❌ **NEFUNGUJE** | ✅ **OPRAVENO** |
-| RSS Announcements | `announcement` | ✅ Yes | ✅ Funguje | ✅ Funguje |
-| Skupinové oznámenia | `group_announcement` | ✅ Yes | ✅ Funguje | ✅ Funguje |
-| Odpovede na podnety | `inquiry_answer` | ❌ No | ✅ Funguje | ✅ Funguje |
+| Notifikácia               | Typ                  | Broadcast? | Stav Pred        | Stav Po         |
+| ------------------------- | -------------------- | ---------- | ---------------- | --------------- |
+| Susedský život            | `neighbor_post`      | ✅ Yes     | ✅ Funguje       | ✅ Funguje      |
+| Obecný hlásnik            | `official_alert`     | ✅ Yes     | ✅ Funguje       | ✅ Funguje      |
+| Obecný hlásnik (fallback) | `hlasnik`            | ✅ Yes     | ❌ **NEFUNGUJE** | ✅ **OPRAVENO** |
+| RSS Announcements         | `announcement`       | ✅ Yes     | ✅ Funguje       | ✅ Funguje      |
+| Skupinové oznámenia       | `group_announcement` | ✅ Yes     | ✅ Funguje       | ✅ Funguje      |
+| Odpovede na podnety       | `inquiry_answer`     | ❌ No      | ✅ Funguje       | ✅ Funguje      |
 
 ---
 
 ## 📋 KROKY NA NASADENIE
 
 ### Krok 1: Aplikovať zmenu
+
 ```bash
 # Edge function je už aktualizovaná v:
 # supabase/functions/send-push/index.ts
@@ -177,11 +183,13 @@ Pošle sa bez kontroly preferenčných nastavení
 ```
 
 ### Krok 2: Nasadiť na Supabase
+
 ```bash
 supabase functions deploy send-push
 ```
 
 ### Krok 3: Overiť
+
 ```sql
 -- Spustite v Supabase SQL Editor
 SELECT type, COUNT(*) FROM public.notifications
@@ -190,6 +198,7 @@ GROUP BY type;
 ```
 
 ### Krok 4: Otestovať
+
 1. Vytvorte príspevek v "Susedský život"
 2. Vytvorte oznámenie v "Obecnom hlásníku"
 3. Skontrolujte, či všetci dostali push notifikácie
@@ -198,27 +207,27 @@ GROUP BY type;
 
 ## 📚 SÚBORY
 
-| Súbor | Účel |
-|-------|------|
+| Súbor                                   | Účel                                      |
+| --------------------------------------- | ----------------------------------------- |
 | `supabase/functions/send-push/index.ts` | **OPRAVENÝ** - Pridaný type === "hlasnik" |
-| `NOTIFICATION_HOTFIX_SUMMARY.md` | Detailný súhrn opravy |
-| `NOTIFICATION_TEST_PROCEDURE.md` | Manuálne testovacia procedúra |
-| `NOTIFICATION_FIX_REPORT.md` | Technická analýza problému |
-| `DIAGNOSTIC_SQL.sql` | SQL skripty na overenie |
+| `NOTIFICATION_HOTFIX_SUMMARY.md`        | Detailný súhrn opravy                     |
+| `NOTIFICATION_TEST_PROCEDURE.md`        | Manuálne testovacia procedúra             |
+| `NOTIFICATION_FIX_REPORT.md`            | Technická analýza problému                |
+| `DIAGNOSTIC_SQL.sql`                    | SQL skripty na overenie                   |
 
 ---
 
 ## ✨ ZÁVER
 
-| Kritérium | Stav |
-|-----------|------|
-| **Problém identifikovaný** | ✅ |
-| **Príčina nájdená** | ✅ |
-| **Oprava aplikovaná** | ✅ |
-| **Kód overený** | ✅ |
-| **Dokumentácia hotová** | ✅ |
-| **Testovacia procedúra** | ✅ |
-| **Pripravené na nasadenie** | ✅ |
+| Kritérium                   | Stav |
+| --------------------------- | ---- |
+| **Problém identifikovaný**  | ✅   |
+| **Príčina nájdená**         | ✅   |
+| **Oprava aplikovaná**       | ✅   |
+| **Kód overený**             | ✅   |
+| **Dokumentácia hotová**     | ✅   |
+| **Testovacia procedúra**    | ✅   |
+| **Pripravené na nasadenie** | ✅   |
 
 ---
 

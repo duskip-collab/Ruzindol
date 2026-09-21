@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
@@ -313,15 +314,15 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
   }, [loadData]);
 
   useEffect(() => {
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     let isMounted = true;
 
     const setupRealtime = async () => {
       try {
         channel = supabase.channel("aktuality-groups-realtime", {
-          config: { broadcast: { ack: true } }
+          config: { broadcast: { ack: true } },
         });
-        
+
         channel
           .on(
             "postgres_changes",
@@ -329,36 +330,28 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
             () => {
               if (!isMounted) return;
               void loadData();
-            }
+            },
           )
-          .on(
-            "postgres_changes",
-            { event: "*", schema: "public", table: "group_admins" },
-            () => {
-              if (!isMounted) return;
-              void loadData();
-            }
-          )
-          .on(
-            "postgres_changes",
-            { event: "*", schema: "public", table: "profiles" },
-            () => {
-              if (!isMounted) return;
-              void loadData();
-            }
-          );
+          .on("postgres_changes", { event: "*", schema: "public", table: "group_admins" }, () => {
+            if (!isMounted) return;
+            void loadData();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+            if (!isMounted) return;
+            void loadData();
+          });
 
         await channel.subscribe((status: string) => {
           if (!isMounted) return;
-          if (status === 'SUBSCRIBED') {
-            console.log('Aktuality groups realtime subscribed');
-          } else if (status !== 'SUBSCRIBING') {
-            console.warn('Aktuality realtime status:', status);
+          if (status === "SUBSCRIBED") {
+            console.log("Aktuality groups realtime subscribed");
+          } else if (status !== "SUBSCRIBING") {
+            console.warn("Aktuality realtime status:", status);
           }
         });
       } catch (err) {
         if (isMounted) {
-          console.error('Error setting up aktuality realtime:', err);
+          console.error("Error setting up aktuality realtime:", err);
         }
       }
     };
@@ -523,7 +516,9 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
               </div>
             </div>
 
-            <div className={`flex-1 overflow-y-auto scroll-smooth pr-1 ${useIosBackNav ? "pb-24" : ""}`}>
+            <div
+              className={`flex-1 overflow-y-auto scroll-smooth pr-1 ${useIosBackNav ? "pb-24" : ""}`}
+            >
               {loadError && (
                 <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
                   {loadError}
@@ -541,80 +536,80 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
                 <div className="space-y-3">
                   <div className="flex flex-col gap-2.5">
                     {displayPosts.map((p) => {
-                    const canDelete = canManageGroups || p.author_id === userId;
-                    return (
-                      <article
-                        key={p.id}
-                        className="app-card cursor-pointer rounded-2xl p-3 shadow-sm transition hover:shadow-md"
-                        onClick={() => setSelectedPost(p)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setSelectedPost(p);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                          <span>{timeAgo(p.created_at)}</span>
-                          {p.expires_at && active !== "sluzby" && (
-                            <span>platné do {formatExpiry(p.expires_at)}</span>
-                          )}
-                        </div>
-                        <h4 className="mt-1 text-sm font-semibold text-foreground">{p.title}</h4>
-                        {p.post_kind === "parte" && (
-                          <p className="mt-1 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                            Parte {p.deceased_name ? `· ${p.deceased_name}` : ""}
-                          </p>
-                        )}
-                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                          {p.content}
-                        </p>
-                        {p.image_url && (
-                          <div
-                            className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                      const canDelete = canManageGroups || p.author_id === userId;
+                      return (
+                        <article
+                          key={p.id}
+                          className="app-card cursor-pointer rounded-2xl p-3 shadow-sm transition hover:shadow-md"
+                          onClick={() => setSelectedPost(p)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
                               setSelectedPost(p);
-                            }}
-                          >
-                            <img
-                              src={p.image_url}
-                              alt={p.title}
-                              className="h-32 w-full object-cover transition hover:opacity-95"
-                              title="Kliknite pre zväčšenie obrázka"
-                            />
-                            <div className="px-2 py-1 text-[10px] text-muted-foreground bg-white/50 dark:bg-neutral-900/50 text-center font-medium">
-                              Kliknutím zväčšíte obrázok
-                            </div>
+                            }
+                          }}
+                        >
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>{timeAgo(p.created_at)}</span>
+                            {p.expires_at && active !== "sluzby" && (
+                              <span>platné do {formatExpiry(p.expires_at)}</span>
+                            )}
                           </div>
-                        )}
-                        {p.linked_event_id && (
-                          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                            <CalendarPlus className="h-3 w-3" /> Zápis v kalendári
-                          </p>
-                        )}
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="text-[11px] text-neutral-500">
-                            Autor: {people[p.author_id]?.name ?? "Používateľ"}
-                          </span>
-                          {canDelete && (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void deletePost(p.id);
-                              }}
-                              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-[color:var(--bg-surface-hover)]"
-                            >
-                              <Trash2 className="h-3 w-3" /> Zmazať
-                            </button>
+                          <h4 className="mt-1 text-sm font-semibold text-foreground">{p.title}</h4>
+                          {p.post_kind === "parte" && (
+                            <p className="mt-1 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                              Parte {p.deceased_name ? `· ${p.deceased_name}` : ""}
+                            </p>
                           )}
-                        </div>
-                      </article>
-                    );
-                  })}
+                          <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+                            {p.content}
+                          </p>
+                          {p.image_url && (
+                            <div
+                              className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPost(p);
+                              }}
+                            >
+                              <img
+                                src={p.image_url}
+                                alt={p.title}
+                                className="h-32 w-full object-cover transition hover:opacity-95"
+                                title="Kliknite pre zväčšenie obrázka"
+                              />
+                              <div className="px-2 py-1 text-[10px] text-muted-foreground bg-white/50 dark:bg-neutral-900/50 text-center font-medium">
+                                Kliknutím zväčšíte obrázok
+                              </div>
+                            </div>
+                          )}
+                          {p.linked_event_id && (
+                            <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                              <CalendarPlus className="h-3 w-3" /> Zápis v kalendári
+                            </p>
+                          )}
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-[11px] text-neutral-500">
+                              Autor: {people[p.author_id]?.name ?? "Používateľ"}
+                            </span>
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void deletePost(p.id);
+                                }}
+                                className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-[color:var(--bg-surface-hover)]"
+                              >
+                                <Trash2 className="h-3 w-3" /> Zmazať
+                              </button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
 
                   {hasMorePosts && (
@@ -647,7 +642,9 @@ export function AktualityGroupsPanel({ initialGroup }: { initialGroup?: GroupKey
                           key={company.id}
                           className="app-surface-muted flex items-center justify-between rounded-xl px-3 py-2"
                         >
-                          <span className="text-sm font-medium text-foreground">{company.name}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {company.name}
+                          </span>
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                             Firma
                           </span>
@@ -741,8 +738,12 @@ function GroupPostDetailModal({
       <div className="app-modal-surface flex min-h-0 flex-1 flex-col overflow-hidden md:mx-auto md:w-full md:max-w-4xl md:rounded-3xl md:shadow-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-[color:var(--border-card)] px-4 py-3 md:px-5">
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-foreground md:text-base">{post.title}</h3>
-            <p className="text-[11px] text-muted-foreground">{timeAgo(post.created_at)} · Autor: {authorName}</p>
+            <h3 className="truncate text-sm font-semibold text-foreground md:text-base">
+              {post.title}
+            </h3>
+            <p className="text-[11px] text-muted-foreground">
+              {timeAgo(post.created_at)} · Autor: {authorName}
+            </p>
           </div>
           <button
             type="button"
@@ -754,14 +755,18 @@ function GroupPostDetailModal({
           </button>
         </div>
 
-        <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5 ${useIosBackNav ? "pb-24" : ""}`}>
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5 ${useIosBackNav ? "pb-24" : ""}`}
+        >
           {post.post_kind === "parte" && (
             <p className="mb-3 inline-flex rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
               Parte {post.deceased_name ? `· ${post.deceased_name}` : ""}
             </p>
           )}
 
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{post.content}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            {post.content}
+          </p>
 
           {post.image_url && (
             <div className="app-surface-muted mt-4 overflow-hidden rounded-2xl">
@@ -886,7 +891,9 @@ function GroupPostForm({
                 linked_event_id: linkedEventId,
                 post_kind: isParte ? "parte" : "oznam",
                 deceased_name: isParte ? cleanDeceasedName : null,
-                expires_at: isIndefinite ? null : new Date(Date.now() + 4 * 24 * 3600_000).toISOString(),
+                expires_at: isIndefinite
+                  ? null
+                  : new Date(Date.now() + 4 * 24 * 3600_000).toISOString(),
               }),
             { retries: 1, delayMs: 250 },
           ),
@@ -921,7 +928,10 @@ function GroupPostForm({
         <h2 className="font-semibold text-foreground">Nový oznam sekcie</h2>
       </div>
 
-      <form onSubmit={submit} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
+      <form
+        onSubmit={submit}
+        className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}
+      >
         {canCreateParte && (
           <div className="rounded-xl border border-violet-200 bg-violet-50 p-2 dark:border-violet-300 dark:bg-violet-100">
             <button
@@ -936,7 +946,9 @@ function GroupPostForm({
 
         {isParte ? (
           <div>
-            <label className="text-sm font-medium text-[color:var(--text-secondary)]">Meno zosnulého</label>
+            <label className="text-sm font-medium text-[color:var(--text-secondary)]">
+              Meno zosnulého
+            </label>
             <input
               value={deceasedName}
               onChange={(e) => setDeceasedName(e.target.value)}
@@ -1007,7 +1019,9 @@ function GroupPostForm({
         {addToCalendar && (
           <div className="space-y-3 rounded-xl border border-blue-500/25 bg-blue-500/10 p-3">
             <div>
-              <label className="text-sm font-medium text-[color:var(--text-secondary)]">Miesto udalosti</label>
+              <label className="text-sm font-medium text-[color:var(--text-secondary)]">
+                Miesto udalosti
+              </label>
               <input
                 value={eventLocation}
                 onChange={(e) => setEventLocation(e.target.value)}
@@ -1017,7 +1031,9 @@ function GroupPostForm({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[color:var(--text-secondary)]">Termín</label>
+              <label className="text-sm font-medium text-[color:var(--text-secondary)]">
+                Termín
+              </label>
               <input
                 type="datetime-local"
                 value={eventAt}
@@ -1202,7 +1218,9 @@ function GroupAdminModal({
         <h2 className="font-semibold text-foreground">Správcovia sekcie</h2>
       </div>
 
-      <div className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
+      <div
+        className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}
+      >
         <div className="app-surface-muted rounded-xl p-3">
           <p className="text-xs font-semibold text-[color:var(--text-secondary)]">
             Vyber registrovaného suseda pre túto sekciu
@@ -1212,7 +1230,9 @@ function GroupAdminModal({
           </p>
           {currentAdmin && (
             <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs dark:border-emerald-300 dark:bg-emerald-100">
-              <span className="font-semibold text-emerald-800 dark:text-emerald-900">Aktuálny správca:</span>{" "}
+              <span className="font-semibold text-emerald-800 dark:text-emerald-900">
+                Aktuálny správca:
+              </span>{" "}
               <span className="text-emerald-900 dark:text-emerald-900">
                 {people[currentAdmin.user_id]?.name ?? "Sused"}
               </span>{" "}
@@ -1304,7 +1324,9 @@ function GroupAdminModal({
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold text-[color:var(--text-secondary)]">Aktuálne poverený sused</p>
+          <p className="mb-2 text-xs font-semibold text-[color:var(--text-secondary)]">
+            Aktuálne poverený sused
+          </p>
           {!currentAdmin ? (
             <p className="rounded-lg border border-dashed border-neutral-200 py-4 text-center text-xs text-neutral-500 dark:border-neutral-400 dark:text-neutral-800">
               Zatiaľ nebol priradený žiadny sused pre túto sekciu.

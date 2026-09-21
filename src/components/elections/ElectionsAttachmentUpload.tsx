@@ -1,13 +1,21 @@
-import React, { useCallback, useState } from 'react';
-import { Upload, File, Trash2, Loader2, AlertCircle, FileText, Image as ImageIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import React, { useCallback, useState } from "react";
+import {
+  Upload,
+  File,
+  Trash2,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Image as ImageIcon,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 
 export interface AttachmentFile {
   id: string;
   file_name: string;
-  file_type: 'pdf' | 'image';
+  file_type: "pdf" | "image";
   file_url: string;
   file_size_bytes?: number;
   description?: string;
@@ -23,17 +31,16 @@ export interface ElectionsAttachmentUploadProps {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = {
-  pdf: ['application/pdf'],
-  image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  pdf: ["application/pdf"],
+  image: ["image/jpeg", "image/png", "image/webp", "image/gif"],
 };
-const STORAGE_BUCKET = 'elections';
-const STORAGE_FALLBACK_BUCKET = 'public'; // Fallback ak 'elections' neexistuje
+const STORAGE_BUCKET = "elections";
 
 export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps> = ({
   electionId,
   attachments,
   onAttachmentsChange,
-  disabled = false
+  disabled = false,
 }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +54,7 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
 
     // Validácia
     if (file.size > MAX_FILE_SIZE) {
-      setError('Súbor je príliš veľký (max 10MB)');
+      setError("Súbor je príliš veľký (max 10MB)");
       return;
     }
 
@@ -55,52 +62,43 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
     const isImage = ALLOWED_TYPES.image.includes(file.type);
 
     if (!isPdf && !isImage) {
-      setError('Povolené sú iba PDF a obrázky (JPEG, PNG, WebP, GIF)');
+      setError("Povolené sú iba PDF a obrázky (JPEG, PNG, WebP, GIF)");
       return;
     }
 
-    const fileType: 'pdf' | 'image' = isPdf ? 'pdf' : 'image';
+    const fileType: "pdf" | "image" = isPdf ? "pdf" : "image";
 
     try {
       setUploading(true);
-      triggerHaptic('light');
+      triggerHaptic("light");
 
-      const fileName = `${electionId}/${fileType}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
-      
-      let uploadData;
-      let uploadError;
-      
-      // Pokús sa nahráť na 'elections' bucket, ak zlyhá spróbuj 'public'
-      try {
-        const result = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(fileName, file);
-        uploadData = result.data;
-        uploadError = result.error;
-      } catch (err) {
-        console.warn(`Bucket '${STORAGE_BUCKET}' failed, trying fallback:`, err);
-        // Fallback na verejný bucket ak 'elections' neexistuje
-        const result = await supabase.storage
-          .from(STORAGE_FALLBACK_BUCKET)
-          .upload(`elections/${fileName}`, file);
-        uploadData = result.data;
-        uploadError = result.error;
-      }
+      const fileName = `${electionId}/${fileType}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(fileName, file);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
-        if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('StorageApiError')) {
-          setError('Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.');
+        console.error("Upload error:", uploadError);
+        if (
+          uploadError.message?.includes("Bucket not found") ||
+          uploadError.message?.includes("StorageApiError")
+        ) {
+          setError("Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.");
         } else {
-          setError('Chyba pri nahrávaní súboru');
+          setError("Chyba pri nahrávaní súboru");
         }
-        triggerHaptic('error');
+        triggerHaptic("error");
         return;
       }
 
-      const publicUrlData = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(fileName);
+      if (!uploadData) {
+        setError("Úložisko nevrátilo údaje o nahratom súbore.");
+        triggerHaptic("error");
+        return;
+      }
+
+      const publicUrlData = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fileName);
 
       const newAttachment: AttachmentFile = {
         id: uploadData.path,
@@ -108,37 +106,37 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
         file_type: fileType,
         file_url: publicUrlData.data.publicUrl,
         file_size_bytes: file.size,
-        description: '',
-        sort_order: attachments.length
+        description: "",
+        sort_order: attachments.length,
       };
 
       onAttachmentsChange([...attachments, newAttachment]);
-      triggerHaptic('success');
+      triggerHaptic("success");
     } catch (err) {
-      console.error('Upload failed:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Neznáma chyba';
-      if (errorMessage.includes('Bucket not found') || errorMessage.includes('StorageApiError')) {
-        setError('Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.');
+      console.error("Upload failed:", err);
+      const errorMessage = err instanceof Error ? err.message : "Neznáma chyba";
+      if (errorMessage.includes("Bucket not found") || errorMessage.includes("StorageApiError")) {
+        setError("Úložisko nie je správne nakonfigurované. Kontaktuj administrátora.");
       } else {
-        setError('Neznáma chyba pri nahrávaní');
+        setError("Neznáma chyba pri nahrávaní");
       }
-      triggerHaptic('error');
+      triggerHaptic("error");
     } finally {
       setUploading(false);
     }
   };
 
   const handleRemove = (id: string) => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     onAttachmentsChange(attachments.filter((a) => a.id !== id));
   };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       setDragActive(false);
     }
   };
@@ -159,10 +157,10 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={cn(
-          'relative rounded-2xl border-2 border-dashed p-6 text-center transition-colors',
+          "relative rounded-2xl border-2 border-dashed p-6 text-center transition-colors",
           dragActive
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-            : 'border-slate-300 dark:border-slate-700'
+            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+            : "border-slate-300 dark:border-slate-700",
         )}
       >
         <input
@@ -177,7 +175,9 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
         {uploading ? (
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Nahrávam súbor...</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Nahrávam súbor...
+            </span>
           </div>
         ) : (
           <>
@@ -220,7 +220,7 @@ export const ElectionsAttachmentUpload: React.FC<ElectionsAttachmentUploadProps>
                 className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  {att.file_type === 'pdf' ? (
+                  {att.file_type === "pdf" ? (
                     <FileText className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
                   ) : (
                     <ImageIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />

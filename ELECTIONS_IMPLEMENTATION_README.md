@@ -60,6 +60,7 @@ Toto je kompletná implementácia rozšíreného modulu volieb pre aplikáciu **
 ## 🚀 Quick Start (3 Kroky)
 
 ### 1. Spustenie Databázovej Migrácie
+
 ```bash
 # Otvor Supabase Dashboard
 # SQL Editor → New Query
@@ -68,6 +69,7 @@ Toto je kompletná implementácia rozšíreného modulu volieb pre aplikáciu **
 ```
 
 ### 2. Konfigurácia Storage Bucketu
+
 ```bash
 # Supabase → Storage → New Bucket
 # Meno: elections
@@ -76,6 +78,7 @@ Toto je kompletná implementácia rozšíreného modulu volieb pre aplikáciu **
 ```
 
 ### 3. Build Aplikácie
+
 ```bash
 cd "c:\Users\Admin\Documents\Projekt APP\LOvable PRO"
 npm run build
@@ -125,6 +128,7 @@ Máš k dispozícii 3 detailné dokumenty:
 ## ✅ Quality Assurance
 
 ### Build Status
+
 ```
 ✅ npm run build
 ✅ Bez TypeScript chýb
@@ -133,6 +137,7 @@ Máš k dispozícii 3 detailné dokumenty:
 ```
 
 ### Testing
+
 ```
 ✅ Komponenty - READY
 ✅ Integrácia - VERIFIED
@@ -141,6 +146,7 @@ Máš k dispozícii 3 detailné dokumenty:
 ```
 
 ### Deployment Ready
+
 ```
 ✅ Database migration - PREPARED
 ✅ Storage configuration - DOCUMENTED
@@ -154,14 +160,15 @@ Máš k dispozícii 3 detailné dokumenty:
 
 ### Rola-Based Access
 
-| Funkcia | Admin | Starosta | Úradník | Sused |
-|---------|-------|----------|--------|-------|
-| Čítať | ✅ | ✅ | ✅ | ✅ |
-| Editovať | ✅ | ✅ | ✅ | ❌ |
-| Nahrať | ✅ | ✅ | ✅ | ❌ |
-| Vymazať | ✅ | ✅ | ✅ | ❌ |
+| Funkcia  | Admin | Starosta | Úradník | Sused |
+| -------- | ----- | -------- | ------- | ----- |
+| Čítať    | ✅    | ✅       | ✅      | ✅    |
+| Editovať | ✅    | ✅       | ✅      | ❌    |
+| Nahrať   | ✅    | ✅       | ✅      | ❌    |
+| Vymazať  | ✅    | ✅       | ✅      | ❌    |
 
 ### RLS Polícia
+
 - ✅ Row Level Security zapnutý
 - ✅ Public read (iba aktívne voľby)
 - ✅ Admin/Official write
@@ -172,13 +179,16 @@ Máš k dispozícii 3 detailné dokumenty:
 ## 📊 Database Schema
 
 ### Nové Tabuľky
+
 - `elections` - Základné údaje o voľbách
 - `elections_attachments` - Nahraté súbory (PDF, obrázky)
 
 ### Rozšírené Tabuľky
+
 - `election_candidates` - Pridané pole `election_id`, `sort_order`
 
 ### Indeksy
+
 - `idx_election_candidates_election_id`
 - `idx_elections_attachments_election_id`
 - `idx_elections_status`
@@ -192,7 +202,7 @@ Máš k dispozícii 3 detailné dokumenty:
 👆 **Haptic Feedback** - Užívateľ cíti spätnu väzbu  
 ⚡ **Loading States** - Vizuálne indikátory  
 🔴 **Error Handling** - Užívateľský priateľské chyby  
-♿ **Accessibility** - Keyboard navigation, aria labels  
+♿ **Accessibility** - Keyboard navigation, aria labels
 
 ---
 
@@ -219,13 +229,14 @@ Pred produkciou otestuj:
 ## 📦 API Interfaces
 
 ### Hlavné Interface
+
 ```typescript
 interface ElectionsData {
   id?: string;
   name: string;
   description?: string;
   election_date?: string;
-  status?: 'draft' | 'active' | 'closed';
+  status?: "draft" | "active" | "closed";
   candidates_mayor: CandidateRow[];
   candidates_council: CandidateRow[];
   attachments: AttachmentFile[];
@@ -233,11 +244,12 @@ interface ElectionsData {
 ```
 
 ### Kandidát
+
 ```typescript
 interface CandidateRow {
   full_name: string;
   party_or_independent: string;
-  position_type: 'starosta' | 'poslanec';
+  position_type: "starosta" | "poslanec";
   age?: number | null;
   profession?: string | null;
   motto?: string | null;
@@ -310,7 +322,7 @@ Podrobnejší troubleshooting v: **ELECTIONS_DEPLOYMENT_GUIDE_SK.md**
 ✅ **Haptic Feedback** - Vibračná spätná väzba  
 ✅ **Mobile Responsive** - Funguje všade  
 ✅ **TypeScript** - Plne typované  
-✅ **Error Handling** - Graceful error messages  
+✅ **Error Handling** - Graceful error messages
 
 ---
 
@@ -330,11 +342,13 @@ Tieto funkcie si môžeš pridať sám:
 ## 📈 Performance
 
 ### Build Metrics
+
 - **Build time:** 4.65s
 - **Bundle size:** +150KB (minimal impact)
 - **Database:** <50ms pre úkony
 
 ### Tested with
+
 - ✅ 100+ kandidátov
 - ✅ 10MB súbory
 - ✅ 4GB+ database
@@ -355,6 +369,7 @@ Tieto funkcie si môžeš pridať sám:
 **Všetko je HOTOVO a pripravené na produkciu!**
 
 Máš k dispozícii:
+
 - ✅ 2 nové React komponenty
 - ✅ SQL migrácia s RLS políciami
 - ✅ Rozšírenie ElectionsScreen
@@ -369,6 +384,7 @@ Máš k dispozícii:
 ## 👨‍💻 Implementátor
 
 Vyvinuto pomocou:
+
 - **React 18** + TypeScript
 - **Supabase** (PostgreSQL, Storage)
 - **Tailwind CSS** (Dark mode)
@@ -388,7 +404,7 @@ Vyvinuto pomocou:
 
 **Version:** 1.0  
 **Last Updated:** 2026-09-08  
-**Status:** ✅ PRODUCTION READY  
+**Status:** ✅ PRODUCTION READY
 
 🎊 **Gratulujeme! Tvoj modul volieb je hotový!** 🎊
 
@@ -403,4 +419,4 @@ Všetky práva vyhradené © 2026
 
 **Prajeme ti veľa úspechov s tým novým modulom volieb! 🚀**
 
-*Ak potrebuješ ďalšie funkcie alebo optimalizácie, nezaváhaj kontaktovať vývojára!*
+_Ak potrebuješ ďalšie funkcie alebo optimalizácie, nezaváhaj kontaktovať vývojára!_

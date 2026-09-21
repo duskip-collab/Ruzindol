@@ -31,7 +31,6 @@ import {
   MessageSquare,
   HelpCircle,
 } from "lucide-react";
-import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser, type ProfileRole } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -59,7 +58,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { removeBucketObject } from "@/lib/storage";
-import { formatWarehouseExpiry, getWarehouseLifetimeLabel, resolveWarehouseExpiry, type WarehouseItemType } from "@/lib/warehouse";
+import {
+  formatWarehouseExpiry,
+  getWarehouseLifetimeLabel,
+  resolveWarehouseExpiry,
+  type WarehouseItemType,
+} from "@/lib/warehouse";
 import { syncPushSubscriptionSilently } from "@/lib/push";
 
 type Item = {
@@ -94,7 +98,7 @@ const RolePanels = lazy(async () => {
     .then((m) => ({ default: m.RolePanels }))
     .catch(() => {
       window.location.reload();
-      return { default: () => null } as any;
+      return { default: () => <></> };
     });
 });
 
@@ -103,7 +107,7 @@ const NeighborhoodPulse = lazy(async () => {
     .then((m) => ({ default: m.NeighborhoodPulse }))
     .catch(() => {
       window.location.reload();
-      return { default: () => null } as any;
+      return { default: () => <></> };
     });
 });
 
@@ -112,7 +116,7 @@ const ModerationPanel = lazy(async () => {
     .then((m) => ({ default: m.ModerationPanel }))
     .catch(() => {
       window.location.reload();
-      return { default: () => null } as any;
+      return { default: () => <></> };
     });
 });
 
@@ -121,7 +125,7 @@ const InviteRedeemSection = lazy(async () => {
     .then((m) => ({ default: m.InviteRedeemSection }))
     .catch(() => {
       window.location.reload();
-      return { default: () => null } as any;
+      return { default: () => <></> };
     });
 });
 
@@ -166,11 +170,13 @@ export function ProfilScreen() {
     try {
       const result = await withTimeout(
         () =>
-          retryAsync<any>(
+          retryAsync(
             async () => {
               return supabase
                 .from("warehouse_items")
-                .select("id, type, title, price, created_at, expires_at, image_url, image_url_2, image_url_3, image_url_4, image_path, image_path_2, image_path_3, image_path_4")
+                .select(
+                  "id, type, title, price, created_at, expires_at, image_url, image_url_2, image_url_3, image_url_4, image_path, image_path_2, image_path_3, image_path_4",
+                )
                 .eq("user_id", uid)
                 .order("created_at", { ascending: false });
             },
@@ -204,7 +210,10 @@ export function ProfilScreen() {
 
   // Load pending inquiries count for admin/starosta
   useEffect(() => {
-    if (!profile || !['admin', 'starosta', 'uradnik'].includes((profile.role || '').toLowerCase())) {
+    if (
+      !profile ||
+      !["admin", "starosta", "uradnik"].includes((profile.role || "").toLowerCase())
+    ) {
       return;
     }
 
@@ -212,12 +221,12 @@ export function ProfilScreen() {
       try {
         const result = await withTimeout(
           () =>
-            retryAsync<any>(
+            retryAsync(
               async () => {
                 return supabase
-                  .from('mayor_inquiries' as any)
-                  .select('id', { count: 'exact', head: true })
-                  .eq('status', 'pending') as any;
+                  .from("mayor_inquiries")
+                  .select("id", { count: "exact", head: true })
+                  .eq("status", "pending");
               },
               { retries: 1, delayMs: 300 },
             ),
@@ -225,9 +234,9 @@ export function ProfilScreen() {
           "Načítavanie počtu podnetov trvalo príliš dlho",
         );
 
-        setPendingInquiriesCount(result?.count || 0);
+        setPendingInquiriesCount(result?.count ?? 0);
       } catch (err) {
-        console.error('[ProfilScreen] loadPendingCount chyba:', err);
+        console.error("[ProfilScreen] loadPendingCount chyba:", err);
         setPendingInquiriesCount(0);
       }
     };
@@ -404,7 +413,9 @@ export function ProfilScreen() {
               itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
               contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
             >
-              {openSection === "admin" && <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />}
+              {openSection === "admin" && (
+                <AdminPanel adminId={profile.id} isSuperAdmin={isAdmin} />
+              )}
             </AccordionSection>
           )}
 
@@ -547,7 +558,11 @@ export function ProfilScreen() {
             }
             onClose={() => setOpenSection("")}
           >
-            <NeighborInviteSection userId={profile.id} canUse={canInviteNeighbors} maxCodes={inviteLimit} />
+            <NeighborInviteSection
+              userId={profile.id}
+              canUse={canInviteNeighbors}
+              maxCodes={inviteLimit}
+            />
           </AccordionSection>
 
           <AccordionSection
@@ -617,7 +632,12 @@ export function ProfilScreen() {
                               Platnosť {getWarehouseLifetimeLabel(item.type as WarehouseItemType)}
                             </span>
                             <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 dark:bg-white/10">
-                              Do {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
+                              Do{" "}
+                              {formatWarehouseExpiry(
+                                item.type as WarehouseItemType,
+                                item.created_at,
+                                item.expires_at,
+                              )}
                             </span>
                             {isExpired && (
                               <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
@@ -698,45 +718,43 @@ export function ProfilScreen() {
       </div>
 
       {/* Mayor Inquiries Dashboard */}
-      <MayorInquiriesDashboard
-        isOpen={isDashboardOpen}
-        onClose={() => setIsDashboardOpen(false)}
-      />
+      <MayorInquiriesDashboard isOpen={isDashboardOpen} onClose={() => setIsDashboardOpen(false)} />
 
       {/* Code Activation Modal */}
-      {createPortal && createPortal(
-        <AnimatePresence>
-          {showActivation && (
-            <motion.div
-              key="activation-modal"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 260 }}
-              className="fixed inset-0 z-[110]"
-            >
-              <CodeActivationScreen
-                onClose={() => {
-                  setShowActivation(false);
-                  // Clean up URL param
-                  const url = new URL(window.location);
-                  url.searchParams.delete("activation");
-                  window.history.replaceState({}, "", url);
-                }}
-                onActivated={async () => {
-                  await refresh();
-                  setShowActivation(false);
-                  // Clean up URL param
-                  const url = new URL(window.location);
-                  url.searchParams.delete("activation");
-                  window.history.replaceState({}, "", url);
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body,
-      )}
+      {createPortal &&
+        createPortal(
+          <AnimatePresence>
+            {showActivation && (
+              <motion.div
+                key="activation-modal"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 260 }}
+                className="fixed inset-0 z-[110]"
+              >
+                <CodeActivationScreen
+                  onClose={() => {
+                    setShowActivation(false);
+                    // Clean up URL param
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("activation");
+                    window.history.replaceState({}, "", url);
+                  }}
+                  onActivated={async () => {
+                    await refresh();
+                    setShowActivation(false);
+                    // Clean up URL param
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("activation");
+                    window.history.replaceState({}, "", url);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -790,7 +808,9 @@ function AccordionSection({
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-3">
             {icon && (
-              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${iconClass ?? "bg-teal-600"}`}>
+              <div
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white shadow-sm ${iconClass ?? "bg-teal-600"}`}
+              >
                 {icon}
               </div>
             )}
@@ -826,7 +846,9 @@ function AccordionSection({
               >
                 <div className="pt-safe flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
                   <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-foreground md:text-lg">{title}</h3>
+                    <h3 className="truncate text-base font-semibold text-foreground md:text-lg">
+                      {title}
+                    </h3>
                     {description && (
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
                     )}
@@ -841,7 +863,9 @@ function AccordionSection({
                   </button>
                 </div>
 
-                <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 ${contentClassName ?? ""}`}>
+                <div
+                  className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-8 ${contentClassName ?? ""}`}
+                >
                   {children}
                 </div>
               </motion.div>
@@ -959,7 +983,7 @@ function NotificationSettings({ userId }: { userId: string }) {
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("user_settings")
         .select("notifications_enabled")
         .eq("user_id", userId)
@@ -993,7 +1017,7 @@ function NotificationSettings({ userId }: { userId: string }) {
     setPushEnabled(nextValue);
     setPushSaving(true);
 
-    const { error } = await (supabase as any).from("user_settings").upsert(
+    const { error } = await supabase.from("user_settings").upsert(
       {
         user_id: userId,
         notifications_enabled: nextValue,
@@ -1026,7 +1050,9 @@ function NotificationSettings({ userId }: { userId: string }) {
             {darkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </div>
           <div>
-            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Tmavý režim</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">
+              Tmavý režim
+            </span>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {darkMode ? "Aktívny tmavý vzhľad (Deep Slate)" : "Aktívny svetlý vzhľad"}
             </p>
@@ -1047,7 +1073,9 @@ function NotificationSettings({ userId }: { userId: string }) {
               Aa
             </div>
             <div>
-              <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Veľkosť písma</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">
+                Veľkosť písma
+              </span>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Aktuálne: Stupeň {fontScale} ({fontSizePx}px)
               </p>
@@ -1069,7 +1097,11 @@ function NotificationSettings({ userId }: { userId: string }) {
             {FONT_SCALE_OPTIONS.map((option) => (
               <span
                 key={option.value}
-                className={fontScale === option.value ? "font-bold text-emerald-600 dark:text-emerald-400" : ""}
+                className={
+                  fontScale === option.value
+                    ? "font-bold text-emerald-600 dark:text-emerald-400"
+                    : ""
+                }
               >
                 {option.label} ({option.description})
               </span>
@@ -1091,7 +1123,9 @@ function NotificationSettings({ userId }: { userId: string }) {
             {pushEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
           </div>
           <div>
-            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Push notifikácie do zariadenia</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">
+              Push notifikácie do zariadenia
+            </span>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Bežné push správy do mobilu / prehliadača.
             </p>
@@ -1112,7 +1146,9 @@ function NotificationSettings({ userId }: { userId: string }) {
             <BellOff className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">Stlmiť všetky okamžité upozornenia</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200 block text-sm">
+              Stlmiť všetky okamžité upozornenia
+            </span>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Master prepínač real-time správ
             </p>
@@ -1226,11 +1262,14 @@ function NeighborInviteSection({
   }
 
   useEffect(() => {
-    if (canUse) {
-      void ensureCodes();
-    } else {
-      void loadOwnCodes();
-    }
+    const id = window.setTimeout(() => {
+      if (canUse) {
+        void ensureCodes();
+      } else {
+        void loadOwnCodes();
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, canUse, maxCodes]);
 
@@ -1335,7 +1374,11 @@ function NeighborInviteSection({
               disabled={busy}
               className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
               Získať {maxCodes} kódov
             </button>
             {codes.length > 0 && (
@@ -1368,50 +1411,50 @@ function NeighborInviteSection({
                 const code = row.code;
                 const whatsappText = encodeURIComponent(inviteMessage(code));
                 return (
-                <li
-                  key={row.id}
-                  className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
-                >
-                  <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
-                    {code}
-                  </span>
-                  <button
-                    onClick={() => copy(code)}
-                    className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    aria-label="Kopírovať"
+                  <li
+                    key={row.id}
+                    className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2"
                   >
-                    {copied === code ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </button>
+                    <span className="flex-1 font-mono text-sm tracking-wider text-foreground">
+                      {code}
+                    </span>
+                    <button
+                      onClick={() => copy(code)}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      aria-label="Kopírovať"
+                    >
+                      {copied === code ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                     <button
                       onClick={() => void shareNative(code)}
                       className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
                     >
                       <Share2 className="h-3 w-3" /> Zdieľať
                     </button>
-                  <a
+                    <a
                       href={`https://wa.me/?text=${whatsappText}`}
-                    onClick={() => {
-                      void markCodeAsShared(row.id, "whatsapp");
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
-                  >
-                    WhatsApp
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => void shareMessenger(code, row.id)}
-                    className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
-                    title="Otvorí Messenger. Ak natívne zdieľanie nie je dostupné, text sa skopíruje do schránky."
-                  >
-                    Messenger
-                  </button>
-                </li>
+                      onClick={() => {
+                        void markCodeAsShared(row.id, "whatsapp");
+                      }}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    >
+                      WhatsApp
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void shareMessenger(code, row.id)}
+                      className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                      title="Otvorí Messenger. Ak natívne zdieľanie nie je dostupné, text sa skopíruje do schránky."
+                    >
+                      Messenger
+                    </button>
+                  </li>
                 );
               })}
             </ul>
@@ -1421,7 +1464,9 @@ function NeighborInviteSection({
             skopíruje do schránky.
           </p>
           {copied === "__all__" && (
-            <p className="mt-2 text-[11px] text-emerald-700">Text so všetkými kódmi je v schránke.</p>
+            <p className="mt-2 text-[11px] text-emerald-700">
+              Text so všetkými kódmi je v schránke.
+            </p>
           )}
         </>
       )}
@@ -1430,10 +1475,16 @@ function NeighborInviteSection({
 }
 
 function mapInviteError(message: string) {
-  if (/get_or_create_neighbor_invite_codes/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+  if (
+    /get_or_create_neighbor_invite_codes/i.test(message) &&
+    /does not exist|nenajden|not exist/i.test(message)
+  ) {
     return "V databáze ešte chýba funkcia pre generovanie kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
   }
-  if (/mark_invite_code_shared/i.test(message) && /does not exist|nenajden|not exist/i.test(message)) {
+  if (
+    /mark_invite_code_shared/i.test(message) &&
+    /does not exist|nenajden|not exist/i.test(message)
+  ) {
     return "V databáze ešte chýba funkcia pre označenie zdieľaných kódov. Spusť najnovšiu Supabase migráciu a skús znova.";
   }
   if (/forbidden|permission|42501/i.test(message)) {
@@ -1618,9 +1669,12 @@ function HelpGuidePanel() {
     <div className="flex flex-col gap-6 pb-4">
       {/* Header */}
       <div className="rounded-2xl border border-border/80 bg-gradient-to-br from-sky-50 to-blue-50 p-5 dark:from-sky-950/40 dark:to-blue-950/40">
-        <h2 className="text-lg font-bold text-foreground">📖 Kompletná nápoveda k aplikácii Moji Susedia</h2>
+        <h2 className="text-lg font-bold text-foreground">
+          📖 Kompletná nápoveda k aplikácii Moji Susedia
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Vitajte v užívateľskej príručke aplikácie <strong>Moji Susedia</strong>, ktorá vám pomôže zorientovať sa vo všetkých jej funkciách, sekciách a možnostiach nastavenia.
+          Vitajte v užívateľskej príručke aplikácie <strong>Moji Susedia</strong>, ktorá vám pomôže
+          zorientovať sa vo všetkých jej funkciách, sekciách a možnostiach nastavenia.
         </p>
       </div>
 
@@ -1630,24 +1684,38 @@ function HelpGuidePanel() {
           <span className="text-lg">🔔</span> 1. Zvonček a notifikácie (Dôležité upozornenia)
         </h3>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          Ikona zvončeka v hornej lište aplikácie slúži ako vaše priame prepojenie s dianím v obci a okolí:
+          Ikona zvončeka v hornej lište aplikácie slúži ako vaše priame prepojenie s dianím v obci a
+          okolí:
         </p>
         <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Ako to funguje:</span>
-            <span>Po kliknutí na ikonu zvončeka sa vám zotriedene zobrazia všetky dôležité upozornenia a správy.</span>
+            <span>
+              Po kliknutí na ikonu zvončeka sa vám zotriedene zobrazia všetky dôležité upozornenia a
+              správy.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Reálne notifikácie:</span>
-            <span>Vďaka notifikáciám dostávate <strong>okamžité upozornenia priamo z obecného úradu</strong> v prípade mimoriadnych udalostí (napr. nečakané odstávky, výstrahy pred počasím, havárie) alebo dôležitých oznamov.</span>
+            <span>
+              Vďaka notifikáciám dostávate{" "}
+              <strong>okamžité upozornenia priamo z obecného úradu</strong> v prípade mimoriadnych
+              udalostí (napr. nečakané odstávky, výstrahy pred počasím, havárie) alebo dôležitých
+              oznamov.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Ako si ich zapnúť:</span>
             <span className="flex flex-col gap-1">
               <span>1. Kliknite na ikonu zvončeka 🔔</span>
-              <span>2. Ak sa vám zobrazuje nápoveda, kliknite na <strong>„Kliknúť a povoliť"</strong></span>
+              <span>
+                2. Ak sa vám zobrazuje nápoveda, kliknite na <strong>„Kliknúť a povoliť"</strong>
+              </span>
               <span>3. V kontextovom okne vášho zariadenia potvrďte povolenie notifikácií</span>
-              <span className="italic">💡 Tip: Zelená pulzujúca bodka pri zvončeku vás upozorňuje na to, že ešte nemáte povolené doručovanie upozornení do zariadenia.</span>
+              <span className="italic">
+                💡 Tip: Zelená pulzujúca bodka pri zvončeku vás upozorňuje na to, že ešte nemáte
+                povolené doručovanie upozornení do zariadenia.
+              </span>
             </span>
           </li>
         </ul>
@@ -1663,7 +1731,9 @@ function HelpGuidePanel() {
         <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Čo sa tu zobrazuje:</span>
-            <span>Príspevky, postrehy, otázky a oznamy, ktoré vkladajú samotní obyvatelia a susedia.</span>
+            <span>
+              Príspevky, postrehy, otázky a oznamy, ktoré vkladajú samotní obyvatelia a susedia.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Kto to pridáva:</span>
@@ -1672,9 +1742,19 @@ function HelpGuidePanel() {
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Typy príspevkov:</span>
             <span className="flex flex-col gap-1">
-              <span><strong>Otázky:</strong> Potrebujete poradiť, zohnať odporúčanie na remeselníka alebo sa opýtať na dianie v obci?</span>
-              <span><strong>Straty a nálezy:</strong> Stratili ste kľúče, domáceho miláčika, alebo ste niečo našli? K príspevku môžete pridať <strong>fotku</strong>, čo výrazne zvýši šancu na úspešné nájdenie.</span>
-              <span><strong>Informácie pre susedov:</strong> Dôležité upozornenia, pozvánky na susedské stretnutia alebo zaujímavosti z okolia.</span>
+              <span>
+                <strong>Otázky:</strong> Potrebujete poradiť, zohnať odporúčanie na remeselníka
+                alebo sa opýtať na dianie v obci?
+              </span>
+              <span>
+                <strong>Straty a nálezy:</strong> Stratili ste kľúče, domáceho miláčika, alebo ste
+                niečo našli? K príspevku môžete pridať <strong>fotku</strong>, čo výrazne zvýši
+                šancu na úspešné nájdenie.
+              </span>
+              <span>
+                <strong>Informácie pre susedov:</strong> Dôležité upozornenia, pozvánky na susedské
+                stretnutia alebo zaujímavosti z okolia.
+              </span>
             </span>
           </li>
         </ul>
@@ -1685,32 +1765,47 @@ function HelpGuidePanel() {
           <span className="text-lg">📢</span> 3. Aktuality (Obecný hlásnik)
         </h3>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          Táto sekcia slúži na oficiálne informácie, oznamy a prehľad harmonogramov súvisiacich s chodom obce Ružindol.
+          Táto sekcia slúži na oficiálne informácie, oznamy a prehľad harmonogramov súvisiacich s
+          chodom obce Ružindol.
         </p>
         <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Podnety:</span>
-            <span>Priestor, kde môžu občania posielať svoje podnety, nápady na zlepšenie alebo hlásiť nedostatky v obci.</span>
+            <span>
+              Priestor, kde môžu občania posielať svoje podnety, nápady na zlepšenie alebo hlásiť
+              nedostatky v obci.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Zdieľaný kalendár:</span>
-            <span>Prehľad všetkých blížiacich sa kultúrnych, spoločenských či športových akcii v obci.</span>
+            <span>
+              Prehľad všetkých blížiacich sa kultúrnych, spoločenských či športových akcii v obci.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Oznamy obce:</span>
             <span>Oficiálne správy a nariadenia z obecného úradu.</span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground min-w-fit">• Kalendár zberu odpadov:</span>
-            <span>Praktický harmonogram vývozu jednotlivých druhov odpadu, aby ste vždy vedeli, kedy akú nádobu vyložiť.</span>
+            <span className="font-semibold text-foreground min-w-fit">
+              • Kalendár zberu odpadov:
+            </span>
+            <span>
+              Praktický harmonogram vývozu jednotlivých druhov odpadu, aby ste vždy vedeli, kedy akú
+              nádobu vyložiť.
+            </span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground min-w-fit">• Informácie o stránkových dňoch:</span>
+            <span className="font-semibold text-foreground min-w-fit">
+              • Informácie o stránkových dňoch:
+            </span>
             <span>Úradné hodiny a dni, kedy je obecný úrad otvorený pre verejnosť.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Digitálny rozhlas:</span>
-            <span>Textová podoba obecného rozhlasu pre prípad, že ste zmeškali hlásenie vonku.</span>
+            <span>
+              Textová podoba obecného rozhlasu pre prípad, že ste zmeškali hlásenie vonku.
+            </span>
           </li>
         </ul>
       </section>
@@ -1725,23 +1820,40 @@ function HelpGuidePanel() {
         <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• OŠK Ružindol:</span>
-            <span>Oficiálna sekcia miestneho športového klubu. Nájdete tu výsledky zápasov, športové oznamy a pozvánky na podujatia.</span>
+            <span>
+              Oficiálna sekcia miestneho športového klubu. Nájdete tu výsledky zápasov, športové
+              oznamy a pozvánky na podujatia.
+            </span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground min-w-fit">• DHZ Ružindol (Dobrovoľný hasičský zbor):</span>
-            <span>Informácie o činnosti našich hasičov, výcvikoch, súťažiach či preventívnych opatreniach a požiarnych vyhliadkach v obci.</span>
+            <span className="font-semibold text-foreground min-w-fit">
+              • DHZ Ružindol (Dobrovoľný hasičský zbor):
+            </span>
+            <span>
+              Informácie o činnosti našich hasičov, výcvikoch, súťažiach či preventívnych
+              opatreniach a požiarnych vyhliadkach v obci.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Dôchodcovia Ružindol:</span>
-            <span>Vyhradený priestor pre seniorskú komunitu a klub dôchodcov, kde sa zdieľajú informácie o stretnutiach, výletoch a aktivitách pre starších spoluobčanov.</span>
+            <span>
+              Vyhradený priestor pre seniorskú komunitu a klub dôchodcov, kde sa zdieľajú informácie
+              o stretnutiach, výletoch a aktivitách pre starších spoluobčanov.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Farnosť:</span>
-            <span>Miesto pre farské oznamy. Miestny farár alebo správca tu zverejňuje poriadok svätých omší, úradné hodiny farského úradu, pozvánky na farské akcie, brigády či stretnutia.</span>
+            <span>
+              Miesto pre farské oznamy. Miestny farár alebo správca tu zverejňuje poriadok svätých
+              omší, úradné hodiny farského úradu, pozvánky na farské akcie, brigády či stretnutia.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Služby a firmy:</span>
-            <span>Katalóg overených lokálnych firiem, remeselníkov a poskytovateľov služieb, ktorí pôsobia v blízkosti našej komunity.</span>
+            <span>
+              Katalóg overených lokálnych firiem, remeselníkov a poskytovateľov služieb, ktorí
+              pôsobia v blízkosti našej komunity.
+            </span>
           </li>
         </ul>
       </section>
@@ -1751,20 +1863,30 @@ function HelpGuidePanel() {
           <span className="text-lg">📦</span> 5. Sklad (Trh a zdieľanie)
         </h3>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          Sekcia Sklad slúži na ekologické a ekonomické zdieľanie vecí medzi susedmi. Delí sa na tri podkategórie:
+          Sekcia Sklad slúži na ekologické a ekonomické zdieľanie vecí medzi susedmi. Delí sa na tri
+          podkategórie:
         </p>
         <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Susedský trh:</span>
-            <span>Miesto, kde môžete ponúknuť na predaj alebo výmenu veci, ktoré už nepotrebujete, prípadne pohľadať to, čo iní ponúkajú.</span>
+            <span>
+              Miesto, kde môžete ponúknuť na predaj alebo výmenu veci, ktoré už nepotrebujete,
+              prípadne pohľadať to, čo iní ponúkajú.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Darovanie:</span>
-            <span>Sekcia pre veci, ktoré darujete za odvoz (napr. prebytočný materiál, knihy, oblečenie či rastliny).</span>
+            <span>
+              Sekcia pre veci, ktoré darujete za odvoz (napr. prebytočný materiál, knihy, oblečenie
+              či rastliny).
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Susedská požičovňa:</span>
-            <span>Ponuka náradia, záhradnej techniky či pomôcok (rebríky, kosačky, vŕtačky), ktoré si susedia vedia navzájom požičať.</span>
+            <span>
+              Ponuka náradia, záhradnej techniky či pomôcok (rebríky, kosačky, vŕtačky), ktoré si
+              susedia vedia navzájom požičať.
+            </span>
           </li>
         </ul>
       </section>
@@ -1776,15 +1898,24 @@ function HelpGuidePanel() {
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Kedy sa zobrazujú:</span>
-            <span>Správy sa aktivujú vtedy, keď zareagujete na inzerát alebo ponuku iného suseda (napr. v Sklade).</span>
+            <span>
+              Správy sa aktivujú vtedy, keď zareagujete na inzerát alebo ponuku iného suseda (napr.
+              v Sklade).
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Účel:</span>
-            <span>Slúžia <strong>výhradne na vzájomnú dohodu</strong> ohľadom vyzdvihnutia veci, termínu alebo upresnenia podrobností k inzerátu.</span>
+            <span>
+              Slúžia <strong>výhradne na vzájomnú dohodu</strong> ohľadom vyzdvihnutia veci, termínu
+              alebo upresnenia podrobností k inzerátu.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="italic text-foreground">⚠️ Upozornenie:</span>
-            <span>Nejedná sa o platformu na všeobecné chatovanie – na bežnú komunikáciu slúžia iné četové aplikácie.</span>
+            <span>
+              Nejedná sa o platformu na všeobecné chatovanie – na bežnú komunikáciu slúžia iné
+              četové aplikácie.
+            </span>
           </li>
         </ul>
       </section>
@@ -1802,12 +1933,16 @@ function HelpGuidePanel() {
             <span>Možnosť zmeniť si svoje údaje a prispôsobiť profil.</span>
           </li>
           <li className="flex gap-2">
-            <span className="font-semibold text-foreground min-w-fit">• Nastavenie notifikácií:</span>
+            <span className="font-semibold text-foreground min-w-fit">
+              • Nastavenie notifikácií:
+            </span>
             <span>Správa upozornení, aby vám nič dôležité neuniklo.</span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Veľkosť písma:</span>
-            <span>Možnosť prispôsobiť si veľkosť textu v aplikácii pre čo najpohodlnejšie čítanie.</span>
+            <span>
+              Možnosť prispôsobiť si veľkosť textu v aplikácii pre čo najpohodlnejšie čítanie.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Panel rolí:</span>
@@ -1815,15 +1950,25 @@ function HelpGuidePanel() {
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Pozvať suseda:</span>
-            <span>Jednoduchá možnosť, ako vygenerovať pozvánku a privítať v aplikácii ďalších členov susedstva.</span>
+            <span>
+              Jednoduchá možnosť, ako vygenerovať pozvánku a privítať v aplikácii ďalších členov
+              susedstva.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Moje inzeráty:</span>
-            <span>Správa vašich publikovaných ponúk. Svoje inzeráty tu môžete kedykoľvek <strong>upraviť, vymazať</strong> alebo ich <strong>nanovo publikovať</strong>, ak sú opäť aktuálne.</span>
+            <span>
+              Správa vašich publikovaných ponúk. Svoje inzeráty tu môžete kedykoľvek{" "}
+              <strong>upraviť, vymazať</strong> alebo ich <strong>nanovo publikovať</strong>, ak sú
+              opäť aktuálne.
+            </span>
           </li>
           <li className="flex gap-2">
             <span className="font-semibold text-foreground min-w-fit">• Účet a odhlásenie:</span>
-            <span>Možnosť bezpečného odhlásenia sa zo zariadenia, prípadne <strong>trvalého zmazania účtu</strong>, ak sa rozhodnete aplikáciu viac nepoužívať.</span>
+            <span>
+              Možnosť bezpečného odhlásenia sa zo zariadenia, prípadne{" "}
+              <strong>trvalého zmazania účtu</strong>, ak sa rozhodnete aplikáciu viac nepoužívať.
+            </span>
           </li>
         </ul>
       </section>
@@ -1831,10 +1976,11 @@ function HelpGuidePanel() {
       {/* Footer */}
       <div className="rounded-2xl border border-border/80 bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/40 dark:to-teal-950/40">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong>💡 Ďakujeme, že používate aplikáciu Moji Susedia!</strong> Ak máte otázky alebo návrhy na zlepšenie, prosím kontaktujte nás. Našou snahou je vytvoriť čo najlepšiu komunitu pre obyvateľov Ružindola.
+          <strong>💡 Ďakujeme, že používate aplikáciu Moji Susedia!</strong> Ak máte otázky alebo
+          návrhy na zlepšenie, prosím kontaktujte nás. Našou snahou je vytvoriť čo najlepšiu
+          komunitu pre obyvateľov Ružindola.
         </p>
       </div>
     </div>
   );
 }
-

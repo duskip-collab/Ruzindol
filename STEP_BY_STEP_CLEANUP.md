@@ -3,12 +3,14 @@
 ## 📌 SITUÁCIA
 
 Máte v databáze:
+
 - ✅ Aktívne voľby a kandidátov
 - ❌ Staré záznamy kandidátov s `is_active=false` (ktoré sa majú ignorovať)
 
 ## 🎯 CIEĽ
 
 Vyčistiť databázu tak, aby:
+
 1. Zostali len aktívni kandidáti
 2. Staré neaktívne záznamy sú vymazané
 3. Aplikácia zobrazuje len správne dáta
@@ -29,7 +31,7 @@ Vyčistiť databázu tak, aby:
 
 ```sql
 -- DIAGNOSTIKA: Koľko je aktívnych a neaktívnych kandidátov?
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = true) as active_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = false) as inactive_candidates
@@ -69,8 +71,9 @@ SELECT COUNT(*) as backed_up_records
 FROM election_candidates_deleted_log;
 ```
 
-**Výsledok**: 
-- ✅ Vytvorí sa tabuľka `election_candidates_deleted_log` 
+**Výsledok**:
+
+- ✅ Vytvorí sa tabuľka `election_candidates_deleted_log`
 - ✅ Staré záznamy sú skopírované do log tabuľky
 - ✅ Máte zálohu pred mazaním
 
@@ -89,7 +92,8 @@ FROM election_candidates
 WHERE is_active = false;
 ```
 
-**Výsledok**: 
+**Výsledok**:
+
 - ✅ Všetci neaktívni kandidáti sú vymazaní
 - ✅ `remaining_inactive_candidates` by mal byť **0**
 
@@ -99,7 +103,7 @@ WHERE is_active = false;
 
 ```sql
 -- Skontroluj stav databázy
-SELECT 
+SELECT
   'election_candidates' as table_name,
   COUNT(*) as total_records,
   COUNT(CASE WHEN is_active = true THEN 1 END) as active_records,
@@ -113,6 +117,7 @@ ORDER BY created_at DESC;
 ```
 
 **Výsledok**:
+
 - `total_records`: Počet zvyšajúcich sa kandidátov (bez neaktívnych)
 - `active_records`: Všetci by mali byť aktívni (= total_records)
 - `inactive_records`: **0** (bez výnimok!)
@@ -122,6 +127,7 @@ ORDER BY created_at DESC;
 ## 🔍 PODROBNÝ PRÍKLAD
 
 ### Situácia pred vymažaním:
+
 ```
 TABUĽKA: election_candidates
 ┌──────────┬───────────────┬─────────┬──────────┐
@@ -141,6 +147,7 @@ TABUĽKA: election_candidates
 ```
 
 ### Situácia po vymažaní:
+
 ```
 TABUĽKA: election_candidates
 ┌──────────┬───────────────┬─────────┐
@@ -189,8 +196,9 @@ TABUĽKA: election_candidates
 ## 📊 SQL PRÍKAZY NA KOPÍROVANIE
 
 ### Balík 1: DIAGNOSTIKA
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = true) as active_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = false) as inactive_candidates
@@ -198,6 +206,7 @@ FROM election_candidates;
 ```
 
 ### Balík 2: BACKUP (VOLITEĽNÉ)
+
 ```sql
 CREATE TABLE IF NOT EXISTS election_candidates_deleted_log (
     id UUID PRIMARY KEY,
@@ -216,6 +225,7 @@ SELECT COUNT(*) as backed_up_records FROM election_candidates_deleted_log;
 ```
 
 ### Balík 3: VYMAZANIE + VERIFIKÁCIA
+
 ```sql
 DELETE FROM election_candidates WHERE is_active = false;
 
@@ -225,8 +235,9 @@ WHERE is_active = false;
 ```
 
 ### Balík 4: FINÁLNY PREHĽAD
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   COUNT(CASE WHEN is_active = true THEN 1 END) as active_candidates,
   COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_candidates
@@ -253,24 +264,32 @@ FROM election_candidates;
 ## ❓ OTÁZKY A ODPOVEDE
 
 ### Q: Kde je SQL Editor v Supabase?
+
 **A**: Supabase Dashboard → ľavý panel → SQL Editor (alebo https://supabase.com/dashboard/project/YOUR_PROJECT_ID/sql)
 
 ### Q: Čo ak spravím chybu?
+
 **A**: Máte BACKUP v `election_candidates_deleted_log` tabuľke. Môžete obnovi:
+
 ```sql
 INSERT INTO election_candidates (id, full_name, position_type, election_id, is_active)
 SELECT id, full_name, position_type, election_id, false FROM election_candidates_deleted_log;
 ```
 
 ### Q: Ako viem, že vymazanie funguje?
+
 **A**: Spustite query:
+
 ```sql
 SELECT COUNT(*) as should_be_zero FROM election_candidates WHERE is_active = false;
 ```
+
 Ak výsledok je **0**, je to OK ✅
 
 ### Q: Čo sa stane s priloženými súbormi (PDF, fotky)?
+
 **A**: Budú ostávať v Storage. Ich mazanie je iný proces:
+
 ```sql
 DELETE FROM elections_attachments WHERE election_id NOT IN (SELECT id FROM elections);
 ```
@@ -279,13 +298,13 @@ DELETE FROM elections_attachments WHERE election_id NOT IN (SELECT id FROM elect
 
 ## 🎯 ZHRNUTIE
 
-| Krok | Čo | Príkaz |
-|------|---|--------|
-| 1 | Diagnostika | `SELECT COUNT(*)... WHERE is_active...` |
-| 2 | Backup | `CREATE TABLE... INSERT INTO... SELECT...` |
-| 3 | Vymazanie | `DELETE FROM election_candidates WHERE is_active = false` |
-| 4 | Verifikácia | `SELECT COUNT(*) WHERE is_active = false` |
-| 5 | Testovanie | Aplikácia → Voľby → ✅ len aktívni |
+| Krok | Čo          | Príkaz                                                    |
+| ---- | ----------- | --------------------------------------------------------- |
+| 1    | Diagnostika | `SELECT COUNT(*)... WHERE is_active...`                   |
+| 2    | Backup      | `CREATE TABLE... INSERT INTO... SELECT...`                |
+| 3    | Vymazanie   | `DELETE FROM election_candidates WHERE is_active = false` |
+| 4    | Verifikácia | `SELECT COUNT(*) WHERE is_active = false`                 |
+| 5    | Testovanie  | Aplikácia → Voľby → ✅ len aktívni                        |
 
 ---
 

@@ -3,7 +3,9 @@
 ## 🟢 ZAČNITE TÝMI (v tomto poradí)
 
 ### 1️⃣ IHNEĎ (1-2 MINÚTY)
+
 **[A4_SUMMARY.md](./A4_SUMMARY.md)** - Jednu stránku, všetko čo potrebujete
+
 - Status aplikácie
 - 3-minútový test (iba tabuľka)
 - Debug rýchlo
@@ -14,7 +16,9 @@
 ---
 
 ### 2️⃣ PRE PREHĽAD (5-10 MINÚT)
+
 **[VOĽBY_FINAL_INDEX.md](./VOĽBY_FINAL_INDEX.md)** - Kompletný index
+
 - Čo je hotovo
 - Testovací plán (3 opcie)
 - Komponenty
@@ -26,20 +30,26 @@
 ### 3️⃣ PODĽA VYBRANÉHO TESTU (3-15 MINÚT)
 
 #### OPTION A: Super Rýchly (3 min)
+
 **[QUICK_TEST_CHECKLIST.md](./QUICK_TEST_CHECKLIST.md)**
+
 - 6 krokov v tabuľke
 - Iba Áno/Nie
 - Debug tips
 
 #### OPTION B: Detailný (10 min)
+
 **[ELECTIONS_VISIBILITY_FINAL_REPORT.md](./ELECTIONS_VISIBILITY_FINAL_REPORT.md)**
+
 - 6 testov s postupom
 - Očakávané výsledky
 - Problém → Riešenie tabuľka
 - Výsledková tabuľka
 
 #### OPTION C: Kompletný (15 min)
+
 **[ELECTIONS_VISIBILITY_TEST.md](./ELECTIONS_VISIBILITY_TEST.md)**
+
 - Detailný scenár
 - Technické overenie
 - RLS politiky
@@ -48,7 +58,9 @@
 ---
 
 ### 4️⃣ FINÁLNY STATUS (2 MINÚTY)
+
 **[VOĽBY_MODUL_HOTOVO.md](./VOĽBY_MODUL_HOTOVO.md)**
+
 - Všetko je hotovo checklist
 - Deployment checklist
 - Production ready status
@@ -58,21 +70,25 @@
 ## 📚 OSTATNÉ DOKUMENTY (Referenčne)
 
 ### Pre Fotografie Kandidátov:
+
 - `CANDIDATE_PHOTOS_FEATURE.md` - Ako fungujú fotky
 - `PHOTOS_TEST_CHECKLIST.md` - Testovanie fotiek
 
 ### Pre Database:
+
 - `DATABASE_CLEANUP_GUIDE.md` - Ako sa čistí database
 - `DATABASE_DIAGNOSTICS.sql` - SQL diagnostika
 - `SQL_CLEANUP_COMMANDS.sql` - SQL commando
 
 ### Pre Implementáciu:
+
 - `ELECTIONS_IMPLEMENTATION_FINAL.md` - Technická dokumentácia
 - `ELECTIONS_EXPANSION_PLAN.md` - Feature list
 - `ELECTIONS_DEPLOYMENT_GUIDE_SK.md` - Deployment guide
 - `ELECTIONS_MANAGEMENT_IMPLEMENTATION.md` - Komplétna správa
 
 ### Session Reports:
+
 - `SESSION_FINAL_REPORT.md` - Čo bolo vykonané
 - `VOĽBY_FINAL_INDEX.md` - Index všetkého
 
@@ -114,20 +130,21 @@ FÁZA 5: FINAL CHECK (5 min)
 
 ## 🎯 TLMOČOVATEĽNÝ PREHĽAD
 
-| Súbor | Čas | Čo Obsahuje | Priorita |
-|-------|-----|------------|----------|
-| A4_SUMMARY.md | 2 min | Všetko na jednu stranu | 🔴 FIRST |
-| VOĽBY_FINAL_INDEX.md | 5 min | Index a workflow | 🟠 2nd |
-| QUICK_TEST_CHECKLIST.md | 3 min | Rýchly test | 🟡 TEST |
-| ELECTIONS_VISIBILITY_FINAL_REPORT.md | 10 min | Detailný test | 🟡 TEST |
-| ELECTIONS_VISIBILITY_TEST.md | 15 min | Kompletný test | 🟡 TEST |
-| VOĽBY_MODUL_HOTOVO.md | 2 min | Finálny status | 🟢 LAST |
+| Súbor                                | Čas    | Čo Obsahuje            | Priorita |
+| ------------------------------------ | ------ | ---------------------- | -------- |
+| A4_SUMMARY.md                        | 2 min  | Všetko na jednu stranu | 🔴 FIRST |
+| VOĽBY_FINAL_INDEX.md                 | 5 min  | Index a workflow       | 🟠 2nd   |
+| QUICK_TEST_CHECKLIST.md              | 3 min  | Rýchly test            | 🟡 TEST  |
+| ELECTIONS_VISIBILITY_FINAL_REPORT.md | 10 min | Detailný test          | 🟡 TEST  |
+| ELECTIONS_VISIBILITY_TEST.md         | 15 min | Kompletný test         | 🟡 TEST  |
+| VOĽBY_MODUL_HOTOVO.md                | 2 min  | Finálny status         | 🟢 LAST  |
 
 ---
 
 ## 🚀 ÚPLNÝ PREHĽAD OBSAHU
 
 ### 📋 Testovanie
+
 - ✅ `A4_SUMMARY.md` - Tlačiteľný A4
 - ✅ `QUICK_TEST_CHECKLIST.md` - Rýchly test
 - ✅ `ELECTIONS_VISIBILITY_FINAL_REPORT.md` - Detailný test
@@ -136,20 +153,24 @@ FÁZA 5: FINAL CHECK (5 min)
 - ✅ `VOĽBY_FINAL_INDEX.md` - Úplný index
 
 ### 📊 Status Reports
+
 - ✅ `VOĽBY_MODUL_HOTOVO.md` - Finálny status
 - ✅ `SESSION_FINAL_REPORT.md` - Session report
 - ✅ `ELECTIONS_IMPLEMENTATION_FINAL.md` - Implementation report
 
 ### 📷 Fotografie
+
 - ✅ `CANDIDATE_PHOTOS_FEATURE.md` - Photo feature guide
 - ✅ `PHOTOS_TEST_CHECKLIST.md` - Photo testing
 
 ### 💾 Database
+
 - ✅ `DATABASE_CLEANUP_GUIDE.md` - Cleanup guide
 - ✅ `DATABASE_DIAGNOSTICS.sql` - Diagnostika
 - ✅ `SQL_CLEANUP_COMMANDS.sql` - SQL commando
 
 ### 📚 Archive
+
 - ✅ `ELECTIONS_EXPANSION_PLAN.md` - Feature plan
 - ✅ `ELECTIONS_DEPLOYMENT_GUIDE_SK.md` - Deployment guide
 - ✅ `ELECTIONS_MANAGEMENT_IMPLEMENTATION.md` - Complex report
@@ -159,6 +180,7 @@ FÁZA 5: FINAL CHECK (5 min)
 ## 💡 QUICK TIP GENIÁLNA
 
 **Ak nemáte čas:**
+
 ```
 Čítajte iba:
 1. A4_SUMMARY.md (2 min)
@@ -167,6 +189,7 @@ FÁZA 5: FINAL CHECK (5 min)
 ```
 
 **Ak máte čas:**
+
 ```
 Čítajte všetko v PRIORITY ORDER
 Spustite detailný test

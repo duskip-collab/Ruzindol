@@ -11,7 +11,7 @@ function sleep(ms: number) {
 }
 
 export async function withTimeout<T>(
-  promiseFactory: () => Promise<T>,
+  promiseFactory: () => PromiseLike<T>,
   timeoutMs: number,
   timeoutMessage = "Operation timed out",
 ): Promise<T> {
@@ -29,7 +29,7 @@ export async function withTimeout<T>(
 }
 
 export async function retryAsync<T>(
-  action: () => Promise<T>,
+  action: () => PromiseLike<T>,
   options: RetryOptions = {},
 ): Promise<T> {
   const retries = options.retries ?? 1;

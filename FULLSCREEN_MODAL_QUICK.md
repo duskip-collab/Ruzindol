@@ -11,6 +11,7 @@
 ## 🎯 ČO VIDÍŠ
 
 ### Pred opravou ❌
+
 ```
 ┌─────────────────┐
 │ Modal (malá)   │ ← Malý modal
@@ -20,6 +21,7 @@
 ```
 
 ### Po oprave ✅
+
 ```
 ┌──────────────────────────┐
 │ Header [X]               │ ← Vždy viditeľný
@@ -38,6 +40,7 @@
 ## 🔧 TECHNICKÉ ZMENY
 
 ### 1. AnimatedModal
+
 ```tsx
 // ← NOVÉ!
 fullscreen={true}
@@ -45,11 +48,13 @@ confirmDisabled={loading}
 ```
 
 ### 2. Layout
+
 - **Header:** `sticky` (vždy hore)
 - **Content:** `flex-1 overflow-y-auto` (scroll uprostred)
 - **Footer:** `sticky bottom-0` (vždy dole)
 
 ### 3. Safe Areas
+
 ```css
 /* Pre notch (iPhone X+) */
 .safe-area-inset-bottom {
@@ -61,31 +66,34 @@ confirmDisabled={loading}
 
 ## ✨ VÝHODY
 
-| Čo | Pred | Po |
-|----|------|-----|
-| **Veľkosť** | Malý modal | Fullscreen |
-| **Scroll** | Problematický | Hladký |
-| **Tlačidlá** | Skryté | Vždy viditeľné |
-| **Notch** | Krytý | Bezpečný |
-| **UX** | 😞 | 😊 |
+| Čo           | Pred          | Po             |
+| ------------ | ------------- | -------------- |
+| **Veľkosť**  | Malý modal    | Fullscreen     |
+| **Scroll**   | Problematický | Hladký         |
+| **Tlačidlá** | Skryté        | Vždy viditeľné |
+| **Notch**    | Krytý         | Bezpečný       |
+| **UX**       | 😞            | 😊             |
 
 ---
 
 ## 📱 NA AKCII
 
 ### iPhone
+
 - ✅ Fullscreen
 - ✅ Dynamic Island (notch) bezpečný
 - ✅ Home bar bezpečný
 - ✅ Smooth scroll
 
 ### Android
+
 - ✅ Fullscreen
 - ✅ Notch/punch-hole bezpečný
 - ✅ Navigation bar bezpečný
 - ✅ Smooth scroll
 
 ### iPad/Desktop
+
 - ✅ Fullscreen
 - ✅ Responsive padding
 - ✅ Viac priestoru na obsah
@@ -98,6 +106,7 @@ confirmDisabled={loading}
 **Modalá sa teraz otvára na celú obrazovku.**
 
 Skús to:
+
 1. Choď na Voľby
 2. Klikni Edit
 3. Vidíš fullscreen modal? ✅
@@ -107,4 +116,3 @@ Skús to:
 **Status:** ✅ HOTOVO  
 **Čas:** ~10 minút  
 **Build:** SUCCESS (2.76s)
-

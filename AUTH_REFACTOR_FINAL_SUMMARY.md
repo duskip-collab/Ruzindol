@@ -5,22 +5,26 @@
 Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 
 ### ✅ 1. VPP a GDPR Súhlas na Začiatok
+
 - **Presunuté**: Z konca na úplný začiatok (hneď pod titulku)
 - **Pozícia**: Pred výberom Email/Google
 - **Vizuálne**: Animovaný záver s varovným textom
 
 ### ✅ 2. Zablokované Tlačidlá bez Súhlasu
+
 - **Email tlačidlo**: `disabled={!legalAccepted}`
 - **Google tlačidlo**: `disabled={busy || !legalAccepted}`
 - **Efekt**: 50% opacity + `cursor-not-allowed`
 - **Výsledok**: Používateľ nemôže pokračovať bez súhlasu
 
 ### ✅ 3. Odstránené Duplikáty
+
 - **Stará poloha**: Súhlas na konci SELECT módu - **ODSTRÁNENÝ**
 - **Stará poloha**: Súhlas v EMAIL móde - **ODSTRÁNENÝ**
 - **Teraz**: Iba jeden checkbox na začiatku
 
 ### ✅ 4. Varovné Hlásenie
+
 - Zobrazuje sa keď `!legalAccepted`
 - Text: "⚠️ Aby pokračovali, musíte odsúhlasiť VPP a GDPR"
 - Zmizne keď sa zaškrtne checkbox
@@ -30,6 +34,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ## 🔄 User Flow - Pred a Po
 
 ### PRED ÚPRAVOU
+
 ```
 1. Badge "✨ PRIHLÁSENIE..."
 2. Headings "Vitaj u susedov..."
@@ -39,6 +44,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ```
 
 ### PO ÚPRAVE
+
 ```
 1. Badge "✨ PRIHLÁSENIE..."
 2. Headings "Vitaj u susedov..."
@@ -55,6 +61,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ### File: `src/routes/auth.tsx`
 
 **Riadky 188-209:** Nový consent section na začiatku
+
 ```typescript
 {/* CONSENT CHECKBOX - MOVED TO THE TOP */}
 <motion.div
@@ -81,6 +88,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ```
 
 **Riadok 227:** Email button - `disabled={!legalAccepted}`
+
 ```typescript
 <button
   onClick={() => setViewMode("email")}
@@ -90,6 +98,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ```
 
 **Riadok 243:** Google button - `disabled={busy || !legalAccepted}`
+
 ```typescript
 <button
   onClick={handleGoogle}
@@ -107,6 +116,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 ## 🎨 User Experience
 
 ### Scenár 1: Prvé Otvorenie Aplikácie
+
 1. Používateľ vidi headline a badge
 2. **Pod tým** vidí VPP + GDPR checkbox
 3. Vidí warning: "⚠️ Aby pokračovali, musíte odsúhlasiť VPP a GDPR"
@@ -114,6 +124,7 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 5. Tlačidlá nereagujú na kliknutí (`cursor-not-allowed`)
 
 ### Scenár 2: Zaškrtnutie Súhlasu
+
 1. Používateľ klikne na checkbox
 2. Checkbox sa zaškrtne ✓
 3. Warning message **zmizne** (smooth animation)
@@ -121,12 +132,14 @@ Kompletná reorganizácia prihlasovacieho formulára podľa požiadaviek:
 5. Tlačidlá teraz reagujú na kliknutí
 
 ### Scenár 3: Pokračovanie s Email
+
 1. Klikne na Email tlačidlo
 2. Formulár sa otvorí (email + heslo)
 3. **Žiadny** consent checkbox (už bol zaškrtnutý na začiatku)
 4. Vyplní údaje a odošle
 
 ### Scenár 4: Pokračovanie s Google
+
 1. Klikne na Google tlačidlo
 2. Spustí sa Google OAuth
 3. Presmeruje sa na Google login
@@ -165,6 +178,7 @@ Všetky scenáre boli manuálne otestované:
 ## 📦 Git Commits
 
 ### Commit 1: Kódové Zmeny
+
 ```
 ecdf3ea - refactor: move legal consent to top of auth flow
 - Move VPP and GDPR consent checkbox to beginning
@@ -174,6 +188,7 @@ ecdf3ea - refactor: move legal consent to top of auth flow
 ```
 
 ### Commit 2: Dokumentácia
+
 ```
 3fea530 - docs: add auth layout refactor documentation
 - Document the changes to move legal consent to top of auth flow
@@ -206,6 +221,7 @@ ecdf3ea - refactor: move legal consent to top of auth flow
 - Bezpečne na production
 
 ### How to Deploy
+
 ```bash
 git log --oneline | head -2
 # ecdf3ea - refactor: move legal consent to top of auth flow
@@ -232,6 +248,7 @@ git push origin main
 ## 🎯 Výsledok
 
 ### Pred Úpravou
+
 ```
 ❌ Nejasný workflow (checkbox na konci)
 ❌ Duplikáty súhlasov na viacerých miestach
@@ -240,6 +257,7 @@ git push origin main
 ```
 
 ### Po Úprave
+
 ```
 ✅ Jasný workflow (checkbox na začiatku)
 ✅ Jeden checkpoint pre súhlas
@@ -253,9 +271,11 @@ git push origin main
 ## 📚 Dokumentácia
 
 Vytvorené súbory:
+
 1. **AUTH_LAYOUT_REFACTOR_DOCUMENTATION.md** - Detailný technický opis
 
 Súbory git commits:
+
 ```
 git log --oneline -2
 3fea530 docs: add auth layout refactor documentation
@@ -269,6 +289,7 @@ ecdf3ea refactor: move legal consent to top of auth flow
 🎉 **Status: COMPLETE & READY FOR PRODUCTION**
 
 Všetky požiadavky boli úspešne implementované:
+
 1. ✅ VPP/GDPR súhlas presunutý na začiatok
 2. ✅ Tlačidlá zablokované bez súhlasu
 3. ✅ Duplikáty odstránené

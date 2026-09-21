@@ -47,7 +47,12 @@ function decodeHtml(input: string) {
 }
 
 function stripTags(input: string) {
-  return decodeHtml(input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+  return decodeHtml(
+    input
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
 }
 
 function parseRss(xml: string) {
@@ -57,7 +62,10 @@ function parseRss(xml: string) {
   return itemMatches
     .map((itemXml, index) => {
       const getValue = (tag: string) => {
-        const regex = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`, "i");
+        const regex = new RegExp(
+          `<${tag}[^>]*>(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`,
+          "i",
+        );
         const match = itemXml.match(regex);
         const rawText = match ? match[1] || match[2] || "" : "";
         return stripTags(rawText);
@@ -69,9 +77,10 @@ function parseRss(xml: string) {
       const published = getValue("pubDate");
       const category = getValue("category").trim();
 
-      const publishedAt = published && !isNaN(new Date(published).getTime())
-        ? new Date(published).toISOString()
-        : new Date().toISOString();
+      const publishedAt =
+        published && !isNaN(new Date(published).getTime())
+          ? new Date(published).toISOString()
+          : new Date().toISOString();
 
       return {
         source: "rss",
@@ -85,12 +94,16 @@ function parseRss(xml: string) {
         category,
       };
     })
-    .filter((item) => item.title && item.external_id && item.category.toLowerCase().includes("aktualit"))
+    .filter(
+      (item) => item.title && item.external_id && item.category.toLowerCase().includes("aktualit"),
+    )
     .sort((a, b) => +new Date(b.published_at) - +new Date(a.published_at));
 }
 
 function parseDateTime(text: string): { startsAt: string; endsAt: string | null } | null {
-  const dateRange = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4}))?/);
+  const dateRange = text.match(
+    /(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s*[-–]\s*(\d{1,2})\.(\d{1,2})\.(\d{4}))?/,
+  );
   if (!dateRange) return null;
 
   const startDay = Number(dateRange[1]);
@@ -108,7 +121,9 @@ function parseDateTime(text: string): { startsAt: string; endsAt: string | null 
   const startTime = times[0] ?? { h: 9, min: 0 };
   const endTime = times[1] ?? null;
 
-  const startsAt = new Date(Date.UTC(startYear, startMonth - 1, startDay, startTime.h, startTime.min));
+  const startsAt = new Date(
+    Date.UTC(startYear, startMonth - 1, startDay, startTime.h, startTime.min),
+  );
   const endsAt = endTime
     ? new Date(Date.UTC(endYear, endMonth - 1, endDay, endTime.h, endTime.min)).toISOString()
     : null;
@@ -145,13 +160,14 @@ function extractEventLinks(html: string, calendarUrl: string) {
 async function fetchText(url: string, timeoutMs: number = 8000): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
+
   try {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });
 
@@ -279,7 +295,10 @@ serve(async (req) => {
       const results = [];
       for (const municipality of activeMunicipalities) {
         try {
-          results.push({ municipality_id: municipality.id, ...(await syncRssForMunicipality(supabase, municipality)) });
+          results.push({
+            municipality_id: municipality.id,
+            ...(await syncRssForMunicipality(supabase, municipality)),
+          });
         } catch (error) {
           console.error("Failed to sync municipality RSS", { municipality, error });
           results.push({ municipality_id: municipality.id, success: false, error: String(error) });
@@ -289,14 +308,14 @@ serve(async (req) => {
     }
 
     let totalCount = 0;
-    
+
     // Paralelne spracovávaj municípie (max 3 naraz na zabránenie overloadoru)
     const BATCH_SIZE = 3;
-    const municipalitiesToProcess = activeMunicipalities.filter(m => m.calendar_url);
-    
+    const municipalitiesToProcess = activeMunicipalities.filter((m) => m.calendar_url);
+
     for (let i = 0; i < municipalitiesToProcess.length; i += BATCH_SIZE) {
       const batch = municipalitiesToProcess.slice(i, i + BATCH_SIZE);
-      
+
       const batchResults = await Promise.allSettled(
         batch.map(async (municipality) => {
           try {
@@ -304,7 +323,7 @@ serve(async (req) => {
             const links = extractEventLinks(listingHtml, municipality.calendar_url!);
 
             const parsed: ParsedEvent[] = [];
-            
+
             // Paralelne sťahuj jednotlivé event stránky (max 2 naraz)
             for (let j = 0; j < links.length; j += 2) {
               const linkBatch = links.slice(j, j + 2);
@@ -316,21 +335,27 @@ serve(async (req) => {
                     if (item) return item;
                     return null;
                   } catch (error) {
-                    console.error("Failed to parse event page", { municipality: municipality.id, link, error });
+                    console.error("Failed to parse event page", {
+                      municipality: municipality.id,
+                      link,
+                      error,
+                    });
                     return null;
                   }
-                })
+                }),
               );
-              
+
               eventResults.forEach((result) => {
-                if (result.status === 'fulfilled' && result.value) {
+                if (result.status === "fulfilled" && result.value) {
                   parsed.push(result.value);
                 }
               });
             }
 
             const upcoming = parsed
-              .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000)
+              .filter(
+                (event) => new Date(event.startsAt).getTime() >= Date.now() - 7 * 24 * 3600_000,
+              )
               .slice(0, EVENT_PATH_LIMIT);
 
             if (upcoming.length === 0) return { success: true, count: 0 };
@@ -356,20 +381,26 @@ serve(async (req) => {
             });
 
             if (error) {
-              console.error("Upsert municipal events failed", { municipality: municipality.id, error });
+              console.error("Upsert municipal events failed", {
+                municipality: municipality.id,
+                error,
+              });
               return { success: false, error: error.message };
             }
 
             return { success: true, count: rows.length };
           } catch (error) {
-            console.error("Failed to sync municipality calendar", { municipality: municipality.id, error });
+            console.error("Failed to sync municipality calendar", {
+              municipality: municipality.id,
+              error,
+            });
             return { success: false, error: String(error) };
           }
-        })
+        }),
       );
-      
+
       batchResults.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value?.success) {
+        if (result.status === "fulfilled" && result.value?.success) {
           totalCount += result.value.count || 0;
         }
       });

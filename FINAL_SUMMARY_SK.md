@@ -3,18 +3,20 @@
 ## 📌 ČÍTAJTE NAJPRV - PROBLÉM A RIEŠENIE
 
 ### Čo bolo problém?
+
 Keď ste vymazali kandidátov, v aplikácii sa stále zobrazovali, pretože:
+
 1. ❌ Databáza obsahovala staré neaktívne záznamy (`is_active=false`)
 2. ❌ Kód v momente editácie (`handleEditElections`) nefiltroval `is_active`
 3. ❌ Mazanie bolo `.delete()` (hard delete), čo ostaviť staré záznamy
 
 ### Ako sme to opravili?
 
-| Problém | Riešenie | Súbor |
-|---------|----------|-------|
-| ❌ Hard delete | ✅ Soft delete (`.update({ is_active: false })`) | `ElectionsScreen.tsx` line 250-266 |
-| ❌ Chýbajúci filter v editácii | ✅ Pridaný `.eq('is_active', true)` | `ElectionsScreen.tsx` line 72 |
-| ❌ Staré záznamy v DB | ✅ SQL DELETE query na čistenie | `SQL_CLEANUP_COMMANDS.sql` |
+| Problém                        | Riešenie                                         | Súbor                              |
+| ------------------------------ | ------------------------------------------------ | ---------------------------------- |
+| ❌ Hard delete                 | ✅ Soft delete (`.update({ is_active: false })`) | `ElectionsScreen.tsx` line 250-266 |
+| ❌ Chýbajúci filter v editácii | ✅ Pridaný `.eq('is_active', true)`              | `ElectionsScreen.tsx` line 72      |
+| ❌ Staré záznamy v DB          | ✅ SQL DELETE query na čistenie                  | `SQL_CLEANUP_COMMANDS.sql`         |
 
 ---
 
@@ -23,42 +25,46 @@ Keď ste vymazali kandidátov, v aplikácii sa stále zobrazovali, pretože:
 ### 1. **src/screens/ElectionsScreen.tsx** (UPRAVENÉ)
 
 #### a) `loadData()` - UŽ BOLO OK ✅
+
 ```typescript
 // Line 41: Filtruje len aktívnych kandidátov
 const { data: cData } = await supabase
-  .from('election_candidates')
-  .select('*')
-  .eq('is_active', true);  // ✅ OK
+  .from("election_candidates")
+  .select("*")
+  .eq("is_active", true); // ✅ OK
 ```
 
 #### b) `handleEditElections()` - OPRAVENÉ ✅
+
 ```typescript
 // Lines 69-73: NOVÝ filter - načítaj len aktívnych
 const { data: candidatesData } = await supabase
-  .from('election_candidates')
-  .select('*')
-  .eq('election_id', election.id)
-  .eq('is_active', true);  // ✅ PRIDANÉ - FIX
+  .from("election_candidates")
+  .select("*")
+  .eq("election_id", election.id)
+  .eq("is_active", true); // ✅ PRIDANÉ - FIX
 ```
 
 #### c) `handleDeleteCandidate()` - OPRAVENÉ ✅
+
 ```typescript
 // Lines 250-266: Zmena z hard delete na soft delete
 const handleDeleteCandidate = async (candidateId: string) => {
   const { error } = await supabase
-    .from('election_candidates')
-    .update({ is_active: false })  // ✅ ZMENA: .delete() → .update()
-    .eq('id', candidateId);
+    .from("election_candidates")
+    .update({ is_active: false }) // ✅ ZMENA: .delete() → .update()
+    .eq("id", candidateId);
 };
 ```
 
 #### d) `handleDeleteAttachment()` - OSTALO ROVNAKÉ ✅
+
 ```typescript
 // Lines 268-284: Prílohy sa úplne vymažú (hard delete)
 const { error } = await supabase
-  .from('elections_attachments')
-  .delete()  // ✅ OK - úplné vymazanie (storage files)
-  .eq('id', attachmentId);
+  .from("elections_attachments")
+  .delete() // ✅ OK - úplné vymazanie (storage files)
+  .eq("id", attachmentId);
 ```
 
 ---
@@ -66,6 +72,7 @@ const { error } = await supabase
 ## 📊 POROVNANIE PRED A PO
 
 ### PRED (PROBLÉM)
+
 ```
 Mazanie kandidáta:
 ↓
@@ -82,6 +89,7 @@ ALE:
 ```
 
 ### PO (RIEŠENIE)
+
 ```
 Mazanie kandidáta:
 ↓
@@ -102,6 +110,7 @@ A:
 ## 🗂️ VYTVORENÉ SÚBORY
 
 ### 📘 Dokumentácia
+
 1. **STEP_BY_STEP_CLEANUP.md** - Podrobný návod (8200+ riadkov)
    - Ako spustiť SQL query v Supabase
    - Príklady pred/po
@@ -120,6 +129,7 @@ A:
    - Štatistiky
 
 ### 💾 SQL Skript
+
 5. **SQL_CLEANUP_COMMANDS.sql** - COPY & PASTE príkazy (5500+ riadkov)
    - Krok za krokom
    - S výstupmi a príkladmi
@@ -134,12 +144,14 @@ A:
 ## 🚀 KROKY K DOKONČENIU
 
 ### ✅ HOTOVO (KÓD)
+
 - [x] Pridaný filter v `handleEditElections()`
 - [x] Soft delete v `handleDeleteCandidate()`
 - [x] Build kontrola: SUCCESS ✅
 - [x] Dev server: RUNNING ✅
 
 ### ⏳ ČAKÁ NA VYKONANIE (DATABÁZA)
+
 - [ ] Otvoriť Supabase Dashboard
 - [ ] SQL Editor
 - [ ] Spustiť DELETE query
@@ -153,6 +165,7 @@ A:
 ## 🧪 TESTOVACÍ PLÁN
 
 ### Scenár 1: Mazanie kandidáta
+
 ```
 1. Login ako admin
 2. Menu → Voľby
@@ -167,6 +180,7 @@ A:
 ```
 
 ### Scenár 2: Vytvorenie a mazanie
+
 ```
 1. Edit voľby
 2. Kliknúť: "Pridať kandidáta" (Mayor tab)
@@ -178,6 +192,7 @@ A:
 ```
 
 ### Scenár 3: Databázová verifikácia
+
 ```
 1. Supabase Dashboard
 2. SQL: SELECT COUNT(*) FROM election_candidates WHERE is_active = false;
@@ -189,12 +204,15 @@ A:
 ## 📋 SÚBORY NA PRESKÚMANIE
 
 ### Zmeny v kóde:
+
 - [src/screens/ElectionsScreen.tsx](/C:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/screens/ElectionsScreen.tsx) (Lines 41, 72, 250-266)
 
 ### SQL na spustenie:
+
 - [SQL_CLEANUP_COMMANDS.sql](/C:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/SQL_CLEANUP_COMMANDS.sql) (COPY & PASTE)
 
 ### Dokumentácia:
+
 - [STEP_BY_STEP_CLEANUP.md](/C:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/STEP_BY_STEP_CLEANUP.md) - Podrobný návod
 - [DATABASE_CLEANUP_GUIDE.md](/C:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/DATABASE_CLEANUP_GUIDE.md) - Rýchly prehľad
 
@@ -203,6 +221,7 @@ A:
 ## 🎯 FAST START
 
 ### Za 5 minút:
+
 1. Otvoriť: https://supabase.com/dashboard
 2. SQL Editor → New Query
 3. Kopírovať z [SQL_CLEANUP_COMMANDS.sql](SQL_CLEANUP_COMMANDS.sql):
@@ -226,32 +245,37 @@ A:
 
 ## 🔄 WORKFLOW ZATIAĽ
 
-| Krok | Status | Čas |
-|------|--------|-----|
-| Kód - Filtre a Soft Delete | ✅ HOTOVO | 5 min |
-| Build | ✅ HOTOVO | 3 min |
-| Testovanie kódu | ⏳ ČAKÁ | 5 min |
-| Databázové vyčistenie | ⏳ ČAKÁ | 2 min |
-| UI Testovanie | ⏳ ČAKÁ | 5 min |
-| Deployment | ⏳ ČAKÁ | 5 min |
-| **TOTAL** | **~25 min** | |
+| Krok                       | Status      | Čas   |
+| -------------------------- | ----------- | ----- |
+| Kód - Filtre a Soft Delete | ✅ HOTOVO   | 5 min |
+| Build                      | ✅ HOTOVO   | 3 min |
+| Testovanie kódu            | ⏳ ČAKÁ     | 5 min |
+| Databázové vyčistenie      | ⏳ ČAKÁ     | 2 min |
+| UI Testovanie              | ⏳ ČAKÁ     | 5 min |
+| Deployment                 | ⏳ ČAKÁ     | 5 min |
+| **TOTAL**                  | **~25 min** |       |
 
 ---
 
 ## 📞 RÝCHLY REFERENCE
 
 ### Q: Čo sa stane keď vymažem kandidáta?
-**A**: 
+
+**A**:
+
 1. `is_active` sa zmení na `false`
 2. `loadData()` a `handleEditElections()` ho filtrujú
 3. Kandidát sa nezobrazí v UI
 4. V databáze ostane (pre audit trail)
 
 ### Q: Čo treba v Supabase?
+
 **A**: Spustite SQL DELETE query na vyčistenie starých `is_active=false` záznamov
 
 ### Q: Čo keď chcem obnovi vymazaného kandidáta?
-**A**: 
+
+**A**:
+
 1. Máte BACKUP v `election_candidates_deleted_log` tabuľke
 2. Obnovi: `UPDATE election_candidates SET is_active=true WHERE id=...`
 
@@ -281,6 +305,7 @@ A:
 ## 🎊 HOTOVO!
 
 Všetky kódové zmeny sú hotové. Teraz už len:
+
 1. Spustiť SQL query v Supabase
 2. Refresh aplikácie
 3. Testovať a deployovať

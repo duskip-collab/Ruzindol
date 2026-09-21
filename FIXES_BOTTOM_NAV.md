@@ -1,53 +1,61 @@
-# OPRAVA: Problémy s Vidite¾nosou Tlaèítok - Spodná Lišta Prekrıva Modály
+# OPRAVA: Problï¿½my s Viditeï¿½nosï¿½ou Tlaï¿½ï¿½tok - Spodnï¿½ Liï¿½ta Prekrï¿½va Modï¿½ly
 
-## Problém
-- Tlaèítka v modáloch "Nové vo¾by" a "Prida kandidáta" nie sú vidite¾né
-- Spodná navigaèná lišta prekrıva ovládacie prvky v modaloch
-- Problémy s rolovacím priestorom na mobilnıch zariadeniach
+## Problï¿½m
+
+- Tlaï¿½ï¿½tka v modï¿½loch "Novï¿½ voï¿½by" a "Pridaï¿½ kandidï¿½ta" nie sï¿½ viditeï¿½nï¿½
+- Spodnï¿½ navigaï¿½nï¿½ liï¿½ta prekrï¿½va ovlï¿½dacie prvky v modaloch
+- Problï¿½my s rolovacï¿½m priestorom na mobilnï¿½ch zariadeniach
 
 ## Opravy
 
 ### 1. AnimatedModal.tsx
-- **Z-index zmena**: Backdrop z-50 › z-[9998], Content z-10 › z-[9999]
-  - Vzor: Spodná lišta (z-40) bude pod modalm
-- **Padding zvıšenı**: pb-20 sm:pb-24 › pb-32 sm:pb-40
-  - Vzor: Viac priestoru na spodku pre tlaèítka
-- **Footer bezpeènos**: Pridanı pb-safe
-  - Vzor: Ochrana pred notch/home indicator na mobilnıch zariadeniach
+
+- **Z-index zmena**: Backdrop z-50 ï¿½ z-[9998], Content z-10 ï¿½ z-[9999]
+  - Vzor: Spodnï¿½ liï¿½ta (z-40) bude pod modalm
+- **Padding zvï¿½ï¿½enï¿½**: pb-20 sm:pb-24 ï¿½ pb-32 sm:pb-40
+  - Vzor: Viac priestoru na spodku pre tlaï¿½ï¿½tka
+- **Footer bezpeï¿½nosï¿½**: Pridanï¿½ pb-safe
+  - Vzor: Ochrana pred notch/home indicator na mobilnï¿½ch zariadeniach
 
 ### 2. BottomNav.tsx
-- **Z-index zníenı**: z-50 › z-40
-  - Vzor: Spodná lišta bude pod všetkımi modalmi
+
+- **Z-index znï¿½enï¿½**: z-50 ï¿½ z-40
+  - Vzor: Spodnï¿½ liï¿½ta bude pod vï¿½etkï¿½mi modalmi
 
 ### 3. InquiryModal.tsx (Mayor Inquiries)
-- **Z-index zníenı**: z-[99] › z-[9997], z-[100] › z-[9998]
-  - Vzor: Konzistentnos s AnimatedModal (z-[9999])
+
+- **Z-index znï¿½enï¿½**: z-[99] ï¿½ z-[9997], z-[100] ï¿½ z-[9998]
+  - Vzor: Konzistentnosï¿½ s AnimatedModal (z-[9999])
 
 ### 4. WarehouseItemEditForm.tsx
-- **Padding pridanı**: Formulár má pb-safe
-  - Vzor: Ochrana tlaèítok pred spodnou lištou
+
+- **Padding pridanï¿½**: Formulï¿½r mï¿½ pb-safe
+  - Vzor: Ochrana tlaï¿½ï¿½tok pred spodnou liï¿½tou
 
 ### 5. PostLightbox.tsx
-- **Footer bezpeènos**: Pridanı pb-safe
-  - Vzor: Ochrana tlaèítok pred spodnou lištou
 
-## Z-Index Hierarchia (po opravách)
-`
-z-[9999]  ‹ AnimatedModal obsah
-z-[9998]  ‹ AnimatedModal backdrop, InquiryModal obsah
-z-[9997]  ‹ InquiryModal backdrop
-z-40      ‹ BottomNav (spodná navigaèná lišta)
-`
+- **Footer bezpeï¿½nosï¿½**: Pridanï¿½ pb-safe
+  - Vzor: Ochrana tlaï¿½ï¿½tok pred spodnou liï¿½tou
+
+## Z-Index Hierarchia (po opravï¿½ch)
+
+`z-[9999]  ï¿½ AnimatedModal obsah
+z-[9998]  ï¿½ AnimatedModal backdrop, InquiryModal obsah
+z-[9997]  ï¿½ InquiryModal backdrop
+z-40      ï¿½ BottomNav (spodnï¿½ navigaï¿½nï¿½ liï¿½ta)`
 
 ## Testing
-Skontroluj:
-1. Otvor Aktuality › Vo¾by
-2. Klikni "Nové vo¾by" - tlaèítka "Uloi zmeny" a "Zavrie" by mali by vidite¾né
-3. Otvor Podnety a skúsim vytvori novı podnet
-4. Skontroluj na mobilnom zariadení alebo emulácii (DevTools)
-5. Skontroluj rolovanie - obsah by mal by odsú od spodnej lišty
 
-## Bezpeèné Zóny (Safe Areas)
-- pb-safe pouíva env(safe-area-inset-bottom)
-- Automaticky chránite priestor pre notch/home indicator na iOS/Android
-- Desktop = 0, Mobil = vaša bezpeèná zóna
+Skontroluj:
+
+1. Otvor Aktuality ï¿½ Voï¿½by
+2. Klikni "Novï¿½ voï¿½by" - tlaï¿½ï¿½tka "Uloï¿½iï¿½ zmeny" a "Zavrieï¿½" by mali byï¿½ viditeï¿½nï¿½
+3. Otvor Podnety a skï¿½sim vytvoriï¿½ novï¿½ podnet
+4. Skontroluj na mobilnom zariadenï¿½ alebo emulï¿½cii (DevTools)
+5. Skontroluj rolovanie - obsah by mal byï¿½ odsï¿½ï¿½ od spodnej liï¿½ty
+
+## Bezpeï¿½nï¿½ Zï¿½ny (Safe Areas)
+
+- pb-safe pouï¿½ï¿½va env(safe-area-inset-bottom)
+- Automaticky chrï¿½nite priestor pre notch/home indicator na iOS/Android
+- Desktop = 0, Mobil = vaï¿½a bezpeï¿½nï¿½ zï¿½na

@@ -59,9 +59,14 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
     const inviteRows = (inviteData as InviteRow[] | null) ?? [];
     setInvites(inviteRows);
 
-    const ids = Array.from(new Set(inviteRows.flatMap((row) => [row.created_by, row.used_by]).filter(Boolean))) as string[];
+    const ids = Array.from(
+      new Set(inviteRows.flatMap((row) => [row.created_by, row.used_by]).filter(Boolean)),
+    ) as string[];
     if (ids.length > 0) {
-      const { data: profileNames } = await supabase.from("profiles").select("id, name").in("id", ids);
+      const { data: profileNames } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", ids);
       const map: Record<string, string> = {};
       (profileNames as ProfileNameRow[] | null)?.forEach((profile) => {
         map[profile.id] = profile.name ?? "Sused";
@@ -363,7 +368,9 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
                         </span>
                       </td>
                       <td className="px-2 py-1.5 text-neutral-500">
-                        {invite.created_by ? (inviteUsers[invite.created_by] ?? invite.created_by.slice(0, 6)) : "—"}
+                        {invite.created_by
+                          ? (inviteUsers[invite.created_by] ?? invite.created_by.slice(0, 6))
+                          : "—"}
                       </td>
                       <td className="px-2 py-1.5">
                         <span
@@ -375,14 +382,22 @@ export function ModerationPanel({ currentUserId }: { currentUserId: string }) {
                                 : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                           }`}
                         >
-                          {status === "used" ? "Použitý" : status === "shared" ? "Zdieľaný" : "Voľný"}
+                          {status === "used"
+                            ? "Použitý"
+                            : status === "shared"
+                              ? "Zdieľaný"
+                              : "Voľný"}
                         </span>
                       </td>
                       <td className="px-2 py-1.5 text-neutral-500">
-                        {invite.used_by ? (inviteUsers[invite.used_by] ?? invite.used_by.slice(0, 6)) : "—"}
+                        {invite.used_by
+                          ? (inviteUsers[invite.used_by] ?? invite.used_by.slice(0, 6))
+                          : "—"}
                       </td>
                       <td className="px-2 py-1.5 text-neutral-400">
-                        <div>Vytvorený: {new Date(invite.created_at).toLocaleDateString("sk-SK")}</div>
+                        <div>
+                          Vytvorený: {new Date(invite.created_at).toLocaleDateString("sk-SK")}
+                        </div>
                         {invite.shared_at && (
                           <div>
                             Zdieľaný: {new Date(invite.shared_at).toLocaleDateString("sk-SK")}

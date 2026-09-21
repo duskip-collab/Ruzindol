@@ -12,7 +12,7 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
 
   async function submit() {
     const val = code.trim();
-    if (!val.replace(/-/g, '')) {
+    if (!val.replace(/-/g, "")) {
       setErr("Zadaj kód od suseda alebo starostu.");
       return;
     }
@@ -25,7 +25,7 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
       });
       if (error) throw new Error(mapError(error.message));
       if (!data) throw new Error("Neplatný pozývací kód.");
-      activateCode(val.replace(/-/g, ''));
+      activateCode(val.replace(/-/g, ""));
       setOk(true);
       setCode("");
       if (onActivated) {
@@ -41,9 +41,9 @@ export function InviteRedeemSection({ onActivated }: { onActivated?: () => void 
   }
 
   function formatCode(input: string): string {
-    const clean = input.toUpperCase().replace(/-/g, '');
+    const clean = input.toUpperCase().replace(/-/g, "");
     if (clean.length <= 4) return clean;
-    return clean.slice(0, 4) + '-' + clean.slice(4, 20);
+    return clean.slice(0, 4) + "-" + clean.slice(4, 20);
   }
 
   return (

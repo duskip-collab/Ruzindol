@@ -19,6 +19,7 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 ## 🎯 ÚSPEŠNE DOSIAHNUTÉ
 
 ### Prípad 1: "Susedský život" (NOVÝ)
+
 ```
 ✅ Keď sa vytvorí príspevok typu 'susedsky_zivot'
    └─ Trigger vytvára notifikácie typu 'neighbor_post'
@@ -28,6 +29,7 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 ```
 
 ### Prípad 2: "Obecný hlásnik" (EXISTUJE, NEZMENÉ)
+
 ```
 ✅ Keď sa vytvorí príspevok typu 'hlasnik'
    └─ Trigger vytvára notifikácie typu 'official_alert'
@@ -37,9 +39,10 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 ```
 
 ### Ostatné notifikácie (VŠETKY NEZMENÉ)
+
 ```
 ✅ Announcements (RSS) → 'announcement'
-✅ Group Announcements → 'group_announcement'  
+✅ Group Announcements → 'group_announcement'
 ✅ Inquiry Answers (Podnety) → 'inquiry_answer'
 ✅ Waste Collection → 'waste_collection'
 ```
@@ -49,18 +52,23 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 ## 📁 VYTVORENÉ SÚBORY
 
 ### 1. SQL Migrácia
+
 **`supabase/migrations/20260910121000_add_neighbor_post_notifications.sql`**
+
 - Trigger funkcia pre "Susedský život" notifikácie
 - Bezpečne navrhnutá migrácia
 - Stav: ✅ Hotová
 
 ### 2. Edge Function (Upravená)
+
 **`supabase/functions/send-push/index.ts`**
+
 - Zmena 1: `resolveTargetUrl()` - pridané mapovanie `neighbor_post` → `/nastenka`
 - Zmena 2: `isCommunityBroadcastNotification()` - pridané `neighbor_post` ako community broadcast
 - Stav: ✅ Hotová (2 malé zmeny)
 
 ### 3. Dokumentácia
+
 - **`NEIGHBOR_POST_NOTIFICATIONS_IMPLEMENTATION.md`** - Detailná implementácia
 - **`DEPLOYMENT_CHECKLIST_NOTIFICATIONS.md`** - Deployment guide
 - **`GIT_COMMIT_SUMMARY.md`** - Git commit summary
@@ -70,6 +78,7 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 ## 🔍 OVERENIA
 
 ### ✅ Databázové zmeny
+
 - [x] Migrácia je SQL syntakticky správna
 - [x] Trigger je bezpečne oddelený od existujúcich
 - [x] Notifikácie sú filtrované podľa `user_id`
@@ -77,18 +86,21 @@ Doplniť logiku pre odosielanie push notifikácií pri pridávaní nových zázn
 - [x] Idempotentné (DROP IF EXISTS)
 
 ### ✅ Edge Function zmeny
+
 - [x] TypeScript syntax je správna
 - [x] Funkcie sú kompatibilné s existujúcim kódom
 - [x] Zmeny sú minimálne (2 riadky)
 - [x] Bez break changes
 
 ### ✅ Frontend
+
 - [x] NotificationContext.tsx - bez zmien potrebných
 - [x] NastenkaScreen.tsx - už má podporu `susedsky_zivot`
 - [x] Push.ts - bez zmien
 - [x] Žiadne regresie
 
 ### ✅ Bezpečnosť
+
 - [x] RLS politiky - bez zmien
 - [x] User ID filtracia - zachovaná
 - [x] Notifikácie só adresované len príslušným užívateľom
@@ -112,6 +124,7 @@ Riziko regresie:       MINIMÁLNE
 ## 🚀 NASADENIE
 
 ### Krok 1: SQL Migrácia
+
 ```bash
 1. Supabase Console > SQL Editor
 2. Skopírovať: supabase/migrations/20260910121000_add_neighbor_post_notifications.sql
@@ -120,6 +133,7 @@ Riziko regresie:       MINIMÁLNE
 ```
 
 ### Krok 2: Edge Function
+
 ```bash
 1. Automaticky deployovaná zmena (Supabase)
 2. Skontrolovať logov: Supabase Functions Console
@@ -127,6 +141,7 @@ Riziko regresie:       MINIMÁLNE
 ```
 
 ### Krok 3: Frontend
+
 ```bash
 1. Bez zmien potrebných!
 2. Notifikácie sa spracúvajú automaticky
@@ -139,6 +154,7 @@ Riziko regresie:       MINIMÁLNE
 ### Keď používateľ vytvorí príspevok v "Susedský život"
 
 **Pred:**
+
 ```
 Príspevok
 ├─ Viditeľný na Nástence: ✅
@@ -148,6 +164,7 @@ Príspevok
 ```
 
 **Po:**
+
 ```
 Príspevok
 ├─ Viditeľný na Nástence: ✅
@@ -157,6 +174,7 @@ Príspevok
 ```
 
 ### Ostatné notifikácie
+
 ```
 ❌ Žiadne zmeny - všetko funguje ako predtým ✅
 ```
@@ -176,6 +194,7 @@ Príspevok
 ## 🎓 TECHNICKÉ DETAILY
 
 ### Push Notification Pipeline
+
 ```
 posts.INSERT (susedsky_zivot)
     ↓
@@ -216,12 +235,14 @@ send-push edge function
 ## 📝 ZÁVER
 
 **Úloha je KOMPLETNE DOKONČENÁ** s:
+
 - ✅ Minimálnymi zmenami (62 riadkov)
 - ✅ Maximálnou bezpečnosťou (RLS, user_id filtrácia)
 - ✅ Nulovými regresiami (existujúce notifikácie nezmené)
 - ✅ Jasným deploymentom (3 jednoduché kroky)
 
 Aplikácia je teraz pripravená na to, aby užívateľi dostávali push notifikácie keď:
+
 1. Niekto pridá príspevok v "Susedský život"
 2. Starosta/Úradník vytvorí oznam v "Obecný hlásnik"
 

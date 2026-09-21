@@ -3,6 +3,7 @@
 ## ✅ ČOŽE JE HOTOVO
 
 ### 1. 📱 Upload fotiek kandidátov
+
 ```
 - Pridané v ElectionsEditModal (CandidateRow)
 - Max 5MB, povolené: JPEG, PNG, WebP
@@ -11,6 +12,7 @@
 ```
 
 ### 2. 🖼️ Zobrazenie fotiek
+
 ```
 - CandidateCard: Viditeľné v "Voľby pre susedov"
 - CandidateModal: Viditeľné v detaily kandidáta
@@ -18,6 +20,7 @@
 ```
 
 ### 3. 🗑️ Mazanie fotiek
+
 ```
 - Remove button: Kliknúť X na fotke
 - Mazanie fotky: Soft delete (fotka ostane v DB ale s photo_url=null)
@@ -29,22 +32,26 @@
 ## 🚀 WORKFLOW UPLOAD FOTKY
 
 ### Krok 1: Otvorenie EditModal
+
 ```
 Voľby → Edit tlačítko → Starosta/Poslanci tab
 ```
 
 ### Krok 2: Rozšírenie kandidáta
+
 ```
 Kliknúť na kandidáta, aby sa rozšíril
 ```
 
 ### Krok 3: Upload fotky
+
 ```
 Kliknúť: "Vložiť fotku"
 Vybrať súbor: .jpg, .png, .webp (max 5MB)
 ```
 
 ### Krok 4: Uloženie
+
 ```
 Kliknúť: "Uložiť zmeny"
 Fotka sa nahrá do Supabase Storage
@@ -52,6 +59,7 @@ Fotka sa uloží do election_candidates.photo_url
 ```
 
 ### Krok 5: Zobrazenie
+
 ```
 Voľby → Vidíte fotky v CandidateCard gridu
 Kliknúť na kandidáta → Vidíte fotku vo väčšom modale
@@ -62,6 +70,7 @@ Kliknúť na kandidáta → Vidíte fotku vo väčšom modale
 ## 📁 TECHNICKÉ DETAILY
 
 ### Database
+
 ```sql
 election_candidates {
   id: UUID
@@ -71,12 +80,14 @@ election_candidates {
 ```
 
 ### Storage
+
 ```
 Bucket: elections
 Cesta: candidates/{candidateId}-{timestamp}-{filename}
 ```
 
 ### Komponenty
+
 ```
 ElectionsEditModal
 ├── CandidateRow
@@ -95,6 +106,7 @@ CandidateModal
 ## 🧪 TESTOVANIE
 
 ### Scenár 1: Nahrať fotku
+
 ```
 1. Voľby → Edit
 2. Candidate → Rozšíriť
@@ -106,6 +118,7 @@ CandidateModal
 ```
 
 ### Scenár 2: Odstrániť fotku
+
 ```
 1. Voľby → Edit
 2. Candidate → Rozšíriť
@@ -116,6 +129,7 @@ CandidateModal
 ```
 
 ### Scenár 3: Odstrániť kandidáta s fotkou
+
 ```
 1. Voľby → Edit
 2. Candidate → Kliknúť delete
@@ -125,6 +139,7 @@ CandidateModal
 ```
 
 ### Scenár 4: Zobrazenie v profile
+
 ```
 1. Voľby
 2. Vidíte CandidateCard s fotkou
@@ -137,6 +152,7 @@ CandidateModal
 ## ⚙️ IMPLEMENTÁCIA
 
 ### 1. ElectionsEditModal - CandidatePhotoUpload
+
 ```typescript
 // NEW KOMPONENT (lines 723-798 v ElectionsEditModal.tsx)
 
@@ -151,7 +167,7 @@ const CandidatePhotoUpload: React.FC<...> = ({
   // 2. Upload do Supabase Storage
   // 3. Vrátenie public URL
   // 4. Callback onChange(url)
-  
+
   // Render:
   // - Ak photo_url → Zobraz fotku + X button
   // - Ak NIE → Upload input
@@ -159,6 +175,7 @@ const CandidatePhotoUpload: React.FC<...> = ({
 ```
 
 ### 2. CandidateRow - Photo upload field
+
 ```typescript
 // PRIDANÉ (lines 699-706 v ElectionsEditModal.tsx)
 
@@ -171,6 +188,7 @@ const CandidatePhotoUpload: React.FC<...> = ({
 ```
 
 ### 3. CandidateCard - Zobrazenie fotky
+
 ```typescript
 // EXISTUJE (lines 67-77 v CandidateCard.tsx)
 
@@ -186,6 +204,7 @@ const CandidatePhotoUpload: React.FC<...> = ({
 ## 📊 WORKFLOW MAZANIA
 
 ### Soft Delete Fotky (bez mazania kandidáta)
+
 ```
 User: Kliknúť X na fotke
 ↓
@@ -202,6 +221,7 @@ handleSave() → UPDATE election_candidates SET photo_url=null
 ```
 
 ### Hard Delete Fotky (spolu s kandidátom)
+
 ```
 User: Kliknúť delete na kandidáta
 ↓
@@ -233,11 +253,13 @@ loadData() filtruje is_active=true
 ## 📋 KROKY K NASADENIU
 
 ### 1. Code Review
+
 - [x] ElectionsEditModal: CandidatePhotoUpload komponent
 - [x] CandidateRow: Photo upload field
 - [x] Build: SUCCESS
 
 ### 2. Testing
+
 - [ ] Upload fotky (JPEG, PNG, WebP)
 - [ ] Zobrazenie fotky v CandidateCard
 - [ ] Zobrazenie fotky v CandidateModal
@@ -246,10 +268,12 @@ loadData() filtruje is_active=true
 - [ ] Refresh stránky
 
 ### 3. Database
+
 - [ ] Overiť že photo_url sa ukladá do election_candidates
 - [ ] Skontrolovať Supabase Storage (elections/candidates/)
 
 ### 4. Deployment
+
 - [ ] npm run build
 - [ ] Deploy dist/ to production
 
@@ -258,6 +282,7 @@ loadData() filtruje is_active=true
 ## 🔍 MOŽNÉ PROBLÉMY A RIEŠENIA
 
 ### Problem: Fotka sa nenahrá
+
 ```
 Príčina: Storage bucket 'elections' neexistuje
 Riešenie: Vytvoriť bucket v Supabase (Storage → New bucket → elections)
@@ -265,6 +290,7 @@ Riešenie: Vytvoriť bucket v Supabase (Storage → New bucket → elections)
 ```
 
 ### Problem: Fotka sa zobrazuje ale zmiznú po refreshi
+
 ```
 Príčina: photo_url sa neukladá do DB
 Riešenie: Skontrolovať handleSave() v ElectionsScreen
@@ -272,6 +298,7 @@ Riešenie: Skontrolovať handleSave() v ElectionsScreen
 ```
 
 ### Problem: Mazanie fotky nemá efekt
+
 ```
 Príčina: onChange(null) sa neukladá
 Riešenie: Skontrolovať handleSave() filtruje null hodnoty
@@ -299,13 +326,13 @@ Riešenie: Skontrolovať handleSave() filtruje null hodnoty
 
 ## 📞 SUMMARY
 
-| Čo | Kde | Ako |
-|----|----|-----|
-| Upload fotky | ElectionsEditModal | Vložiť fotku → Vybrať súbor |
-| Zobrazenie | CandidateCard | Automatické (photo_url) |
-| Remove fotky | CandidateRow | Kliknúť X |
-| Delete kandidáta | CandidateModal | Kliknúť delete |
-| Mazanie fotky | Soft delete | photo_url=null alebo is_active=false |
+| Čo               | Kde                | Ako                                  |
+| ---------------- | ------------------ | ------------------------------------ |
+| Upload fotky     | ElectionsEditModal | Vložiť fotku → Vybrať súbor          |
+| Zobrazenie       | CandidateCard      | Automatické (photo_url)              |
+| Remove fotky     | CandidateRow       | Kliknúť X                            |
+| Delete kandidáta | CandidateModal     | Kliknúť delete                       |
+| Mazanie fotky    | Soft delete        | photo_url=null alebo is_active=false |
 
 ---
 

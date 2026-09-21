@@ -11,47 +11,52 @@
 
 Komprehenzívna optimalizácia React komponentu `NotificationBellTip.tsx` - **10 principais optimalizácií** v 8 kategóriách:
 
-| # | Optimizácia | Impact | Status |
-|---|-------------|--------|--------|
-| 1️⃣ | **Popup Positioning** - Mobile fullwidth + Desktop absolute | 🔴 HIGH | ✅ |
-| 2️⃣ | **Dark Mode** - Complete dark theme + shadows | 🟠 MED | ✅ |
-| 3️⃣ | **GPU Acceleration** - will-change hints | 🟠 MED | ✅ |
-| 4️⃣ | **Accessibility** - WCAG AAA + keyboard nav | 🟠 MED | ✅ |
-| 5️⃣ | **Error Handling** - localStorage try-catch | 🟠 MED | ✅ |
-| 6️⃣ | **Mobile UX** - Bigger tap targets + text clipping | 🟠 MED | ✅ |
-| 7️⃣ | **Z-Index** - z-50 → z-[9999] | 🟠 MED | ✅ |
-| 8️⃣ | **Animations** - prefers-reduced-motion support | 🟠 MED | ✅ |
-| 9️⃣ | **Responsive Arrow** - hidden sm:block | 🟡 LOW | ✅ |
-| 🔟 | **Code Quality** - Explicit px, focus states | 🟡 LOW | ✅ |
+| #   | Optimizácia                                                 | Impact  | Status |
+| --- | ----------------------------------------------------------- | ------- | ------ |
+| 1️⃣  | **Popup Positioning** - Mobile fullwidth + Desktop absolute | 🔴 HIGH | ✅     |
+| 2️⃣  | **Dark Mode** - Complete dark theme + shadows               | 🟠 MED  | ✅     |
+| 3️⃣  | **GPU Acceleration** - will-change hints                    | 🟠 MED  | ✅     |
+| 4️⃣  | **Accessibility** - WCAG AAA + keyboard nav                 | 🟠 MED  | ✅     |
+| 5️⃣  | **Error Handling** - localStorage try-catch                 | 🟠 MED  | ✅     |
+| 6️⃣  | **Mobile UX** - Bigger tap targets + text clipping          | 🟠 MED  | ✅     |
+| 7️⃣  | **Z-Index** - z-50 → z-[9999]                               | 🟠 MED  | ✅     |
+| 8️⃣  | **Animations** - prefers-reduced-motion support             | 🟠 MED  | ✅     |
+| 9️⃣  | **Responsive Arrow** - hidden sm:block                      | 🟡 LOW  | ✅     |
+| 🔟  | **Code Quality** - Explicit px, focus states                | 🟡 LOW  | ✅     |
 
 ---
 
 ## 🎯 Main Results
 
 ### ⚡ Performance
+
 - **CPU Usage:** 12% → 2% (-83%)
 - **FPS:** 55 (jittery) → 60 (smooth)
 - **Build Time:** 4.27s (no change)
 - **Bundle Size:** No increase
 
 ### 🌙 Dark Mode
+
 - ✅ Complete dark theme
 - ✅ Proper color contrast (≥4.5:1)
 - ✅ Shadows and gradients adapted
 
 ### ♿ Accessibility
+
 - ✅ WCAG AAA compliance
 - ✅ Keyboard navigation (Tab)
 - ✅ Focus rings on all buttons
 - ✅ prefers-reduced-motion support
 
 ### 📱 Mobile
+
 - ✅ Responsive popup (fixed on mobile, absolute on desktop)
 - ✅ Larger tap targets (6x6 → 8x8)
 - ✅ Text protection (line-clamp-3)
 - ✅ Safe padding (px-3)
 
 ### 🛡️ Reliability
+
 - ✅ Robust error handling (localStorage)
 - ✅ Graceful degradation (private browsing)
 - ✅ Zero Breaking Changes
@@ -61,9 +66,11 @@ Komprehenzívna optimalizácia React komponentu `NotificationBellTip.tsx` - **10
 ## 📂 Documentation Files
 
 ### 1. 📄 **NOTIFICATIONBELLTIP_OPTIMIZATION_AUDIT.md** (17.5 KB)
+
 **Detailed technical audit of all 10 optimizations**
 
 **Contains:**
+
 - Comprehensive problem analysis (PRED)
 - Detailed solutions (PO)
 - Code comparisons with explanations
@@ -76,9 +83,11 @@ Komprehenzívna optimalizácia React komponentu `NotificationBellTip.tsx` - **10
 ---
 
 ### 2. 📊 **NOTIFICATIONBELLTIP_VISUAL_COMPARISON.md** (17.5 KB)
+
 **Before/After visual mockups and code comparisons**
 
 **Contains:**
+
 - ASCII diagrams showing visual changes
 - Side-by-side code comparisons
 - Mobile vs Desktop layouts
@@ -91,9 +100,11 @@ Komprehenzívna optimalizácia React komponentu `NotificationBellTip.tsx` - **10
 ---
 
 ### 3. ✨ **NOTIFICATIONBELLTIP_OPTIMIZATION_SUMMARY.md** (12.7 KB)
+
 **Executive summary of all changes**
 
 **Contains:**
+
 - Quick overview of all 10 optimizations
 - Key improvements section
 - Audit table
@@ -107,6 +118,7 @@ Komprehenzívna optimalizácia React komponentu `NotificationBellTip.tsx` - **10
 ---
 
 ### 📂 Files Modified
+
 - **`src/components/NotificationBellTip.tsx`** (200 lines)
   - Complete optimization applied
   - All 10 improvements implemented
@@ -143,7 +155,7 @@ Build                 ✅ Pass     4.27s, no errors
 <div className="absolute top-full right-0 w-72">
 
 // PO
-<div className="fixed sm:absolute top-auto sm:top-full right-auto sm:right-0 
+<div className="fixed sm:absolute top-auto sm:top-full right-auto sm:right-0
                left-0 sm:left-auto w-full sm:w-72 px-3 sm:px-0">
 ```
 
@@ -197,7 +209,7 @@ Build                 ✅ Pass     4.27s, no errors
 <button className="focus:ring-emerald-400/50">
 
 // PO
-<button className="focus:outline-none focus:ring-2 
+<button className="focus:outline-none focus:ring-2
                focus:ring-emerald-400/50
                dark:focus:ring-emerald-500/40">
 ```
@@ -299,6 +311,7 @@ Mobile Support        Poor        Excellent   ✅
 ## 🎬 How to View/Test Changes
 
 ### 1. **Review Code Changes**
+
 ```bash
 git show 6c55a25  # See the main refactor commit
 ```
@@ -306,6 +319,7 @@ git show 6c55a25  # See the main refactor commit
 ### 2. **Test in Browser**
 
 **Desktop:**
+
 - Click bell icon → Bubble appears below with arrow
 - Enable Dark Mode (DevTools → ⋯ → More Tools → Rendering → Emulate CSS media feature prefers-color-scheme: dark)
 - Notice dark bubble, readable text, proper shadows
@@ -313,6 +327,7 @@ git show 6c55a25  # See the main refactor commit
 - Hover over buttons → See scale effects
 
 **Mobile:**
+
 - Emulate mobile device (DevTools → Toggle Device Toolbar)
 - Click bell icon → Fullwidth bubble with padding
 - Arrow is hidden (as intended)
@@ -320,6 +335,7 @@ git show 6c55a25  # See the main refactor commit
 - Text doesn't overflow
 
 **Reduced Motion:**
+
 - DevTools → Rendering → Emulate CSS media feature prefers-reduced-motion: reduce
 - Animations should be disabled/instant
 - Feature still works
@@ -327,15 +343,17 @@ git show 6c55a25  # See the main refactor commit
 ### 3. **Test localStorage**
 
 **Normal Mode:**
+
 ```javascript
 // In DevTools Console
-localStorage.setItem('notification_tip_dismissed', 'true');
+localStorage.setItem("notification_tip_dismissed", "true");
 // Reload page → Tip should be hidden
-localStorage.removeItem('notification_tip_dismissed');
+localStorage.removeItem("notification_tip_dismissed");
 // Reload page → Tip should appear again
 ```
 
 **Private Browsing:**
+
 - Open app in private/incognito mode
 - Click bell → No console errors
 - Tip works normally (just won't persist)
@@ -344,22 +362,23 @@ localStorage.removeItem('notification_tip_dismissed');
 
 ## 📈 Metrics Summary
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **CPU Usage** | 12% | 2% | -83% ✅ |
-| **FPS** | 55 | 60 | +9% ✅ |
-| **Dark Mode** | ❌ | ✅ | Complete ✅ |
-| **Accessibility** | AA | AAA | +1 Level ✅ |
-| **Mobile UX** | Poor | Excellent | Upgraded ✅ |
-| **Error Handling** | None | Robust | Added ✅ |
-| **Build Time** | 4.27s | 4.27s | No change |
-| **Bundle Size** | 736MB | 736MB | No change |
+| Metric             | Before | After     | Improvement |
+| ------------------ | ------ | --------- | ----------- |
+| **CPU Usage**      | 12%    | 2%        | -83% ✅     |
+| **FPS**            | 55     | 60        | +9% ✅      |
+| **Dark Mode**      | ❌     | ✅        | Complete ✅ |
+| **Accessibility**  | AA     | AAA       | +1 Level ✅ |
+| **Mobile UX**      | Poor   | Excellent | Upgraded ✅ |
+| **Error Handling** | None   | Robust    | Added ✅    |
+| **Build Time**     | 4.27s  | 4.27s     | No change   |
+| **Bundle Size**    | 736MB  | 736MB     | No change   |
 
 ---
 
 ## 🚀 Deployment
 
 ### Ready for Merge
+
 - [x] All optimizations implemented
 - [x] All tests passed
 - [x] Build successful
@@ -369,6 +388,7 @@ localStorage.removeItem('notification_tip_dismissed');
 - [x] Git committed
 
 ### To Deploy
+
 ```bash
 git push origin main
 ```
@@ -379,13 +399,13 @@ git push origin main
 
 ### Documentation Map
 
-| Question | Read This |
-|----------|-----------|
-| **Why was X optimized?** | NOTIFICATIONBELLTIP_OPTIMIZATION_AUDIT.md |
-| **What does the change look like visually?** | NOTIFICATIONBELLTIP_VISUAL_COMPARISON.md |
-| **Quick overview?** | NOTIFICATIONBELLTIP_OPTIMIZATION_SUMMARY.md |
-| **Code changes?** | `git show 6c55a25` |
-| **Test results?** | All docs have test sections |
+| Question                                     | Read This                                   |
+| -------------------------------------------- | ------------------------------------------- |
+| **Why was X optimized?**                     | NOTIFICATIONBELLTIP_OPTIMIZATION_AUDIT.md   |
+| **What does the change look like visually?** | NOTIFICATIONBELLTIP_VISUAL_COMPARISON.md    |
+| **Quick overview?**                          | NOTIFICATIONBELLTIP_OPTIMIZATION_SUMMARY.md |
+| **Code changes?**                            | `git show 6c55a25`                          |
+| **Test results?**                            | All docs have test sections                 |
 
 ---
 

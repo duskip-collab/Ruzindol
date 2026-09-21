@@ -19,12 +19,12 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
 
   async function submit(raw?: string) {
     const raw_code = (raw ?? code).trim();
-    const val = raw_code.replace(/-/g, '');
-    if (!val) { 
-      setErr("Zadaj kód."); 
-      return; 
+    const val = raw_code.replace(/-/g, "");
+    if (!val) {
+      setErr("Zadaj kód.");
+      return;
     }
-    setBusy(true); 
+    setBusy(true);
     setErr(null);
     try {
       const { data, error } = await supabase.rpc("redeem_invite_code", { _code: raw_code });
@@ -47,19 +47,19 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
   }
 
   function formatCode(input: string): string {
-    const clean = input.toUpperCase().replace(/-/g, '');
+    const clean = input.toUpperCase().replace(/-/g, "");
     if (clean.length <= 4) return clean;
-    return clean.slice(0, 4) + '-' + clean.slice(4, 20);
+    return clean.slice(0, 4) + "-" + clean.slice(4, 20);
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[110] flex flex-col bg-slate-950 text-white overflow-hidden h-[100dvh] w-screen"
       style={{
-        paddingTop: 'max(env(safe-area-inset-top), 0px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
-        paddingLeft: 'max(env(safe-area-inset-left), 0px)',
-        paddingRight: 'max(env(safe-area-inset-right), 0px)',
+        paddingTop: "max(env(safe-area-inset-top), 0px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
+        paddingLeft: "max(env(safe-area-inset-left), 0px)",
+        paddingRight: "max(env(safe-area-inset-right), 0px)",
       }}
     >
       {/* Horná Hlavička s Tlačidlom "Späť" */}
@@ -72,28 +72,36 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
           <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span>Späť</span>
         </button>
-        <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-emerald-400 uppercase">POZÝVACÍ KÓD</span>
+        <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-emerald-400 uppercase">
+          POZÝVACÍ KÓD
+        </span>
         <div className="w-[64px] sm:w-[72px]" />
       </div>
 
       {/* Hlavný Obsah — Centrovaný, Scrollovateľný */}
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 sm:py-6 overflow-y-auto">
         {/* Mode Switcher: QR vs. Ručne */}
-        <div className={`mb-6 sm:mb-8 flex justify-center w-full transition-all ${keyboardOpen ? 'mb-2' : ''}`}>
+        <div
+          className={`mb-6 sm:mb-8 flex justify-center w-full transition-all ${keyboardOpen ? "mb-2" : ""}`}
+        >
           <div className="inline-flex rounded-full bg-white/10 p-1 text-xs backdrop-blur gap-1">
             <button
               onClick={() => setMode("qr")}
               className={`flex items-center gap-1.5 rounded-full px-3 sm:px-4 py-2 transition font-medium ${
-                mode === "qr" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
+                mode === "qr"
+                  ? "bg-white text-neutral-900 shadow-md"
+                  : "text-white/80 hover:text-white"
               }`}
             >
-              <QrCode className="h-3.5 w-3.5" /> 
+              <QrCode className="h-3.5 w-3.5" />
               <span>QR kód</span>
             </button>
             <button
               onClick={() => setMode("manual")}
               className={`flex items-center gap-1.5 rounded-full px-3 sm:px-4 py-2 transition font-medium ${
-                mode === "manual" ? "bg-white text-neutral-900 shadow-md" : "text-white/80 hover:text-white"
+                mode === "manual"
+                  ? "bg-white text-neutral-900 shadow-md"
+                  : "text-white/80 hover:text-white"
               }`}
             >
               <Keyboard className="h-3.5 w-3.5" />
@@ -155,9 +163,9 @@ export function CodeActivationScreen({ onClose, onActivated }: Props) {
                 inputMode="text"
                 className="w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-4 text-center font-mono text-base sm:text-xl tracking-[0.15em] sm:tracking-[0.25em] text-white placeholder:text-white/20 focus:border-emerald-500 focus:bg-white/10 focus:outline-none transition-all shadow-inner"
                 style={{
-                  fontSize: '16px', // Prevencia Android/iOS zoomu pri focus
-                  WebkitUserSelect: 'none',
-                  userSelect: 'none',
+                  fontSize: "16px", // Prevencia Android/iOS zoomu pri focus
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
                 }}
               />
             </motion.div>

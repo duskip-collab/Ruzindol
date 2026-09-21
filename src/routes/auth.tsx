@@ -1,8 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Mail, Sparkles, Loader2, Globe, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Mail,
+  Sparkles,
+  Loader2,
+  Globe,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LegalDocumentsDialog, LegalLinkButton, type LegalSection } from "@/components/LegalDocuments";
+import {
+  LegalDocumentsDialog,
+  LegalLinkButton,
+  type LegalSection,
+} from "@/components/LegalDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,8 +107,10 @@ function AuthPage() {
         setFullName("");
         setPassword("");
       }
-    } catch (err: any) {
-      setError(err.message || "Nepodarilo sa prihlásiť alebo vytvoriť účet.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Nepodarilo sa prihlásiť alebo vytvoriť účet.";
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -117,8 +133,10 @@ function AuthPage() {
       });
       if (error) throw error;
       setNotice("Na zadaný e-mail sme odoslali inštrukcie na obnovenie hesla.");
-    } catch (err: any) {
-      setError(err.message || "Nepodarilo sa odoslať žiadosť o obnovu hesla.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Nepodarilo sa odoslať žiadosť o obnovu hesla.";
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -342,7 +360,11 @@ function AuthPage() {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                         aria-label={showPassword ? "Skryť heslo" : "Zobraziť heslo"}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -434,7 +456,7 @@ function AuthPage() {
                 "mt-6 rounded-2xl border p-4 text-sm font-medium leading-relaxed shadow-lg",
                 error
                   ? "border-rose-500/20 bg-rose-500/10 text-rose-400"
-                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
               )}
             >
               {error || notice}
@@ -445,6 +467,7 @@ function AuthPage() {
 
       {/* Legal Documents Dialog */}
       <LegalDocumentsDialog
+        key={`${legalDialogOpen ? "open" : "closed"}-${legalDialogSection}`}
         open={legalDialogOpen}
         onOpenChange={setLegalDialogOpen}
         initialSection={legalDialogSection}
@@ -482,8 +505,8 @@ function ConsentCheckbox({
           className="font-semibold text-emerald-400 underline-offset-4 hover:underline"
         >
           VPP
-        </LegalLinkButton>
-        {" "}a{" "}
+        </LegalLinkButton>{" "}
+        a{" "}
         <LegalLinkButton
           section="privacy"
           onOpen={onOpenLegal}
@@ -496,4 +519,3 @@ function ConsentCheckbox({
     </label>
   );
 }
-

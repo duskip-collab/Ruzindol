@@ -1,7 +1,7 @@
 # ✅ TESTOVACIA PROCEDÚRA PRE NOTIFIKÁCIE
 
 **Status:** Oprava aplikovaná  
-**Dátum:** 2026-09-10  
+**Dátum:** 2026-09-10
 
 ---
 
@@ -16,19 +16,20 @@
 
 ### 2. Typy Notifikácií - Overenie Pokrytia
 
-| Typ | resolveTargetUrl() | isCommunityBroadcast() | Popis | Status |
-|-----|-------------------|----------------------|-------|--------|
-| `announcement` | `/aktuality` | ✅ Yes | RSS Announcements | ✅ OK |
-| `official_alert` | `/nastenka` | ✅ Yes | Obecný hlásnik (official) | ✅ OK |
-| `hlasnik` | `/nastenka` | ✅ Yes (NOVÁ OPRAVA) | Obecný hlásnik (fallback) | ✅ OK |
-| `group_announcement` | `/aktuality` | ✅ Yes | Skupinové oznámenia | ✅ OK |
-| `neighbor_post` | `/nastenka` | ✅ Yes | Susedský život (NOVÉ) | ✅ OK |
-| `inquiry_answer` | `/` | ❌ No | Odpovede na podnety | ✅ OK |
-| `message` | `/chat/{refId}` | ❌ No | Chat správy | ✅ OK |
+| Typ                  | resolveTargetUrl() | isCommunityBroadcast() | Popis                     | Status |
+| -------------------- | ------------------ | ---------------------- | ------------------------- | ------ |
+| `announcement`       | `/aktuality`       | ✅ Yes                 | RSS Announcements         | ✅ OK  |
+| `official_alert`     | `/nastenka`        | ✅ Yes                 | Obecný hlásnik (official) | ✅ OK  |
+| `hlasnik`            | `/nastenka`        | ✅ Yes (NOVÁ OPRAVA)   | Obecný hlásnik (fallback) | ✅ OK  |
+| `group_announcement` | `/aktuality`       | ✅ Yes                 | Skupinové oznámenia       | ✅ OK  |
+| `neighbor_post`      | `/nastenka`        | ✅ Yes                 | Susedský život (NOVÉ)     | ✅ OK  |
+| `inquiry_answer`     | `/`                | ❌ No                  | Odpovede na podnety       | ✅ OK  |
+| `message`            | `/chat/{refId}`    | ❌ No                  | Chat správy               | ✅ OK  |
 
 ### 3. Očakávaný Scenár - Ako by teraz malo fungovať
 
 #### Scenár A: Vytvorenie príspevku v "Susedský život"
+
 ```
 1. Príspevok typu 'susedsky_zivot' sa vloží do tabuľky 'posts'
    ↓
@@ -45,6 +46,7 @@
 ```
 
 #### Scenár B: Vytvorenie oznámenia v "Obecnom hlásníku"
+
 ```
 1. Príspevek typu 'hlasnik' alebo 'official_alert' sa vloží do tabuľky 'posts'
    ↓
@@ -61,6 +63,7 @@
 ```
 
 #### Scenár C: Fallback pre starý kód (Hlasnik)
+
 ```
 Ak by sa z nejakého dôvodu vytvorila notifikácia s typom 'hlasnik':
 
@@ -79,6 +82,7 @@ Ak by sa z nejakého dôvodu vytvorila notifikácia s typom 'hlasnik':
 Ak chcete manuálne otestovať notifikácie v Supabase dashboarde:
 
 ### Test 1: Príspevek v Susedskom živote
+
 ```sql
 -- Vložiť testovací príspevek v Susedskom živote
 INSERT INTO public.posts (
@@ -96,13 +100,14 @@ INSERT INTO public.posts (
 );
 
 -- Skontrolujte, či sa vytvorili notifikácie
-SELECT * FROM public.notifications 
-WHERE type = 'neighbor_post' 
-ORDER BY created_at DESC 
+SELECT * FROM public.notifications
+WHERE type = 'neighbor_post'
+ORDER BY created_at DESC
 LIMIT 5;
 ```
 
 ### Test 2: Oznámenie v Obecnom hlásníku
+
 ```sql
 -- Vložiť testovací príspevek v Obecnom hlásníku
 INSERT INTO public.posts (
@@ -121,16 +126,17 @@ INSERT INTO public.posts (
 );
 
 -- Skontrolujte, či sa vytvorili notifikácie
-SELECT * FROM public.notifications 
-WHERE type = 'official_alert' 
-ORDER BY created_at DESC 
+SELECT * FROM public.notifications
+WHERE type = 'official_alert'
+ORDER BY created_at DESC
 LIMIT 5;
 ```
 
 ### Test 3: Overiť počet notifikácií
+
 ```sql
 -- Počet notifikácií podľa typu v posledných 24 hodinách
-SELECT 
+SELECT
   type,
   COUNT(*) as pocet_notifikacii,
   MAX(created_at) as posledna_notifikacia
@@ -160,10 +166,10 @@ Ak notifikácie **stále** nie sú funkčné po aplikovaní tejto opravy, skontr
 
 ## 🎯 SÚHRN OPRAVY
 
-| Problém | Oprava | Dôsledok |
-|---------|--------|---------|
-| Chýbajúci `"hlasnik"` v `isCommunityBroadcastNotification()` | Pridaný `type === "hlasnik"` | Notifikácie "Obecný hlásnik" sa teraz VŽDY pošlú |
-| Nekonzistentnosť medzi `resolveTargetUrl()` a `isCommunityBroadcastNotification()` | Obidve funkcie teraz obsahujú rovnaké typy | Správna logika notifikácií |
+| Problém                                                                            | Oprava                                     | Dôsledok                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| Chýbajúci `"hlasnik"` v `isCommunityBroadcastNotification()`                       | Pridaný `type === "hlasnik"`               | Notifikácie "Obecný hlásnik" sa teraz VŽDY pošlú |
+| Nekonzistentnosť medzi `resolveTargetUrl()` a `isCommunityBroadcastNotification()` | Obidve funkcie teraz obsahujú rovnaké typy | Správna logika notifikácií                       |
 
 ---
 

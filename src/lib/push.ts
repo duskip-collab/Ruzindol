@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { isIosDevice, isStandaloneMode } from "@/lib/pwa";
 
 const PUBLIC_VAPID_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
@@ -55,6 +56,13 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
   try {
     const subJson = subscription.toJSON();
 
+    // Explicitný JSON tvar pre typ stĺpca `user_push_subscriptions.subscription` (Json)
+    const subscriptionJson: Json = {
+      endpoint: subJson.endpoint ?? null,
+      expirationTime: subJson.expirationTime ?? null,
+      keys: subJson.keys ? { p256dh: subJson.keys.p256dh, auth: subJson.keys.auth } : null,
+    };
+
     if (!userId || typeof userId !== "string" || userId.trim() === "") {
       console.error("[Push] Chyba: userId nie je dostupný alebo je neplatný!");
       return false;
@@ -68,10 +76,10 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
     // 1. Skúsime najskôr použiť RPC funkciu (obchádza RLS 403 pri prepise endpointu)
     const { error: rpcError } = await supabase.rpc("save_push_subscription", {
       p_endpoint: subscription.endpoint,
-      p_p256dh: subJson.keys?.p256dh || null,
-      p_auth: subJson.keys?.auth || null,
-      p_subscription: subJson,
-      p_user_agent: navigator.userAgent
+      p_p256dh: subJson.keys?.p256dh ?? "",
+      p_auth: subJson.keys?.auth ?? "",
+      p_subscription: subscriptionJson,
+      p_user_agent: navigator.userAgent,
     });
 
     if (!rpcError) {
@@ -87,16 +95,14 @@ async function savePushSubscription(subscription: PushSubscription, userId: stri
       endpoint: subscription.endpoint,
       p256dh: subJson.keys?.p256dh || null,
       auth: subJson.keys?.auth || null,
-      subscription: subJson,
+      subscription: subscriptionJson,
       user_agent: navigator.userAgent,
       last_seen_at: new Date().toISOString(),
     };
 
-    const { error: upsertError } = await (supabase as any)
-      .from("user_push_subscriptions")
-      .upsert(payload, { 
-        onConflict: "endpoint"
-      });
+    const { error: upsertError } = await supabase.from("user_push_subscriptions").upsert(payload, {
+      onConflict: "endpoint",
+    });
 
     if (upsertError) {
       console.error("[Push] Chyba pri upsert/RPC:", upsertError);
@@ -151,13 +157,15 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
     if (isGettingSubscription || (cachedSubscription && now - subscriptionCacheTime < 1000)) {
       console.info("[Push] Používam cached subscription, paralelné getSubscription ignorované");
       const subscription = cachedSubscription;
-      
+
       if (!subscription) {
         console.error("[Push] Cached subscription je null, nemôžeme pokračovať");
         return false;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         console.warn("[Push] Session nie je dostupná pre cached subscription");
         return false;
@@ -180,7 +188,9 @@ export async function subscribeToPush(options: SubscribeToPushOptions = {}) {
       cachedSubscription = subscription;
       subscriptionCacheTime = Date.now();
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session?.user?.id) {
         console.warn("[Push] Žiadna platná session alebo user.id nedostupné");

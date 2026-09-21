@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  Inbox, 
-  MessageSquare, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  AlertCircle, 
-  Send, 
-  Eye, 
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Inbox,
+  MessageSquare,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertCircle,
+  Send,
+  Eye,
   EyeOff,
-  Filter
-} from 'lucide-react';
+  Filter,
+} from "lucide-react";
 
 interface Inquiry {
   id: string;
@@ -23,7 +23,7 @@ interface Inquiry {
   body: string;
   image_url?: string;
   is_public: boolean;
-  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
+  status: "pending" | "in_progress" | "resolved" | "rejected";
   answer?: string;
   answered_at?: string;
   created_at: string;
@@ -35,19 +35,19 @@ interface Inquiry {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  odpad: 'Odpad a čistota',
-  cesty_chodniky: 'Cesty a chodníky',
-  zelen: 'Zeleň a príroda',
-  osvetlenie: 'Verejné osvetlenie',
-  urad_sluzby: 'Úrad a služby',
-  ine: 'Iné',
+  odpad: "Odpad a čistota",
+  cesty_chodniky: "Cesty a chodníky",
+  zelen: "Zeleň a príroda",
+  osvetlenie: "Verejné osvetlenie",
+  urad_sluzby: "Úrad a služby",
+  ine: "Iné",
 };
 
 export function MayorInquiriesPanel() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
   // Stavy pre formulár odpovede
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [targetStatus, setTargetStatus] = useState<Record<string, string>>({});
@@ -56,15 +56,15 @@ export function MayorInquiriesPanel() {
   // Načítanie podnetov pre starostu
   const fetchInquiries = async () => {
     setLoading(true);
-    
+
     // Explicitné naviazanie cudzieho kľúča profiles!mayor_inquiries_user_id_fkey zabráni chybe 400 Bad Request
     const { data, error } = await supabase
-      .from('mayor_inquiries')
-      .select('*, profiles!mayor_inquiries_user_id_fkey(name, email)')
-      .order('created_at', { ascending: false });
+      .from("mayor_inquiries")
+      .select("*, profiles!mayor_inquiries_user_id_fkey(name, email)")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Chyba pri načítavaní podnetov:', error);
+      console.error("Chyba pri načítavaní podnetov:", error);
     } else if (data) {
       setInquiries(data as unknown as Inquiry[]);
     }
@@ -72,35 +72,40 @@ export function MayorInquiriesPanel() {
   };
 
   useEffect(() => {
-    fetchInquiries();
+    const id = window.setTimeout(() => {
+      void fetchInquiries();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   // Odoslanie odpovede na podnet
   const handleSendAnswer = async (inquiryId: string) => {
     const text = replyText[inquiryId];
-    const newStatus = targetStatus[inquiryId] || 'resolved';
+    const newStatus = targetStatus[inquiryId] || "resolved";
 
-    if (!text || text.trim() === '') return;
+    if (!text || text.trim() === "") return;
 
     setSubmittingId(inquiryId);
-    
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     const { error } = await supabase
-      .from('mayor_inquiries')
+      .from("mayor_inquiries")
       .update({
         answer: text.trim(),
         status: newStatus,
         answered_at: new Date().toISOString(),
         answered_by: user?.id,
       })
-      .eq('id', inquiryId);
+      .eq("id", inquiryId);
 
     if (!error) {
       await fetchInquiries();
-      setReplyText((prev) => ({ ...prev, [inquiryId]: '' }));
+      setReplyText((prev) => ({ ...prev, [inquiryId]: "" }));
     } else {
-      console.error('Chyba pri odosielaní odpovede:', error);
+      console.error("Chyba pri odosielaní odpovede:", error);
     }
     setSubmittingId(null);
   };
@@ -108,28 +113,27 @@ export function MayorInquiriesPanel() {
   // Prepnutie verejný / súkromný
   const togglePublicStatus = async (inquiryId: string, currentPublic: boolean) => {
     const { error } = await supabase
-      .from('mayor_inquiries')
+      .from("mayor_inquiries")
       .update({ is_public: !currentPublic })
-      .eq('id', inquiryId);
+      .eq("id", inquiryId);
 
     if (!error) {
       await fetchInquiries();
     } else {
-      console.error('Chyba pri zmene viditeľnosti:', error);
+      console.error("Chyba pri zmene viditeľnosti:", error);
     }
   };
 
   // Filtrovanie podnetov
   const filteredInquiries = inquiries.filter((item) => {
-    if (filterStatus === 'all') return true;
+    if (filterStatus === "all") return true;
     return item.status === filterStatus;
   });
 
-  const countPending = inquiries.filter((i) => i.status === 'pending').length;
+  const countPending = inquiries.filter((i) => i.status === "pending").length;
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-5">
-      
       {/* Hlavička panelu */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
@@ -156,19 +160,19 @@ export function MayorInquiriesPanel() {
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-medium">
         <Filter className="w-4 h-4 text-slate-400 shrink-0 mr-1" />
         {[
-          { key: 'all', label: 'Všetky' },
-          { key: 'pending', label: 'Čakajúce' },
-          { key: 'in_progress', label: 'V riešení' },
-          { key: 'resolved', label: 'Vyriešené' },
-          { key: 'rejected', label: 'Zamietnuté' },
+          { key: "all", label: "Všetky" },
+          { key: "pending", label: "Čakajúce" },
+          { key: "in_progress", label: "V riešení" },
+          { key: "resolved", label: "Vyriešené" },
+          { key: "rejected", label: "Zamietnuté" },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setFilterStatus(tab.key)}
             className={`px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
               filterStatus === tab.key
-                ? 'bg-slate-900 text-white font-semibold'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? "bg-slate-900 text-white font-semibold"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
             {tab.label}
@@ -195,7 +199,7 @@ export function MayorInquiriesPanel() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                 <div className="flex items-center gap-2 text-xs text-slate-600">
                   <span className="font-semibold text-slate-900">
-                    {item.profiles?.name || item.profiles?.full_name || 'Anonymný občan'}
+                    {item.profiles?.name || item.profiles?.full_name || "Anonymný občan"}
                   </span>
                   <span>•</span>
                   <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-medium">
@@ -203,7 +207,7 @@ export function MayorInquiriesPanel() {
                   </span>
                   <span>•</span>
                   <span className="text-slate-400">
-                    {new Date(item.created_at).toLocaleDateString('sk-SK')}
+                    {new Date(item.created_at).toLocaleDateString("sk-SK")}
                   </span>
                 </div>
 
@@ -213,13 +217,17 @@ export function MayorInquiriesPanel() {
                     onClick={() => togglePublicStatus(item.id, item.is_public)}
                     className={`flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
                       item.is_public
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-slate-100 text-slate-600 border-slate-200"
                     }`}
-                    title={item.is_public ? 'Verejný podnet' : 'Súkromný podnet'}
+                    title={item.is_public ? "Verejný podnet" : "Súkromný podnet"}
                   >
-                    {item.is_public ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span>{item.is_public ? 'Verejný' : 'Súkromný'}</span>
+                    {item.is_public ? (
+                      <Eye className="w-3.5 h-3.5" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    )}
+                    <span>{item.is_public ? "Verejný" : "Súkromný"}</span>
                   </button>
 
                   {/* Odznak stavu */}
@@ -253,7 +261,7 @@ export function MayorInquiriesPanel() {
                   <p className="whitespace-pre-line text-slate-700">{item.answer}</p>
                   {item.answered_at && (
                     <p className="text-[10px] text-slate-400 mt-1">
-                      Odpovedané: {new Date(item.answered_at).toLocaleString('sk-SK')}
+                      Odpovedané: {new Date(item.answered_at).toLocaleString("sk-SK")}
                     </p>
                   )}
                 </div>
@@ -263,10 +271,8 @@ export function MayorInquiriesPanel() {
               <div className="pt-2 border-t border-slate-200/60 space-y-2">
                 <textarea
                   placeholder="Napíšte odpoveď pre občana..."
-                  value={replyText[item.id] || ''}
-                  onChange={(e) =>
-                    setReplyText((prev) => ({ ...prev, [item.id]: e.target.value }))
-                  }
+                  value={replyText[item.id] || ""}
+                  onChange={(e) => setReplyText((prev) => ({ ...prev, [item.id]: e.target.value }))}
                   className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   rows={2}
                 />
@@ -297,10 +303,8 @@ export function MayorInquiriesPanel() {
                   </button>
                 </div>
               </div>
-
             </div>
           ))}
-
         </div>
       )}
     </div>
@@ -310,25 +314,25 @@ export function MayorInquiriesPanel() {
 // Pomocný odznak pre stav podnetu
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
-    case 'pending':
+    case "pending":
       return (
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
           <Clock className="w-3 h-3" /> Čaká
         </span>
       );
-    case 'in_progress':
+    case "in_progress":
       return (
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
           <Clock className="w-3 h-3" /> V riešení
         </span>
       );
-    case 'resolved':
+    case "resolved":
       return (
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
           <CheckCircle2 className="w-3 h-3" /> Vyriešené
         </span>
       );
-    case 'rejected':
+    case "rejected":
       return (
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-800">
           <XCircle className="w-3 h-3" /> Zamietnuté

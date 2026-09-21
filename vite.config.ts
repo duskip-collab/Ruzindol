@@ -30,7 +30,7 @@ export default defineConfig({
         scope: "/",
       },
       workbox: {
-        dontCacheBustURLsMatching: /\-[a-zA-Z0-9_-]{8}\./,
+        dontCacheBustURLsMatching: /-[a-zA-Z0-9_-]{8}\./,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,

@@ -145,22 +145,26 @@ src/
 ## 2) Stručný obsah dôležitých priečinkov
 
 ### components/
+
 - Feature komponenty aplikácie (panely, bannery, navigácia, onboarding časti, kalendár, chat, atď.).
 - Reusable UI knižnica je v components/ui/ (button, dialog, input, tabs, table, tooltip, atď.).
 
 ### context/
+
 - React contexty pre globálny stav:
 - AppModeContext.tsx
 - NotificationContext.tsx
 - ThemeContext.tsx
 
 ### hooks/
+
 - Custom hooky pre klientsku logiku:
 - useCurrentUser.ts (načítanie aktuálneho používateľa/profilu cez Supabase)
 - useIsAdmin.ts
 - use-mobile.tsx
 
 ### integrations/
+
 - Integrácie externých služieb.
 - integrations/supabase/ obsahuje hlavné súbory pre Supabase:
   - client.ts: inicializácia a konfigurácia Supabase klienta
@@ -169,6 +173,7 @@ src/
 - integrations/lovable/ je momentálne prázdny.
 
 ### lib/
+
 - Pomocné utility a technická logika:
 - upload/compress obrázkov
 - error capture + render error stránky
@@ -176,6 +181,7 @@ src/
 - všeobecné util funkcie
 
 ### routes/
+
 - Definície trás (TanStack Router) a auth flow:
 - __root.tsx, auth.tsx, reset-password.tsx
 - auth/callback.tsx
@@ -183,6 +189,7 @@ src/
 - routeTree.gen.ts je generovaný strom trás.
 
 ### screens/
+
 - Hlavné obrazovky aplikácie:
 - AktualityScreen.tsx
 - MojeSpravyScreen.tsx
@@ -192,6 +199,7 @@ src/
 - onboarding/ obsahuje onboarding obrazovky (Welcome, GeoWizard, CodeActivation).
 
 ### types/
+
 - Zdieľané TypeScript typy (index.ts).
 
 ## 3) Kde sú komponenty, API volania a Supabase logika

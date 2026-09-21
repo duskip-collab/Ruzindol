@@ -10,7 +10,8 @@ Build status: ✅ SUCCESS (2.49s, zero TypeScript errors)
 ### 1️⃣ Edge Function Timeout (504 Gateway Timeout)
 
 **Problém:**
-- `fetch-municipal-events` Edge Function končila chybou `504` 
+
+- `fetch-municipal-events` Edge Function končila chybou `504`
 - Sekvenciálne spracovanie bez timeoutov na jednotlivé requesty
 - Žiadna paralelizácia, čo spôsobovalo zľavenie pod timeoutom (30s)
 
@@ -19,6 +20,7 @@ Build status: ✅ SUCCESS (2.49s, zero TypeScript errors)
 #### A) Edge Function backend (`supabase/functions/fetch-municipal-events/index.ts`)
 
 1. **Pridané timeouty na fetch requesty:**
+
    ```typescript
    async function fetchText(url: string, timeoutMs: number = 8000): Promise<string> {
      const controller = new AbortController();
@@ -50,7 +52,7 @@ Build status: ✅ SUCCESS (2.49s, zero TypeScript errors)
 // Timeout ochranu na frontende
 const timeoutPromise = new Promise((_, reject) => {
   timeoutHandle = setTimeout(() => {
-    reject(new Error('Edge Function timeout: ...'));
+    reject(new Error("Edge Function timeout: ..."));
   }, 30000);
 });
 
@@ -66,6 +68,7 @@ const result = await Promise.race([syncPromise, timeoutPromise]);
 ### 2️⃣ Chýbajúci Storage Bucket ('elections')
 
 **Problém:**
+
 - Pri nahrávaní súboru vyhadzuje: `StorageApiError: Bucket not found`
 - ElectionsAttachmentUpload.tsx sa odkazoval na neexistujúci bucket `elections`
 
@@ -74,8 +77,8 @@ const result = await Promise.race([syncPromise, timeoutPromise]);
 #### A) Robust error handling (`src/components/elections/ElectionsAttachmentUpload.tsx`)
 
 ```typescript
-const STORAGE_BUCKET = 'elections';
-const STORAGE_FALLBACK_BUCKET = 'public';
+const STORAGE_BUCKET = "elections";
+const STORAGE_FALLBACK_BUCKET = "public";
 
 // Try-catch s fallback
 try {
@@ -84,7 +87,8 @@ try {
   uploadError = result.error;
 } catch (err) {
   // Fallback na verejný bucket
-  const result = await supabase.storage.from(STORAGE_FALLBACK_BUCKET)
+  const result = await supabase.storage
+    .from(STORAGE_FALLBACK_BUCKET)
     .upload(`elections/${fileName}`, file);
   uploadData = result.data;
   uploadError = result.error;
@@ -92,6 +96,7 @@ try {
 ```
 
 **Výhody:**
+
 - ✅ Automaticky skúša fallback na `public` bucket ak `elections` neexistuje
 - ✅ Používateľovi sa zobrazí jasná chyba: "Úložisko nie je správne nakonfigurované"
 - ✅ Súbory sú uložené aj ak bucket chýba (v `public/elections/...`)
@@ -99,6 +104,7 @@ try {
 #### B) SQL migrácia (`supabase/migrations/20260908120001_create_elections_storage_bucket.sql`)
 
 Vytvorí `elections` bucket s RLS politikami:
+
 - **Čítanie:** Všetci autentifikovaní používatelia
 - **Zápis:** Iba admin, úradník, starosta
 - **Mazanie:** Iba admin, úradník, starosta
@@ -145,6 +151,7 @@ npm run deploy  # alebo do svojho hostingu (Netlify, Vercel, etc.)
 ## ✅ TESTING
 
 ### Test 1: Edge Function timeout
+
 ```bash
 # V Supabase logs skontroluj:
 # - Čas vykonávania < 25s
@@ -159,11 +166,12 @@ curl https://YOUR_PROJECT_ID.functions.supabase.co/fetch-municipal-events \
 ```
 
 ### Test 2: Storage bucket
+
 ```typescript
 // V dev console aplikácie:
 const { data, error } = await supabase.storage
-  .from('elections')
-  .upload('test.pdf', new File(['test'], 'test.pdf'));
+  .from("elections")
+  .upload("test.pdf", new File(["test"], "test.pdf"));
 
 // Očakávaný výsledok:
 // ✅ Ak bucket existuje: Upload success
@@ -171,6 +179,7 @@ const { data, error } = await supabase.storage
 ```
 
 ### Test 3: Upload v modale Voľby
+
 1. Otvri Elections modul
 2. Klikni "Edit" (Edit button)
 3. Choď na "Prílohy" tab
@@ -182,11 +191,13 @@ const { data, error } = await supabase.storage
 ## 📊 Metrika výkonu
 
 ### Pred opravou:
+
 - Edge Function čas: ~30-45s ❌
 - Výsledok: 504 Gateway Timeout
 - Storage: Bez fallback → error
 
 ### Po oprave:
+
 - Edge Function čas: ~4-8s ✅ (2.5x - 5x rýchlejší)
 - Výsledok: 200 OK s údajmi
 - Storage: Fallback bucket + user-friendly errors
@@ -198,6 +209,7 @@ const { data, error } = await supabase.storage
 ### Ak Edge Function stále time-outuje:
 
 1. **Skontroluj počet municípií:**
+
    ```sql
    SELECT COUNT(*) FROM municipalities WHERE is_active = true;
    ```
@@ -215,6 +227,7 @@ const { data, error } = await supabase.storage
 ### Ak storage bucket nebeží:
 
 1. **Skontroluj či bucket existuje:**
+
    ```bash
    curl https://YOUR_PROJECT_ID.storage.supabase.co/storage/v1/bucket \
      -H "Authorization: Bearer YOUR_ANON_KEY"
@@ -233,12 +246,12 @@ const { data, error } = await supabase.storage
 
 ## 📝 Súbory zmien
 
-| Súbor | Zmena |
-|-------|-------|
-| `supabase/functions/fetch-municipal-events/index.ts` | Timeouty, paralelizácia |
-| `src/lib/municipal-events-sync.ts` | Frontend timeout + error handling |
-| `src/components/elections/ElectionsAttachmentUpload.tsx` | Storage bucket fallback |
-| `supabase/migrations/20260908120001_create_elections_storage_bucket.sql` | Nová migrácia |
+| Súbor                                                                    | Zmena                             |
+| ------------------------------------------------------------------------ | --------------------------------- |
+| `supabase/functions/fetch-municipal-events/index.ts`                     | Timeouty, paralelizácia           |
+| `src/lib/municipal-events-sync.ts`                                       | Frontend timeout + error handling |
+| `src/components/elections/ElectionsAttachmentUpload.tsx`                 | Storage bucket fallback           |
+| `supabase/migrations/20260908120001_create_elections_storage_bucket.sql` | Nová migrácia                     |
 
 ---
 

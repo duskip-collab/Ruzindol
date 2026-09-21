@@ -93,7 +93,7 @@
 
   function inviteMessage(code: string) {
     const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-    return `Ahoj, poz+¯vam +¹a do susedskej aplik+ície. Pou+¿i poz+¯vac+º k+-d: ${code}. Odkaz: ${appUrl}`;
+    return `Ahoj, poz+ï¿½vam +ï¿½a do susedskej aplik+ï¿½cie. Pou+ï¿½i poz+ï¿½vac+ï¿½ k+-d: ${code}. Odkaz: ${appUrl}`;
   }
 
   async function shareNative(code: string) {
@@ -106,7 +106,7 @@
     }
     try {
       await navigator.share({
-        title: "Pozva+¹ suseda",
+        title: "Pozva+ï¿½ suseda",
         text: msg,
       });
       await markCodeAsShared(row.id, "native");
@@ -118,10 +118,10 @@
   async function shareAll() {
     const all = codes.map((c, i) => `${i + 1}. ${c.code}`).join("\n");
     const appUrl = typeof window !== "undefined" ? window.location.origin : "https://komunita.sk";
-    const text = `Poz+¯vam +¹a do susedskej aplik+ície. Vyber si k+-d:\n${all}\nOdkaz: ${appUrl}`;
+    const text = `Poz+ï¿½vam +ï¿½a do susedskej aplik+ï¿½cie. Vyber si k+-d:\n${all}\nOdkaz: ${appUrl}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Pozva+¹ suseda", text });
+        await navigator.share({ title: "Pozva+ï¿½ suseda", text });
         await markAllCodesAsShared("native-bulk");
         return;
       } catch {
@@ -140,7 +140,7 @@
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Pozva+¹ suseda",
+          title: "Pozva+ï¿½ suseda",
           text: msg,
         });
         await markCodeAsShared(inviteId, "messenger-native");
@@ -159,23 +159,23 @@
     <div className="rounded-3xl border border-border bg-card/95 p-5 text-card-foreground shadow-sm backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Pozva+¹ suseda</h3>
+          <h3 className="text-sm font-semibold text-foreground">Pozva+ï¿½ suseda</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Vygeneruj alebo na¦+ºtaj a+¿ {maxCodes} akt+ºvnych k+-dov a po+íli ich susedom.
+            Vygeneruj alebo naï¿½ï¿½+ï¿½taj a+ï¿½ {maxCodes} akt+ï¿½vnych k+-dov a po+ï¿½li ich susedom.
           </p>
         </div>
         <button
           onClick={() => void loadOwnCodes()}
           className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/60"
         >
-          Obnovi+¹
+          Obnovi+ï¿½
         </button>
       </div>
 
       {!canUse ? (
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <Lock className="h-3.5 w-3.5" />
-          Poz+¯vanie je dostupn+ê pre akt+ºvneho suseda s invite k+-dom alebo pre rolu admin/starosta.
+          Poz+ï¿½vanie je dostupn+ï¿½ pre akt+ï¿½vneho suseda s invite k+-dom alebo pre rolu admin/starosta.
         </div>
       ) : (
         <>
@@ -186,14 +186,14 @@
               className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Z+ºska+¹ {maxCodes} k+-dov
+              Z+ï¿½ska+ï¿½ {maxCodes} k+-dov
             </button>
             {codes.length > 0 && (
               <button
                 onClick={() => void shareAll()}
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/60"
               >
-                <Share2 className="h-3.5 w-3.5" /> Zdie¦¿a+¹ v+íetky
+                <Share2 className="h-3.5 w-3.5" /> Zdieï¿½ï¿½a+ï¿½ v+ï¿½etky
               </button>
             )}
           </div>
@@ -206,11 +206,11 @@
 
           {loading ? (
             <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Na¦+ºtavam poz+¯vacie k+-dy...
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Naï¿½ï¿½+ï¿½tavam poz+ï¿½vacie k+-dy...
             </div>
           ) : codes.length === 0 ? (
             <p className="mt-3 text-xs text-neutral-500">
-              Zatia¦¿ nem+í+í akt+ºvne poz+¯vacie k+-dy. Klikni na ÔÇ×Z+ºska+¹ {maxCodes} k+-dov".
+              Zatiaï¿½ï¿½ nem+ï¿½+ï¿½ akt+ï¿½vne poz+ï¿½vacie k+-dy. Klikni na ï¿½ï¿½ï¿½Z+ï¿½ska+ï¿½ {maxCodes} k+-dov".
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
@@ -228,13 +228,13 @@
                   </span>
                   {isShared && (
                     <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800">
-                      K+-d odoslan+¯
+                      K+-d odoslan+ï¿½
                     </span>
                   )}
                   <button
                     onClick={() => copy(code)}
                     className="rounded-full p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    aria-label="Kop+ºrova+¹"
+                    aria-label="Kop+ï¿½rova+ï¿½"
                   >
                     {copied === code ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -247,7 +247,7 @@
                       disabled={isShared}
                       className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent/60"
                     >
-                      <Share2 className="h-3 w-3" /> {isShared ? "Odoslan+¯" : "Zdie¦¿a+¹"}
+                      <Share2 className="h-3 w-3" /> {isShared ? "Odoslan+ï¿½" : "Zdieï¿½ï¿½a+ï¿½"}
                     </button>
                   {isShared ? (
                     <span className="rounded-full bg-emerald-300 px-2.5 py-1 text-[11px] font-semibold text-white/90">
@@ -271,13 +271,13 @@
                     onClick={() => void shareMessenger(code, row.id)}
                     disabled={isShared}
                     className="rounded-full bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                    title="Otvor+º Messenger. Ak nat+ºvne zdie¦¿anie nie je dostupn+ê, text sa skop+ºruje do schr+ínky."
+                    title="Otvor+ï¿½ Messenger. Ak nat+ï¿½vne zdieï¿½ï¿½anie nie je dostupn+ï¿½, text sa skop+ï¿½ruje do schr+ï¿½nky."
                   >
-                    {isShared ? "Messenger TÌ odoslan+¯" : "Messenger"}
+                    {isShared ? "Messenger Tï¿½ odoslan+ï¿½" : "Messenger"}
                   </button>
                   {row.shared_at && (
                     <span className="text-[10px] text-neutral-500">
-                      {row.shared_via ? `${row.shared_via} TÌ ` : ""}
+                      {row.shared_via ? `${row.shared_via} Tï¿½ ` : ""}
                       {new Date(row.shared_at).toLocaleDateString("sk-SK")}
                     </span>
                   )}
@@ -287,5 +287,5 @@
             </ul>
           )}
           <p className="mt-2 text-[11px] text-neutral-500">
-            Pri zdie¦¿an+º cez Messenger sa pri nepodporovanom nat+ºvnom zdie¦¿an+º text automaticky
-            skop+ºruje do schr+ínky.
+            Pri zdieï¿½ï¿½an+ï¿½ cez Messenger sa pri nepodporovanom nat+ï¿½vnom zdieï¿½ï¿½an+ï¿½ text automaticky
+            skop+ï¿½ruje do schr+ï¿½nky.

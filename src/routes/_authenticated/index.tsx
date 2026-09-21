@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet, redirect, useLocation, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { Download, PlusSquare, Share2, X } from "lucide-react";
@@ -42,8 +48,12 @@ function tabFromPath(pathname: string, tabOrder: Tab[]): Tab {
 export function AuthenticatedShell() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(FIRST_INSTALL_BANNER_KEY) === "1",
+  );
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [showFirstInstallBanner, setShowFirstInstallBanner] = useState(false);
 
   const { profile, error: userLoadError } = useCurrentUser();
   const { isAdmin } = useIsAdmin(profile?.id);
@@ -66,9 +76,12 @@ export function AuthenticatedShell() {
     dismissIosInstallHint,
   } = usePwaInstall();
 
+  // Odvodený stav namiesto synchronizácie cez efekt (react-hooks/set-state-in-effect)
+  const showFirstInstallBanner = !isInstalled && !bannerDismissed;
+
   function changeTab(next: Tab) {
     if (next === activeTab) return;
-    triggerHaptic('light');
+    triggerHaptic("light");
     const from = tabOrder.indexOf(activeTab);
     const to = tabOrder.indexOf(next);
     setDirection(to >= from ? 1 : -1);
@@ -104,7 +117,7 @@ export function AuthenticatedShell() {
 
   function dismissFirstInstallBanner() {
     window.localStorage.setItem(FIRST_INSTALL_BANNER_KEY, "1");
-    setShowFirstInstallBanner(false);
+    setBannerDismissed(true);
   }
 
   useEffect(() => {
@@ -115,16 +128,6 @@ export function AuthenticatedShell() {
   useEffect(() => {
     runStartupContentSync();
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isInstalled) {
-      setShowFirstInstallBanner(false);
-      return;
-    }
-
-    setShowFirstInstallBanner(window.localStorage.getItem(FIRST_INSTALL_BANNER_KEY) !== "1");
-  }, [isInstalled]);
 
   return (
     <div className="bg-app-shell min-h-screen xl:h-screen xl:overflow-hidden">
@@ -181,7 +184,8 @@ export function AuthenticatedShell() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold tracking-tight">Inštalácia aplikácie</p>
                       <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
-                          Pridajte si komunitu na plochu. Otvorí sa ako samostatná aplikácia a bude vždy po ruke.
+                        Pridajte si komunitu na plochu. Otvorí sa ako samostatná aplikácia a bude
+                        vždy po ruke.
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {canInstall && (
@@ -234,9 +238,12 @@ export function AuthenticatedShell() {
                       <Share2 size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold tracking-tight">Pridajte aplikáciu na plochu</p>
+                      <p className="text-sm font-semibold tracking-tight">
+                        Pridajte aplikáciu na plochu
+                      </p>
                       <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
-                        Pre inštaláciu aplikácie kliknite na ikonu Zdieľať a vyberte Pridať na plochu.
+                        Pre inštaláciu aplikácie kliknite na ikonu Zdieľať a vyberte Pridať na
+                        plochu.
                       </p>
                       <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-brand">
                         <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1">

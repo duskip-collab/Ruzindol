@@ -18,33 +18,41 @@
 ## ⏳ DATABÁZOVÉ VYČISTENIE (ČAKÁ)
 
 ### KROK 1: Otvoriť Supabase
+
 ```
 https://supabase.com/dashboard → Projekt LOvable PRO → SQL Editor
 ```
 
 ### KROK 2: Spustiť DIAGNOSTIKU
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = true) as active,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = false) as inactive
 FROM election_candidates;
 ```
+
 **Výsledok**: Vidíte koľko je `inactive` (tie sa budú mazať)
 
 ### KROK 3: Spustiť DELETE
+
 ```sql
 DELETE FROM election_candidates WHERE is_active = false;
 ```
+
 **Výsledok**: "Successfully deleted X rows"
 
 ### KROK 4: Verifikácia
+
 ```sql
 SELECT COUNT(*) as should_be_zero FROM election_candidates WHERE is_active = false;
 ```
+
 **Výsledok**: **0** = OK ✅
 
 ### KROK 5: Refresh aplikácie
+
 ```
 F5 (Refresh) na http://localhost:5176
 ```
@@ -70,11 +78,11 @@ F5 (Refresh) na http://localhost:5176
 
 ## 📝 SÚBORY
 
-| Súbor | Čo | Kedy |
-|-------|---|-----|
-| [SQL_CLEANUP_COMMANDS.sql](SQL_CLEANUP_COMMANDS.sql) | Copy-Paste SQL príkazy | **TERAZ** |
-| [STEP_BY_STEP_CLEANUP.md](STEP_BY_STEP_CLEANUP.md) | Podrobný návod | **Ak ste v tme** |
-| [FINAL_STATUS_REPORT.md](FINAL_STATUS_REPORT.md) | Technický report | **Referencia** |
+| Súbor                                                | Čo                     | Kedy             |
+| ---------------------------------------------------- | ---------------------- | ---------------- |
+| [SQL_CLEANUP_COMMANDS.sql](SQL_CLEANUP_COMMANDS.sql) | Copy-Paste SQL príkazy | **TERAZ**        |
+| [STEP_BY_STEP_CLEANUP.md](STEP_BY_STEP_CLEANUP.md)   | Podrobný návod         | **Ak ste v tme** |
+| [FINAL_STATUS_REPORT.md](FINAL_STATUS_REPORT.md)     | Technický report       | **Referencia**   |
 
 ---
 
@@ -99,7 +107,7 @@ F5 (Refresh) na http://localhost:5176
 - [ ] 6. ✅ DONE
 
 **Čas**: ~15 minút  
-**Status**: ⏳ Čaká na spustenie SQL  
+**Status**: ⏳ Čaká na spustenie SQL
 
 ---
 

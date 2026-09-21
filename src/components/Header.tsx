@@ -92,10 +92,7 @@ export function Header({
             hasNotificationDot={hasNotificationDot}
             onBellClick={handleBellClick}
           />
-          <NotificationDropdown
-            isOpen={isDropdownOpen}
-            onClose={() => setIsDropdownOpen(false)}
-          />
+          <NotificationDropdown isOpen={isDropdownOpen} onClose={() => setIsDropdownOpen(false)} />
         </div>
 
         <div

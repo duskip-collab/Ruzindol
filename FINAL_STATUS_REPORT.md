@@ -3,6 +3,7 @@
 ## 📊 STATUS
 
 ### Kód: ✅ HOTOVÝ
+
 ```
 ✅ loadData()                  → .eq('is_active', true)
 ✅ handleEditElections()        → .eq('is_active', true)
@@ -21,6 +22,7 @@
 Po vymazaní kandidátov boli **neaktívni záznamy** (`is_active=false`) v databáze a ak sa niekto query vykonáva bez filtrenia, zobrazili by sa.
 
 ### Príklad problému:
+
 ```
 PRED:
 - Mazanie robilo `.delete()` → OK, úplne pryč
@@ -47,24 +49,29 @@ PO (TERAZ):
    - Kliknúť: **New Query** (+ tlačítko)
 
 3. **Spustiť diagnostiku** (najprv pozrieť, čo je tam)
+
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = true) as active,
   (SELECT COUNT(*) FROM election_candidates WHERE is_active = false) as inactive
 FROM election_candidates;
 ```
+
 - **RUN** → Vidíte `inactive` počet - to je koľko sa bude mazať
 
 4. **Vymazanie neaktívnych**
+
 ```sql
 DELETE FROM election_candidates WHERE is_active = false;
 ```
 
 5. **Verifikácia**
+
 ```sql
 SELECT COUNT(*) as should_be_zero FROM election_candidates WHERE is_active = false;
 ```
+
 - Výsledok: **0** ✅
 
 ---
@@ -72,15 +79,17 @@ SELECT COUNT(*) as should_be_zero FROM election_candidates WHERE is_active = fal
 ## 🔍 TECHNICKÉ DETAILY
 
 ### Soft Delete Pattern
+
 ```typescript
 // PRED: Hard delete (úplne vymažú riadok)
-await supabase.from('election_candidates').delete().eq('id', id);
+await supabase.from("election_candidates").delete().eq("id", id);
 
 // PO: Soft delete (len deaktivujú)
-await supabase.from('election_candidates').update({ is_active: false }).eq('id', id);
+await supabase.from("election_candidates").update({ is_active: false }).eq("id", id);
 ```
 
 ### Filtrenie v kóde
+
 ```typescript
 // Vždy filtrujeme len aktívnych kandidátov
 const { data } = await supabase
@@ -90,6 +99,7 @@ const { data } = await supabase
 ```
 
 ### Architekturálne výhody soft delete
+
 - ✅ Audit trail (viete kto a kedy mazal)
 - ✅ Možnosť obnovenia
 - ✅ Bezpečnejšie (nie je trvalá strata)
@@ -100,21 +110,25 @@ const { data } = await supabase
 ## 🧪 TESTOVANIE PO VYČISTENÍ
 
 ### 1. Refresh aplikácie
+
 ```
 http://localhost:5176
 Kliknúť: F5 (Refresh)
 ```
 
 ### 2. Prejsť na Voľby
+
 ```
 Menu → Voľby
 ```
 
 ### 3. Vidíte len AKTÍVNYCH kandidátov
+
 - ✅ ANO → Vyčistenie funguje ✅
 - ❌ NIE → Skontrolujte filtre
 
 ### 4. Testovať mazanie
+
 ```
 - Kliknúť: Edit na voľby
 - Pridať: "Test Kandidát"
@@ -129,14 +143,17 @@ Menu → Voľby
 ## 📋 SÚBORY V PROJEKTE
 
 ### Dokumentácia
+
 - **STEP_BY_STEP_CLEANUP.md** - Podrobný návod na vyčistenie
 - **DATABASE_DIAGNOSTICS.sql** - SQL query na diagnostiku stavu
 - **DATABASE_CLEANUP_GUIDE.md** - Rýchly prehľad
 
 ### Migrációa
+
 - **supabase/migrations/20260908120002_cleanup_inactive_candidates.sql** - SQL migrácia
 
 ### Kód
+
 - **src/screens/ElectionsScreen.tsx** - Hlavný modul s fixom
 
 ---
@@ -156,15 +173,18 @@ Menu → Voľby
 ## 🚀 NEXT STEPS
 
 ### HNEĎ (TERAZ)
+
 1. Otvorte Supabase Dashboard
 2. Spustite DELETE query (viď STEP_BY_STEP_CLEANUP.md)
 3. Testujte v aplikácii
 
 ### DNES
+
 - Finálny end-to-end test
 - Deploy na production
 
 ### VEDENIE
+
 - Monitoring: Žiadne chyby v UI
 - Monitoring: Databáza má len aktívnych kandidátov
 
@@ -173,13 +193,17 @@ Menu → Voľby
 ## 📞 SUPPORT
 
 ### Q: Kde spustiť SQL?
+
 **A**: https://supabase.com/dashboard → SQL Editor
 
 ### Q: Čo keď sa zmýlim?
+
 **A**: Máte BACKUP v `election_candidates_deleted_log` (ak ste spustili BACKUP query)
 
 ### Q: Ako vedieť, že to funguje?
-**A**: 
+
+**A**:
+
 - Aplikácia: Vidíte len aktívnych kandidátov
 - Databáza: `SELECT COUNT(*) WHERE is_active = false` = **0**
 
@@ -187,14 +211,14 @@ Menu → Voľby
 
 ## 🎯 FINÁLNY STATUS
 
-| Komponent | Status | Poznámka |
-|-----------|--------|----------|
-| Kód | ✅ HOTOVÝ | Filtre + Soft Delete |
-| Build | ✅ ÚSPEŠNÝ | 0 errors, 2.36s |
-| Dev Server | ✅ BEŽÍ | port 5176 |
-| Databáza | ⏳ ČAKÁ | Treba DELETE query |
-| Testing | ⏳ ČAKÁ | Po vyčistení DB |
-| Production | ⏳ ČAKÁ | Po testovaní |
+| Komponent  | Status     | Poznámka             |
+| ---------- | ---------- | -------------------- |
+| Kód        | ✅ HOTOVÝ  | Filtre + Soft Delete |
+| Build      | ✅ ÚSPEŠNÝ | 0 errors, 2.36s      |
+| Dev Server | ✅ BEŽÍ    | port 5176            |
+| Databáza   | ⏳ ČAKÁ    | Treba DELETE query   |
+| Testing    | ⏳ ČAKÁ    | Po vyčistení DB      |
+| Production | ⏳ ČAKÁ    | Po testovaní         |
 
 ---
 

@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { MessageSquare, Plus, RefreshCw, Loader2, Filter } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import InquiryCard, { MayorInquiry } from '@/components/mayor/InquiryCard';
-import InquiryModal from '@/components/mayor/InquiryModal';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from "react";
+import { MessageSquare, Plus, RefreshCw, Loader2, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import InquiryCard, { MayorInquiry } from "@/components/mayor/InquiryCard";
+import InquiryModal from "@/components/mayor/InquiryModal";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
-  { id: 'all', label: 'Všetky' },
-  { id: 'odpad', label: 'Odpad' },
-  { id: 'cesty_chodniky', label: 'Cesty & Chodníky' },
-  { id: 'zelen', label: 'Zeleň & Parky' },
-  { id: 'osvetlenie', label: 'Osvetlenie' },
-  { id: 'urad_sluzby', label: 'Úrad & Služby' },
-  { id: 'ine', label: 'Iné' },
+  { id: "all", label: "Všetky" },
+  { id: "odpad", label: "Odpad" },
+  { id: "cesty_chodniky", label: "Cesty & Chodníky" },
+  { id: "zelen", label: "Zeleň & Parky" },
+  { id: "osvetlenie", label: "Osvetlenie" },
+  { id: "urad_sluzby", label: "Úrad & Služby" },
+  { id: "ine", label: "Iné" },
 ] as const;
 
 export function InquiriesScreen() {
@@ -22,20 +23,23 @@ export function InquiriesScreen() {
   const [inquiries, setInquiries] = useState<MayorInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const loadInquiries = async () => {
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
-        .from('mayor_inquiries')
-        .select('*, profiles!mayor_inquiries_user_id_fkey(name)')
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
+        .from("mayor_inquiries")
+        .select("*, profiles!mayor_inquiries_user_id_fkey(name)")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('❌ Supabase chyba pri načítaní podnetov:', error.message, error.details, error.hint);
+        console.error(
+          "❌ Supabase chyba pri načítaní podnetov:",
+          error.message,
+          error.details,
+          error.hint,
+        );
         setInquiries([]);
         return;
       }
@@ -46,7 +50,7 @@ export function InquiriesScreen() {
         setInquiries([]);
       }
     } catch (err) {
-      console.error('❌ Neočakávaná chyba:', err);
+      console.error("❌ Neočakávaná chyba:", err);
       setInquiries([]);
     } finally {
       setLoading(false);
@@ -54,37 +58,38 @@ export function InquiriesScreen() {
   };
 
   useEffect(() => {
-    void loadInquiries();
+    const initialLoadId = window.setTimeout(() => {
+      void loadInquiries();
+    }, 0);
 
     // Realtime subscription
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     let isMounted = true;
-    
+
     const setupRealtime = async () => {
       try {
-        channel = supabase.channel('mayor-inquiries-live', {
-          config: { broadcast: { ack: true } }
+        channel = supabase.channel("mayor-inquiries-live", {
+          config: { broadcast: { ack: true } },
         });
-        
-        channel
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'mayor_inquiries' },
-            () => {
-              if (!isMounted) return;
-              void loadInquiries();
-            }
-          );
+
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "mayor_inquiries" },
+          () => {
+            if (!isMounted) return;
+            void loadInquiries();
+          },
+        );
 
         await channel.subscribe((status: string) => {
           if (!isMounted) return;
-          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
-            console.warn('Inquiries realtime status:', status);
+          if (status !== "SUBSCRIBED" && status !== "SUBSCRIBING") {
+            console.warn("Inquiries realtime status:", status);
           }
         });
       } catch (err) {
         if (isMounted) {
-          console.error('Error setting up inquiries realtime:', err);
+          console.error("Error setting up inquiries realtime:", err);
         }
       }
     };
@@ -93,6 +98,7 @@ export function InquiriesScreen() {
 
     return () => {
       isMounted = false;
+      window.clearTimeout(initialLoadId);
       if (channel) {
         void supabase.removeChannel(channel);
       }
@@ -100,7 +106,7 @@ export function InquiriesScreen() {
   }, []);
 
   const filteredInquiries = inquiries.filter((inq) => {
-    if (selectedCategory === 'all') return true;
+    if (selectedCategory === "all") return true;
     return inq.category === selectedCategory;
   });
 
@@ -121,13 +127,14 @@ export function InquiriesScreen() {
         <button
           type="button"
           onClick={() => {
-            triggerHaptic('light');
+            triggerHaptic("light");
+            setLoading(true);
             void loadInquiries();
           }}
           className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
           title="Obnoviť podnety"
         >
-          <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
         </button>
       </div>
 
@@ -140,14 +147,14 @@ export function InquiriesScreen() {
               key={cat.id}
               type="button"
               onClick={() => {
-                triggerHaptic('light');
+                triggerHaptic("light");
                 setSelectedCategory(cat.id);
               }}
               className={cn(
-                'shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors',
+                "shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors",
                 selectedCategory === cat.id
-                  ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-600'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                  ? "bg-emerald-600 text-white shadow-sm dark:bg-emerald-600"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300",
               )}
             >
               {cat.label}
@@ -159,7 +166,7 @@ export function InquiriesScreen() {
         <button
           type="button"
           onClick={() => {
-            triggerHaptic('light');
+            triggerHaptic("light");
             setInquiryModalOpen(true);
           }}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors shrink-0"
@@ -176,17 +183,15 @@ export function InquiriesScreen() {
       ) : filteredInquiries.length > 0 ? (
         <div className="space-y-4">
           {filteredInquiries.map((inq) => (
-            <InquiryCard 
-              key={inq.id} 
-              inquiry={inq} 
-              onDeleted={loadInquiries}
-            />
+            <InquiryCard key={inq.id} inquiry={inq} onDeleted={loadInquiries} />
           ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900 my-4">
           <MessageSquare className="h-10 w-10 text-slate-300 mx-auto mb-2 dark:text-slate-600" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Žiadne podnety v tejto kategórii</h3>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Žiadne podnety v tejto kategórii
+          </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
             V tejto kategórii zatiaľ neboli zaevidované žiadne verejné podnety.
           </p>

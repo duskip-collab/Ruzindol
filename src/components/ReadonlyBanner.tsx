@@ -9,7 +9,7 @@ export function ReadonlyBanner() {
   const { profile, loading } = useCurrentUser();
   const { isVerified } = useAppMode();
   const navigate = useNavigate();
-  
+
   if (loading || !profile) return null;
 
   if (profile.banned_until) {
@@ -41,7 +41,7 @@ export function ReadonlyBanner() {
 
 export function ReadonlyLock({ onOpen }: { onOpen: () => void }) {
   const navigate = useNavigate();
-  
+
   return (
     <button
       onClick={() => navigate({ to: "/profil?activation=1" })}

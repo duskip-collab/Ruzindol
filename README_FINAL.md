@@ -3,6 +3,7 @@
 ## ✅ ČO JE HOTOVO
 
 ### 1. 🔧 KÓDOVÉ OPRAVY
+
 ```
 ✅ src/screens/ElectionsScreen.tsx
 
@@ -13,6 +14,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### 2. 📚 DOKUMENTÁCIA (7 SÚBOROV)
+
 ```
 ✅ QUICK_CHECKLIST.md - One-page checklist
 ✅ SQL_CLEANUP_COMMANDS.sql - Copy-paste SQL príkazy
@@ -24,12 +26,14 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### 3. 📊 SQL MIGRÁCIE
+
 ```
 ✅ supabase/migrations/20260908120002_cleanup_inactive_candidates.sql
 ✅ DATABASE_DIAGNOSTICS.sql
 ```
 
 ### 4. ✨ BUILD STATUS
+
 ```
 ✅ TypeScript: SUCCESS (0 errors)
 ✅ Vite Build: SUCCESS (2.48s)
@@ -42,6 +46,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ## ⏳ ČO JE POTREBNÉ EŠTE UROBIŤ (MANUÁLNE)
 
 ### STEP 1: Otvoriť Supabase (30 sekúnd)
+
 ```
 1. Otvoriť: https://supabase.com/dashboard
 2. Vybrať projekt: LOvable PRO
@@ -49,6 +54,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### STEP 2: Spustiť SQL Query (2 minúty)
+
 ```
 1. Kliknúť: New Query (+ tlačítko)
 2. Kopírovať z: SQL_CLEANUP_COMMANDS.sql
@@ -59,6 +65,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### STEP 3: Refresh aplikácie (30 sekúnd)
+
 ```
 1. F5 na http://localhost:5176
 2. Menu → Voľby
@@ -66,6 +73,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### STEP 4: Testovanie (2 minúty)
+
 ```
 1. Edit → Pridať kandidáta
 2. Delete → Vymaž kandidáta
@@ -77,6 +85,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ## 🎯 PROBLÉM A RIEŠENIE
 
 ### PROBLÉM (čo bolo zle)
+
 ```
 1. Vymazaní kandidáti sa stále zobrazovali v UI
 2. Kód nefiltroval is_active v handleEditElections()
@@ -84,6 +93,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### RIEŠENIE (čo sme spravili)
+
 ```
 1. Soft delete: zmena z .delete() na .update({ is_active: false })
 2. Filter: pridaný .eq('is_active', true) v handleEditElections()
@@ -91,6 +101,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ```
 
 ### VÝSLEDOK (čo budete mať)
+
 ```
 ✅ Vymazaní kandidáti budú hneď preč z UI
 ✅ Aj po refreshe budú preč
@@ -103,6 +114,7 @@ Line 273: handleDeleteAttachment() - ostáva .delete() (hard delete pre storage 
 ## 📊 ZMENY V KÓDE - DETAIL
 
 ### Before (PROBLÉM)
+
 ```typescript
 // handleDeleteCandidate - LINE 250
 const handleDeleteCandidate = async (candidateId: string) => {
@@ -122,6 +134,7 @@ const { data: candidatesData } = await supabase
 ```
 
 ### After (RIEŠENIE)
+
 ```typescript
 // handleDeleteCandidate - LINE 250-266
 const handleDeleteCandidate = async (candidateId: string) => {
@@ -181,6 +194,7 @@ const { data: candidatesData } = await supabase
 ## 🧪 TESTOVACÍ PLÁN
 
 ### Scenár 1: Zobrazovanie aktívnych kandidátov
+
 ```
 PRED:
 - Aplikácia: Candidates grid ukazuje VŠETKÝCH (vrátane vymazaných) ❌
@@ -192,6 +206,7 @@ PO:
 ```
 
 ### Scenár 2: Mazanie kandidáta
+
 ```
 PRED:
 - Delete kandidáta
@@ -205,6 +220,7 @@ PO:
 ```
 
 ### Scenár 3: Databázová verifikácia
+
 ```
 PRED:
 - SELECT COUNT(*) WHERE is_active = false
@@ -220,23 +236,27 @@ PO:
 ## ✅ KONTROLNÝ ZOZNAM
 
 ### Pred spustením
+
 - [ ] Prečítate QUICK_CHECKLIST.md
 - [ ] Máte prístup k Supabase Dashboard
 - [ ] Dev server beží (http://localhost:5176)
 
 ### Počas spustenia
+
 - [ ] Spustili ste SQL Diagnostika query
 - [ ] Spustili ste SQL DELETE query
 - [ ] Spustili ste SQL Verifikácia query
 - [ ] Verifikácia vratica 0 (inactive candidates)
 
 ### Po spustení
+
 - [ ] Refreshnuli ste aplikáciu (F5)
 - [ ] Zobrazenie je správne (len aktívni)
 - [ ] Testovacieho mazania funguje
 - [ ] Refresh po mazaní - kandidát preč
 
 ### Finálne
+
 - [ ] ✅ VŠETKO OK
 - [ ] Pripravené na deployment
 
@@ -244,13 +264,13 @@ PO:
 
 ## 📊 METRIKY
 
-| Merika | Pred | Po |
-|--------|------|-----|
-| Zobrazovanie vymazaných | ❌ Viditeľní | ✅ Skrytí |
-| is_active=false v DB | ❌ Viaceré | ✅ Nula |
-| Filter v editácií | ❌ Chýbajúci | ✅ Pridaný |
-| Delete operácia | ❌ Hard (`.delete()`) | ✅ Soft (`.update()`) |
-| Build status | ✅ OK | ✅ OK |
+| Merika                  | Pred                  | Po                    |
+| ----------------------- | --------------------- | --------------------- |
+| Zobrazovanie vymazaných | ❌ Viditeľní          | ✅ Skrytí             |
+| is_active=false v DB    | ❌ Viaceré            | ✅ Nula               |
+| Filter v editácií       | ❌ Chýbajúci          | ✅ Pridaný            |
+| Delete operácia         | ❌ Hard (`.delete()`) | ✅ Soft (`.update()`) |
+| Build status            | ✅ OK                 | ✅ OK                 |
 
 ---
 

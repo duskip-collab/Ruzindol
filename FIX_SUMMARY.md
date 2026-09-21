@@ -1,6 +1,7 @@
 # Opravy viditeľnosti modálnych okien - Súhrnná správa
 
 ## Problémy hlásené používateľom
+
 1. ✅ **Voľby - nové voľby**: Tlačítka nie sú viditeľné, pretože ich prekrýva spodná lišta
 2. ✅ **Rolovanie obrazovky**: Nefunguje správne na mobilných zariadeniach
 3. ✅ **Pridať kandidáta**: Chýba tlačidlo "Uložiť zmeny a zavrieť"
@@ -10,12 +11,14 @@
 ## Vykonané opravy
 
 ### 1. Z-index opravia (✅ HOTOVO)
+
 - **AnimatedModal.tsx**: z-index `z-[9999]` (obsah), `z-[9998]` (backdrop)
 - **BottomNav.tsx**: z-index znížený na `z-40` (pod modálami)
 - **InquiryModal.tsx**: z-index `z-[9997]/z-[9998]`
 
 ### 2. Padding v modálnych oknách (✅ HOTOVO)
-- **AnimatedModal.tsx**: 
+
+- **AnimatedModal.tsx**:
   - Normálny móde: `pb-32 sm:pb-40`
   - Fullscreen móde: `pb-20 sm:pb-24` (novo - viac priestoru pre obsah)
   - Bezpečný: `pb-safe` (env(safe-area-inset-bottom))
@@ -23,8 +26,9 @@
 - **PostLightbox.tsx**: `pb-safe` pridané
 
 ### 3. ElectionsEditModal (Voľby - Editovanie) (✅ HOTOVO)
+
 - **Zmena 1**: Zmena `max-h-[600px]` na `max-h-[calc(70vh-200px)] md:max-h-[75vh]`
-  - Mobilné: 70vh - 200px = ~270px (na iPhone 12 s 70vh~470px)
+  - Mobilné: 70vh - 200px = ~~270px (na iPhone 12 s 70vh~~470px)
   - Desktop: 75vh = ~810px (na 1080p)
 - **Zmena 2**: AnimatedModal fullscreen móde má teraz menší padding (`pb-20 sm:pb-24`)
   - Uvoľňuje ~12px-16px priestoru v fullscreen móde
@@ -32,6 +36,7 @@
 ## Technické detaily
 
 ### Z-index hierarchia
+
 ```
 z-[9999] ← AnimatedModal obsah
 z-[9998] ← AnimatedModal backdrop
@@ -41,16 +46,18 @@ z-30     ← Ostatné overlay prvky
 ```
 
 ### Responsive padding v AnimatedModal
+
 ```tsx
 <div className={cn(
   'overflow-y-auto overscroll-contain p-4 sm:p-6',
-  fullscreen 
+  fullscreen
     ? 'flex-1 pb-20 sm:pb-24' // ← Fullscreen: menší padding
     : 'pb-32 sm:pb-40'        // ← Normálny: väčší padding
 )}>
 ```
 
 ### ElectionsEditModal obsah
+
 ```tsx
 <div className="space-y-3 max-h-[calc(70vh-200px)] md:max-h-[75vh] overflow-y-auto pr-2 pb-4">
 ```
@@ -58,15 +65,17 @@ z-30     ← Ostatné overlay prvky
 ## Testovanie na mobilných zariadeniach
 
 ### Test Case 1: Nové voľby - Základné informácie
+
 1. Otvoriť "Aktuality" → "Voľby"
 2. Kliknúť "Pridať nové voľby" (alebo Edit ikona)
-3. **Očakávané**: 
+3. **Očakávané**:
    - ✅ Modal sa otvorí fullscreen
    - ✅ Záložky sú viditeľné (Informácie, Starosta, Poslanci, Prílohy)
    - ✅ Obsah je scrollovateľný
    - ✅ Tlačítka "Uložiť" a "Zrušiť" sú viditeľné
 
 ### Test Case 2: Pridanie kandidátov
+
 1. Otvoriť modal volieb
 2. Prejsť na záložku "Starosta"
 3. Kliknúť "+ Pridať kandidáta"
@@ -76,6 +85,7 @@ z-30     ← Ostatné overlay prvky
    - ✅ Tlačítko "Uložiť zmeny" je dostupné
 
 ### Test Case 3: Prílohy/Dokumenty
+
 1. Otvoriť modal volieb
 2. Prejsť na záložku "Prílohy"
 3. Nahraj dokument (PDF alebo obrázok)
@@ -85,6 +95,7 @@ z-30     ← Ostatné overlay prvky
    - ✅ Možnosť vymazať súbor
 
 ### Test Case 4: Rolovanie v fullscreen
+
 1. Otvoriť modal volieb s veľa kandidátami
 2. Prejsť medzi záložkami
 3. **Očakávané**:
@@ -93,6 +104,7 @@ z-30     ← Ostatné overlay prvky
    - ✅ Tlačítka zotrvávajú na dne
 
 ### Test Case 5: Bezpečne oblasti (iOS notch)
+
 1. Otvoriť na iPhone s notch
 2. **Očakávané**:
    - ✅ Obsah sa nezobrazuje pod notch
@@ -134,4 +146,3 @@ z-30     ← Ostatné overlay prvky
 - Na Android nepotrebuje `pb-safe`, lebo väčšina zariadení nemá notch
 - Fullscreen móde znižuje bottom padding, aby sa lepšie využíval priestor
 - `max-h-[calc(70vh-200px)]` na mobilných účtuje s headerom a footrom modálu
-

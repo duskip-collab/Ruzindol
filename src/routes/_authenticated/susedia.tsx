@@ -42,14 +42,19 @@ function NeighborsScreen() {
   const { profile } = useCurrentUser();
   const municipalityId = profile?.municipality_id;
   const userRole = profile?.role;
-  
+
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null);
-  
-  const isAdminOrMayor = userRole === "admin" || userRole === "Starosta" || userRole === "Uradnik";
 
-  const { data: neighbors, error, isLoading, refetch } = useQuery({
+  const isAdminOrMayor = userRole === "Starosta" || userRole === "Uradnik";
+
+  const {
+    data: neighbors,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["neighbors-management", municipalityId],
     enabled: Boolean(municipalityId),
     queryFn: async () => {
@@ -70,7 +75,7 @@ function NeighborsScreen() {
 
       const invitedUserIdsSet = new Set<string>();
       if (!invitesError && invitesData) {
-        (invitesData as any[]).forEach((inv) => {
+        invitesData.forEach((inv) => {
           if (inv.used_by) {
             invitedUserIdsSet.add(inv.used_by);
           }
@@ -78,10 +83,10 @@ function NeighborsScreen() {
       }
 
       // Vráti čistý zoznam susedov bez zbytočných väzieb na pozvánky
-      return profilesData.map((row: any) => {
+      return profilesData.map((row) => {
         const hasCode = invitedUserIdsSet.has(row.id);
         const verified = hasCode ? true : Boolean(row.is_verified || row.is_active_neighbor);
-        
+
         return {
           id: row.id,
           name: row.name || "Sused",
@@ -160,27 +165,68 @@ function NeighborsScreen() {
         />
       </label>
 
-      {verifyError && <div className="mt-4"><Toast message={verifyError} variant="error" /></div>}
-      {verifySuccess && <div className="mt-4"><Toast message={verifySuccess} variant="success" /></div>}
+      {verifyError && (
+        <div className="mt-4">
+          <Toast
+            isVisible
+            type="error"
+            message={verifyError}
+            onClose={() => setVerifyError(null)}
+          />
+        </div>
+      )}
+      {verifySuccess && (
+        <div className="mt-4">
+          <Toast
+            isVisible
+            type="success"
+            message={verifySuccess}
+            onClose={() => setVerifySuccess(null)}
+          />
+        </div>
+      )}
 
-      {isLoading && <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
-      {error && <p className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">Susedov sa nepodarilo načítať.</p>}
-      {!isLoading && !error && filteredNeighbors.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">Žiadni susedia nezodpovedajú vyhľadávaniu.</p>}
+      {isLoading && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      {error && (
+        <p className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
+          Susedov sa nepodarilo načítať.
+        </p>
+      )}
+      {!isLoading && !error && filteredNeighbors.length === 0 && (
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Žiadni susedia nezodpovedajú vyhľadávaniu.
+        </p>
+      )}
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {filteredNeighbors.map((neighbor) => (
-          <article key={neighbor.id} className="app-card flex items-start gap-3 rounded-2xl p-4 shadow-sm border border-border bg-card">
+          <article
+            key={neighbor.id}
+            className="app-card flex items-start gap-3 rounded-2xl p-4 shadow-sm border border-border bg-card"
+          >
             {neighbor.avatar_url ? (
-              <img src={neighbor.avatar_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+              <img
+                src={neighbor.avatar_url}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-full object-cover"
+              />
             ) : (
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-100 text-lg font-semibold text-emerald-700">
                 {neighbor.name.trim().charAt(0).toUpperCase() || "S"}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-semibold text-foreground text-sm">{neighbor.name || "Sused"}</h2>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{neighbor.street || "Ulica neuvedená"}</p>
-              
+              <h2 className="truncate font-semibold text-foreground text-sm">
+                {neighbor.name || "Sused"}
+              </h2>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {neighbor.street || "Ulica neuvedená"}
+              </p>
+
               {/* Stav overenia */}
               <div className="mt-2">
                 {neighbor.is_verified ? (
@@ -193,7 +239,7 @@ function NeighborsScreen() {
                   </span>
                 )}
               </div>
-              
+
               {/* Tlačidlo overenia - iba pre admina/starostu a neoverených */}
               {isAdminOrMayor && !neighbor.is_verified && (
                 <button

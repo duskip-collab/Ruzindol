@@ -7,17 +7,20 @@ Ikona zvončeka v hlavičke aplikácie teraz má **pútavé vizuálne upozorneni
 ### Čo Vidí Používateľ?
 
 **Pri prvom spustení:**
+
 - 💚 Pulzujúca **zelená bodka** okolo zvončeka
 - 🎯 **Zelený tooltip** s textom: "🔔 Povolte notifikácie"
 - 🔗 Tlačidlo: "Kliknúť a povoliť 📲"
 - ✖️ Tlačidlo "Zatvoriť"
 
 **Po povolení notifikácií:**
+
 - Tooltip zmizne
 - Zvonček prestane pulzovať
 - Zelená bodka zmizne
 
 **Budúce návštevy:**
+
 - Ak používateľ uzavrel tooltip - neopakovanie sa
 - Ak povolil notifikácie - zelená bodka zmizne (iž je dostávateľ notifikácií)
 
@@ -26,11 +29,13 @@ Ikona zvončeka v hlavičke aplikácie teraz má **pútavé vizuálne upozorneni
 ## Súbory Zmenené
 
 ### 📁 `src/components/NotificationBellTip.tsx` ← **NOVÝ**
+
 - Nový komponent s celou logikou
 - Implementuje pulzujúcu bodku, tooltip a logiku
 - **Veľkosť:** ~165 riadkov
 
 ### 📁 `src/components/Header.tsx` ← **UPRAVENÝ**
+
 - Zvonček nahradený novým komponentom
 - Import `NotificationBellTip`
 - Minimálne zmeny (4 riadky)
@@ -40,6 +45,7 @@ Ikona zvončeka v hlavičke aplikácie teraz má **pútavé vizuálne upozorneni
 ## Ako to Funguje?
 
 ### 1. Prvé Spustenie
+
 ```
 Používateľ otvára aplikáciu
   ↓
@@ -50,11 +56,12 @@ Zvonček sa jemne animuje hore-dole
 ```
 
 ### 2. Kliknutí na "Kliknúť a Povoliť"
+
 ```
 Kliknutí na tlačidlo
   ↓
 browser sa pýta: "Povoliť notifikácie?"
-  ↓ ÁNOČI 
+  ↓ ÁNOČI
 Subskripcia sa uloží do Supabase
 localStorage: "notification_tip_dismissed" = "true"
   ↓
@@ -63,6 +70,7 @@ Zvonček prestane animovať
 ```
 
 ### 3. Budúce Návštevy
+
 ```
 Používateľ sa vracia do aplikácie
   ↓
@@ -82,8 +90,9 @@ Všetko je normálne
 **Platnosť:** Permanentná (kým sa nevymaže browser cache)
 
 **DevTools Check:**
+
 ```javascript
-localStorage.getItem("notification_tip_dismissed")
+localStorage.getItem("notification_tip_dismissed");
 // Vracia: "true" alebo null
 ```
 
@@ -92,16 +101,19 @@ localStorage.getItem("notification_tip_dismissed")
 ## Dizajn Detaily
 
 ### Farby
+
 - **Pulzujúca bodka:** Emerald green (`#10b981`) - "go", "enable"
 - **Tooltip gradient:** Emerald → Teal
 - **Dark mode:** Automatické prepnutie
 
 ### Animácie
+
 - **Pulse glow:** 2 sekundy na cyklus (pulzuje box-shadow)
 - **Bounce:** 2.5 sekundy na cyklus (zvonček sa pohybuje hore-dole)
 - **Obidve sú GPU-optimized** (60fps)
 
 ### Responsive
+
 - **Desktop:** Tooltip je nad zvončekom s šípkou
 - **Mobile:** Tooltip sa prispôsobuje (w-72 = 288px, stale viditeľný)
 
@@ -110,20 +122,23 @@ localStorage.getItem("notification_tip_dismissed")
 ## Testing Ako
 
 ### Vidieť Tooltip
+
 1. Otvoriť DevTools (F12)
 2. Local Storage → Delete `notification_tip_dismissed`
 3. Refresh stránka (Ctrl+R)
 4. Tooltip by sa mal zobraziť
 
 ### Skryť Tooltip
+
 1. Kliknúť "Zatvoriť" alebo "Kliknúť a povoliť"
 2. Refresh stránka
 3. Tooltip sa **nezobraží** (localStorage je nastavený)
 
 ### Vymaž Minulosť
+
 ```javascript
 // V DevTools Console:
-localStorage.removeItem("notification_tip_dismissed")
+localStorage.removeItem("notification_tip_dismissed");
 // Potom refresh a tooltip sa znova zobrazí
 ```
 
@@ -142,21 +157,25 @@ localStorage.removeItem("notification_tip_dismissed")
 ## Ak Niečo NEJDE
 
 ### Tooltip sa nezobraží
+
 - ✅ Skontroluj localStorage: `localStorage.getItem("notification_tip_dismissed")`
 - ✅ Vymaž: `localStorage.removeItem("notification_tip_dismissed")`
 - ✅ Refresh aplikácia
 
 ### Zvonček sa neanimuje
+
 - ✅ DevTools → Console - check pre chyby
 - ✅ Reload stránka
 - ✅ Spustí Dev server (`npm run dev`)
 
 ### Notifikácie sa nepovolia
+
 - ✅ Skontroluj browser permissions (site settings)
 - ✅ Chrome/Firefox/Safari → Notifications → Allow/Block
 - ✅ Vymaž "notification_tip_dismissed" a skúsiť znova
 
 ### Dark mode je zle
+
 - ✅ Tailwind dark: classes sú implementované
 - ✅ Skontroluj či je dark mode zapnutý (`class="dark"` na html)
 

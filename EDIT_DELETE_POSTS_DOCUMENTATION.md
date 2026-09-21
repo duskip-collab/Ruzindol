@@ -2,13 +2,14 @@
 
 **Status:** ✅ JUŽ IMPLEMENTOVANÉ  
 **Dátum:** 2026-09-10  
-**Revidované komponenty:** NastenkaScreen.tsx, PostLightbox.tsx  
+**Revidované komponenty:** NastenkaScreen.tsx, PostLightbox.tsx
 
 ---
 
 ## 🎯 SÚHRN
 
 Aplikácia **UŽ MÁ** úplnú podporu pre **mazanie a úpravu príspevkov**:
+
 - ✅ Autor príspevku môže **upravovať** svoj príspevek
 - ✅ Autor príspevku môže **zmazať** svoj príspevek
 - ✅ Funguje pre **Susedský život** aj **Obecný hlásnik**
@@ -21,45 +22,54 @@ Aplikácia **UŽ MÁ** úplnú podporu pre **mazanie a úpravu príspevkov**:
 ### 1. Frontend - Komponenty
 
 #### **PostLightbox.tsx** - Zobrazenie príspevku
+
 ```typescript
 // Tlačidlá sú viditeľné len ak:
-canManage && onEdit && onDelete
+canManage && onEdit && onDelete;
 ```
 
 **Kód tlačidiel (riadky 198-212):**
-```tsx
-{canManage && onEdit && (
-  <button
-    onClick={onEdit}
-    className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-  >
-    <Pencil className="h-3.5 w-3.5" /> Upraviť
-  </button>
-)}
 
-{canManage && onDelete && (
-  <button
-    onClick={onDelete}
-    className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200"
-  >
-    <Trash2 className="h-3.5 w-3.5" /> Zmazať
-  </button>
-)}
+```tsx
+{
+  canManage && onEdit && (
+    <button
+      onClick={onEdit}
+      className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+    >
+      <Pencil className="h-3.5 w-3.5" /> Upraviť
+    </button>
+  );
+}
+
+{
+  canManage && onDelete && (
+    <button
+      onClick={onDelete}
+      className="flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-200"
+    >
+      <Trash2 className="h-3.5 w-3.5" /> Zmazať
+    </button>
+  );
+}
 ```
 
 #### **NastenkaScreen.tsx** - Logika
 
 **Čo určuje, či sú tlačidlá viditeľné (riadok 667):**
+
 ```typescript
 canManage={!!lightboxPost && lightboxPost.userId === userId && canWrite}
 ```
 
 **Podmienky:**
+
 1. ✅ `!!lightboxPost` - Príspevok je otvorený v lightboxe
 2. ✅ `lightboxPost.userId === userId` - Aktuálny užívateľ je **autorom** príspevku
 3. ✅ `canWrite` - Užívateľ má **platný invite code** (je active neighbor)
 
 **Volanie akcií (riadky 668-682):**
+
 ```typescript
 onEdit={
   lightboxPost && canWrite
@@ -84,6 +94,7 @@ onDelete={
 **Súbor:** `supabase/migrations/20260802184500_restrict_write_features_to_active_neighbors.sql`
 
 **UPDATE Politika (riadky 39-50):**
+
 ```sql
 CREATE POLICY "Users can update their own posts"
   ON public.posts
@@ -100,6 +111,7 @@ CREATE POLICY "Users can update their own posts"
 ```
 
 **DELETE Politika (riadky 52-59):**
+
 ```sql
 CREATE POLICY "Users can delete their own posts"
   ON public.posts
@@ -112,6 +124,7 @@ CREATE POLICY "Users can delete their own posts"
 ```
 
 **Funkcia `can_write_neighbor_content()` (riadky 4-21):**
+
 ```sql
 CREATE OR REPLACE FUNCTION public.can_write_neighbor_content(_user_id uuid)
 RETURNS boolean
@@ -134,6 +147,7 @@ $$;
 ```
 
 **Čo umožňuje funkcia:**
+
 - ✅ `is_active_neighbor = true` - Užívateľ má platný invite code
 - ✅ `role IN ('Starosta', 'Uradnik', ...)` - Úradník/starosta/farár/VIP firma
 - ✅ `has_role(..., 'admin')` - Admin
@@ -205,6 +219,7 @@ $$;
 ### Test 1: Úradník upravuje príspevek v "Obecnom hlásníku"
 
 **Kroky:**
+
 1. Prihlásiť sa ako **úradník** (role = "Starosta" alebo "Uradnik")
 2. Prejsť na **"📢 Obecný hlásnik"** sekciu
 3. Kliknúť na svoj príspevek
@@ -215,6 +230,7 @@ $$;
 8. ✅ Príspevek by sa mal aktualizovať
 
 **Očakávaný výsledok:**
+
 - Tlačidlo "Upraviť" je viditeľné
 - Modal sa otvorí
 - Zmeny sa uložia bez chyby
@@ -223,12 +239,14 @@ $$;
 ### Test 2: Úradník maže príspevek
 
 **Kroky:**
+
 1. Otvoriť príspevek autora (úradníka)
 2. Kliknúť **"Zmazať"** (červeń/ružové tlačidlo)
 3. Potvrdiť "Naozaj vymazať?"
 4. ✅ Príspevek by sa mal zmazať
 
 **Očakávaný výsledok:**
+
 - Tlačidlo "Zmazať" je viditeľné
 - Potvrdenie sa zobrazí
 - Príspevek sa odstráni z listiny
@@ -237,22 +255,26 @@ $$;
 ### Test 3: Sused NEVIDI tlačidlá na príspevku úradníka
 
 **Kroky:**
+
 1. Prihlásiť sa ako **sused** (aktívny neighbor)
 2. Otvoriť príspevek vytvorený **úradníkom**
 3. ✅ Tlačidlá "Upraviť" a "Zmazať" by sa NEMALI zobraziť
 
 **Očakávaný výsledok:**
+
 - Len lajk a hlásenie je viditeľné
 - Tlačidlá na úpravu sú SKRYTÉ
 
 ### Test 4: Sused VIDI tlačidlá na svojom príspevku
 
 **Kroky:**
+
 1. Prihlásiť sa ako **sused**
 2. Otvoriť **svoj vlastný** príspevek
 3. ✅ Tlačidlá "Upraviť" a "Zmazať" by sa mali zobraziť
 
 **Očakávaný výsledok:**
+
 - Obe tlačidlá sú viditeľné
 - Autor príspevku môže upravovať/mazať
 
@@ -262,12 +284,12 @@ $$;
 
 ### Ktoré příspevky je možné upravovať?
 
-| Typ | Autor | Úprava | Mazanie | RLS |
-|-----|-------|--------|---------|-----|
-| Susedský život | Sused | ✅ Áno | ✅ Áno | `user_id = auth.uid()` |
-| Susedský život | Úradník | ✅ Áno | ✅ Áno | `user_id = auth.uid()` |
-| Obecný hlásnik | Úradník | ✅ Áno | ✅ Áno | `user_id = auth.uid()` |
-| Obecný hlásnik | Sused | ❌ Ne | ❌ Ne | `role IN ('Starosta', ...)` |
+| Typ            | Autor   | Úprava | Mazanie | RLS                         |
+| -------------- | ------- | ------ | ------- | --------------------------- |
+| Susedský život | Sused   | ✅ Áno | ✅ Áno  | `user_id = auth.uid()`      |
+| Susedský život | Úradník | ✅ Áno | ✅ Áno  | `user_id = auth.uid()`      |
+| Obecný hlásnik | Úradník | ✅ Áno | ✅ Áno  | `user_id = auth.uid()`      |
+| Obecný hlásnik | Sused   | ❌ Ne  | ❌ Ne   | `role IN ('Starosta', ...)` |
 
 ### Oprávnenia v kóde
 
@@ -301,12 +323,12 @@ CREATE TABLE public.posts (
 
 ### Kľúčové súbory
 
-| Súbor | Funkcia | Riadky |
-|-------|---------|--------|
-| `NastenkaScreen.tsx` | Frontend logika | 404-454 |
-| `PostLightbox.tsx` | UI tlačidiel | 198-212 |
-| `20260802184500_...sql` | RLS politiky | 39-59 |
-| `EditPostModal.tsx` | Edit formulár | - |
+| Súbor                   | Funkcia         | Riadky  |
+| ----------------------- | --------------- | ------- |
+| `NastenkaScreen.tsx`    | Frontend logika | 404-454 |
+| `PostLightbox.tsx`      | UI tlačidiel    | 198-212 |
+| `20260802184500_...sql` | RLS politiky    | 39-59   |
+| `EditPostModal.tsx`     | Edit formulár   | -       |
 
 ### Premenné kontrolujúce viditeľnosť
 
@@ -322,14 +344,17 @@ const canManage = !!lightboxPost && lightboxPost.userId === userId && canWrite;
 ## 🔐 BEZPEČNOSŤ
 
 ✅ **Duplex check:**
+
 1. **Frontend:** Skontroluje, či je užívateľ autorom
 2. **Backend (RLS):** Znova skontroluje pri UPDATE/DELETE
 
 ✅ **Spustenie:**
+
 - Nie je možné obísť frontend check
 - Ak sa pošle priame SQL bez RLS, Supabase to zablokuje
 
 ✅ **Potvrdenie:**
+
 - Pri mazaní sa zobrazí dialog: "Naozaj vymazať?"
 - Užívateľ musí kliknúť OK
 
@@ -340,16 +365,18 @@ const canManage = !!lightboxPost && lightboxPost.userId === userId && canWrite;
 Ak by si chcel vylepšiť túto funkčnosť:
 
 ### 1. **Umožniť adminom/starostom mazať príspevky iných**
+
 ```typescript
 // V NastenkaScreen.tsx - zmeniť canManage:
 const isAdmin = profile?.role === "Starosta" || profile?.has_admin_role;
-const canManage = !!lightboxPost && (
-  (lightboxPost.userId === userId && canWrite) ||  // Autor
-  (isAdmin && lightboxPost.type === "hlasnik")      // Úradník maže hlásníky
-);
+const canManage =
+  !!lightboxPost &&
+  ((lightboxPost.userId === userId && canWrite) || // Autor
+    (isAdmin && lightboxPost.type === "hlasnik")); // Úradník maže hlásníky
 ```
 
 ### 2. **Audit log - zaznamenávať kto a čo mazal**
+
 ```sql
 CREATE TABLE post_audit_log (
   id UUID PRIMARY KEY,
@@ -363,12 +390,14 @@ CREATE TABLE post_audit_log (
 ```
 
 ### 3. **Soft delete - príspevky sa len označia ako zmazané**
+
 ```sql
 ALTER TABLE posts ADD COLUMN is_deleted BOOLEAN DEFAULT false;
 ALTER TABLE posts ADD COLUMN deleted_at TIMESTAMPTZ;
 ```
 
 ### 4. **Verzia historiky príspevkov**
+
 ```sql
 CREATE TABLE posts_history (
   id UUID,
@@ -387,6 +416,7 @@ CREATE TABLE posts_history (
 ## ✨ ZÁVER
 
 ✅ **Úprava a mazanie príspevkov JUŽ FUNGUJE:**
+
 - Autor môže upravovať svoj príspevek
 - Autor môže zmazať svoj príspevek
 - Úradníci/starostovia majú rovnaké práva ako sused

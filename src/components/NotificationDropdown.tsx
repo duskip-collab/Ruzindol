@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCheck, Loader2, MessageSquare, Info, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -10,7 +10,7 @@ type Notification = {
   title: string;
   body: string;
   type: string;
-  reference_id: string | null;
+  ref_id: string | null;
   is_read: boolean;
   created_at: string;
 };
@@ -25,6 +25,8 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  // Jedno odčítanie času pri mounte (namiesto Date.now() pri každom renderi)
+  const [renderedAt] = useState(() => Date.now());
 
   // Načítanie notifikácií
   const { data: notifications = [], isLoading } = useQuery({
@@ -62,7 +64,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   const visibleNotifications = notifications.filter((notif) => {
     if (!notif.is_read) return true; // Neprečítané sa nestratia
     const createdTime = new Date(notif.created_at).getTime();
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = renderedAt - 7 * 24 * 60 * 60 * 1000;
     return createdTime > sevenDaysAgo; // Prečítané staršie ako 7 dní nezobrazíme
   });
 
@@ -84,13 +86,17 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
 
   const handleMarkAllAsRead = async () => {
     if (!userId || unreadCount === 0) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
     queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
   };
 
   // Pomocná funkcia na čistenie a zabránenie duplicity title a body
   const getCleanNotificationContent = (notif: Notification) => {
-    let title = (notif.title ?? "").trim();
+    const title = (notif.title ?? "").trim();
     let body = (notif.body ?? "").trim();
 
     // Ak sú title a body identické, vrátime len jedno
@@ -158,10 +164,16 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
               >
                 <div
                   className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
-                    notif.is_read ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-700"
+                    notif.is_read
+                      ? "bg-muted text-muted-foreground"
+                      : "bg-emerald-100 text-emerald-700"
                   }`}
                 >
-                  {notif.type === "inquiry" ? <MessageSquare className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+                  {notif.type === "inquiry" ? (
+                    <MessageSquare className="h-4 w-4" />
+                  ) : (
+                    <Info className="h-4 w-4" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   {title && (
@@ -174,7 +186,9 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
                     </p>
                   )}
                   {body && (
-                    <p className={`text-xs text-muted-foreground mt-0.5 line-clamp-2 ${!title ? "font-semibold text-foreground" : ""}`}>
+                    <p
+                      className={`text-xs text-muted-foreground mt-0.5 line-clamp-2 ${!title ? "font-semibold text-foreground" : ""}`}
+                    >
                       {body}
                     </p>
                   )}

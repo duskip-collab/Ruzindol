@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { triggerHaptic } from '../lib/haptics';
-import { cn } from '../lib/utils';
+import React, { useState } from "react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { triggerHaptic } from "../lib/haptics";
+import { cn } from "../lib/utils";
 
 export interface SwipeableContainerProps {
   currentIndex: number;
@@ -36,14 +36,14 @@ export const SwipeableContainer: React.FC<SwipeableContainerProps> = ({
       // Swiped left -> Next tab/view
       if (currentIndex < totalItems - 1) {
         setDirection(1);
-        if (enableHaptics) triggerHaptic('light');
+        if (enableHaptics) triggerHaptic("light");
         onIndexChange(currentIndex + 1);
       }
     } else if (offset.x > swipeThreshold || velocity.x > swipeVelocity) {
       // Swiped right -> Previous tab/view
       if (currentIndex > 0) {
         setDirection(-1);
-        if (enableHaptics) triggerHaptic('light');
+        if (enableHaptics) triggerHaptic("light");
         onIndexChange(currentIndex - 1);
       }
     }
@@ -53,7 +53,7 @@ export const SwipeableContainer: React.FC<SwipeableContainerProps> = ({
   const currentChild = childrenArray[currentIndex];
 
   return (
-    <div className={cn('relative w-full h-full overflow-hidden touch-pan-y', className)}>
+    <div className={cn("relative w-full h-full overflow-hidden touch-pan-y", className)}>
       <AnimatePresence initial={false} mode="wait" custom={direction}>
         <motion.div
           key={currentIndex}
@@ -61,7 +61,7 @@ export const SwipeableContainer: React.FC<SwipeableContainerProps> = ({
           initial={{ opacity: 0, x: direction * 40 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: direction * -40 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
           drag="x"
           dragDirectionLock
           dragElastic={0.2}

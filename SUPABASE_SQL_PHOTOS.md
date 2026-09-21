@@ -3,6 +3,7 @@
 ## 📋 KROK PO KROKU
 
 ### KROK 1: Otvorte Supabase SQL Editor
+
 ```
 1. Prihláste sa do Supabase Dashboard
 2. Vyberte váš projekt (Ruzindol)
@@ -25,22 +26,23 @@
 BEGIN;
 
 -- Step 1: Add photo_url column to election_candidates table
-ALTER TABLE public.election_candidates 
+ALTER TABLE public.election_candidates
   ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
 -- Step 2: Add index for faster queries
-CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url 
-  ON public.election_candidates(photo_url) 
+CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url
+  ON public.election_candidates(photo_url)
   WHERE photo_url IS NOT NULL;
 
 -- Step 3: Add comment for documentation
-COMMENT ON COLUMN public.election_candidates.photo_url IS 
+COMMENT ON COLUMN public.election_candidates.photo_url IS
   'URL to candidate photo stored in Supabase Storage (elections/candidates/ path)';
 
 COMMIT;
 ```
 
 **Očakávaný výsledok:**
+
 ```
 ✅ ALTER TABLE ... executed successfully
 ✅ CREATE INDEX ... executed successfully
@@ -62,6 +64,7 @@ WHERE table_name = 'election_candidates'
 ```
 
 **Očakávaný výsledok:**
+
 ```
 column_name    | data_type | is_nullable
 ---------------+-----------+------------
@@ -69,6 +72,7 @@ photo_url      | text      | YES
 ```
 
 **Ak je prázdny výsledok:**
+
 - ❌ Stĺpec neexistuje
 - ✅ Spustite SQL migráciu vyššie
 
@@ -79,7 +83,7 @@ photo_url      | text      | YES
 **Zobrazte všetkých kandidátov s fotkami:**
 
 ```sql
-SELECT 
+SELECT
   id,
   full_name,
   position_type,
@@ -92,6 +96,7 @@ ORDER BY created_at DESC;
 ```
 
 **Čo budete vidieť:**
+
 - `id` - ID kandidáta
 - `full_name` - Meno kandidáta
 - `position_type` - 'starosta' alebo 'poslanec'
@@ -106,7 +111,7 @@ ORDER BY created_at DESC;
 **Kandidáti S FOTKOU:**
 
 ```sql
-SELECT 
+SELECT
   full_name,
   photo_url,
   position_type
@@ -119,7 +124,7 @@ ORDER BY full_name;
 **Kandidáti BEZ FOTKY:**
 
 ```sql
-SELECT 
+SELECT
   full_name,
   position_type
 FROM public.election_candidates
@@ -156,7 +161,7 @@ WHERE id = 'CANDIDATE_ID_HERE';
 ### Koľko kandidátov má fotku?
 
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_candidates,
   COUNT(photo_url) as with_photos,
   COUNT(CASE WHEN photo_url IS NULL THEN 1 END) as without_photos
@@ -167,7 +172,7 @@ WHERE is_active = true;
 ### Zoznam volieb s počtom kandidátov
 
 ```sql
-SELECT 
+SELECT
   e.id,
   e.name,
   (SELECT COUNT(*) FROM election_candidates WHERE election_id = e.id AND is_active = true) as active_candidates,
@@ -183,7 +188,7 @@ ORDER BY e.created_at DESC;
 ### Veľkosť fotiek
 
 ```sql
-SELECT 
+SELECT
   COUNT(*) as total_photos,
   pg_size_pretty(SUM(octet_length(photo_url))) as total_url_size
 FROM public.election_candidates
@@ -206,7 +211,7 @@ Fotky sú uložené v **Supabase Storage** v buckete `elections`, nie v database
 -- Check existing policies (informačne, v Storage table):
 SELECT policy_name, definition
 FROM pg_policies
-WHERE tablename = 'objects' 
+WHERE tablename = 'objects'
   AND schemaname = 'storage';
 ```
 
@@ -297,12 +302,14 @@ EXECUTE FUNCTION log_photo_changes();
 ## 📞 TROUBLESHOOTING
 
 ### Problem 1: "Column photo_url does not exist"
+
 ```
 → Spustite SQL migráciu vyššie
 → Skontrolujte či je spustená bez chýb
 ```
 
 ### Problem 2: Fotka sa nenahrá
+
 ```
 → Skontrolujte Supabase Storage bucket 'elections'
 → Skontrolujte RLS politiky
@@ -310,6 +317,7 @@ EXECUTE FUNCTION log_photo_changes();
 ```
 
 ### Problem 3: Fotka sa nezobrazuje
+
 ```
 → Skontrolujte či je photo_url v database (NULL alebo URL?)
 → Skúť hard refresh: Ctrl+Shift+R
@@ -317,6 +325,7 @@ EXECUTE FUNCTION log_photo_changes();
 ```
 
 ### Problem 4: Upload máx 5MB
+
 ```
 → To je presne tak - máx veľkosť je 5MB
 → Skúte menší obrázok
@@ -327,6 +336,7 @@ EXECUTE FUNCTION log_photo_changes();
 ## 🎊 SUMMARY
 
 **Co urobiť:**
+
 1. Kopírujte SQL migráciu vyššie
 2. Prihláste sa do Supabase
 3. Otvorte SQL Editor

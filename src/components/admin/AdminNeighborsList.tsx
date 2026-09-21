@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { 
-  Loader2, 
-  CheckCircle2, 
-  Clock, 
-  ShieldCheck, 
-  UserCheck, 
-  UserX, 
-  Search, 
-  Mail, 
-  MapPin, 
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Loader2,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  Search,
+  Mail,
+  MapPin,
   ShieldAlert,
-  Check
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -41,14 +41,14 @@ export function AdminNeighborsList() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setLoading(true);
-    setErrorMessage(null);
+  const loadData = useCallback(async () => {
     try {
       // 1. Načítame profily
       let query = supabase
         .from("profiles")
-        .select("id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id")
+        .select(
+          "id, name, email, street, role, is_active_neighbor, is_verified, created_at, invited_by_user_id",
+        )
         .order("created_at", { ascending: false });
 
       if (municipalityId) {
@@ -58,11 +58,11 @@ export function AdminNeighborsList() {
       const { data: profilesData, error: profilesError } = await query;
       if (profilesError) throw profilesError;
 
-      const loadedProfiles = (profilesData as any[] | null) ?? [];
+      const loadedProfiles = profilesData ?? [];
+      setErrorMessage(null);
 
       if (loadedProfiles.length === 0) {
         setNeighbors([]);
-        setLoading(false);
         return;
       }
 
@@ -73,7 +73,7 @@ export function AdminNeighborsList() {
 
       const invitedUserIdsSet = new Set<string>();
       if (!invitesError && invitesData) {
-        (invitesData as any[]).forEach((inv) => {
+        invitesData.forEach((inv) => {
           if (inv.used_by) {
             invitedUserIdsSet.add(inv.used_by);
           }
@@ -83,7 +83,7 @@ export function AdminNeighborsList() {
       // 3. Namapujeme dáta a aplikujeme pravidlo: ak má invite kód, je automaticky overený
       const mappedNeighbors: NeighborProfile[] = loadedProfiles.map((p) => {
         const hasCode = Boolean(p.invited_by_user_id || invitedUserIdsSet.has(p.id));
-        
+
         // Ak má kód a zatiaľ nie je označený ako overený v DB, považujeme ho za overeného
         const isVerifiedEffective = hasCode ? true : Boolean(p.is_verified || p.is_active_neighbor);
 
@@ -102,16 +102,20 @@ export function AdminNeighborsList() {
       });
 
       setNeighbors(mappedNeighbors);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Chyba pri načítaní zoznamu susedov:", err);
-      setErrorMessage(err?.message || "Nepodarilo sa načítať zoznam obyvateľov.");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Nepodarilo sa načítať zoznam obyvateľov.",
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [municipalityId]);
 
   useEffect(() => {
-    void loadData();
+    const initialLoadId = window.setTimeout(() => {
+      void loadData();
+    }, 0);
     const channel = supabase
       .channel("admin-neighbors-channel")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
@@ -119,9 +123,10 @@ export function AdminNeighborsList() {
       })
       .subscribe();
     return () => {
+      window.clearTimeout(initialLoadId);
       void supabase.removeChannel(channel);
     };
-  }, [municipalityId]);
+  }, [loadData]);
 
   async function toggleVerification(userId: string, currentVerified: boolean | null | undefined) {
     const nextVal = !currentVerified;
@@ -131,9 +136,9 @@ export function AdminNeighborsList() {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ 
-        is_verified: nextVal, 
-        is_active_neighbor: nextVal 
+      .update({
+        is_verified: nextVal,
+        is_active_neighbor: nextVal,
       })
       .eq("id", userId);
 
@@ -149,7 +154,7 @@ export function AdminNeighborsList() {
 
   const filteredNeighbors = useMemo(() => {
     return neighbors.filter((n) => {
-      const matchesSearch = 
+      const matchesSearch =
         (n.name && n.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (n.email && n.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (n.street && n.street.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -258,7 +263,9 @@ export function AdminNeighborsList() {
                   return (
                     <tr key={neighbor.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-foreground text-sm">{neighbor.name || "Neznámy používateľ"}</div>
+                        <div className="font-semibold text-foreground text-sm">
+                          {neighbor.name || "Neznámy používateľ"}
+                        </div>
                         <div className="text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 shrink-0" />
                           <span>{neighbor.email || "Email neuvedený"}</span>
@@ -295,7 +302,11 @@ export function AdminNeighborsList() {
                         {isVerified ? (
                           <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
                             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                            <span>{neighbor.has_invite_code ? "Overené pozvánkovým kódom" : "Schválené / Aktivované"}</span>
+                            <span>
+                              {neighbor.has_invite_code
+                                ? "Overené pozvánkovým kódom"
+                                : "Schválené / Aktivované"}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground italic">Zatiaľ neschválené</span>

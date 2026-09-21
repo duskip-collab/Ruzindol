@@ -44,6 +44,7 @@ src/components/elections/PhotoLightbox.tsx
 ```
 
 **Čo robí:**
+
 - React component s typescript
 - Props: `photoUrl`, `candidateName`, `isOpen`, `onClose`
 - Renduje full-screen modal s fotkou
@@ -57,26 +58,31 @@ src/components/elections/PhotoLightbox.tsx
 ### ✅ MODIFIED FILE: CandidateCard.tsx
 
 **Zmeny:**
+
 1. **Import** (line 3):
+
    ```typescript
-   import { PhotoLightbox } from './PhotoLightbox';
+   import { PhotoLightbox } from "./PhotoLightbox";
    ```
 
 2. **State** (line 31):
+
    ```typescript
    const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
    ```
 
 3. **Handler** (lines 38-42):
+
    ```typescript
    const handlePhotoClick = (e: React.MouseEvent) => {
      e.stopPropagation();
-     triggerHaptic('light');
+     triggerHaptic("light");
      setShowPhotoLightbox(true);
    };
    ```
 
 4. **Photo div** (lines 66-68):
+
    ```typescript
    <div
      className="... cursor-pointer transition-all hover:shadow-lg"
@@ -99,27 +105,32 @@ src/components/elections/PhotoLightbox.tsx
 ### ✅ MODIFIED FILE: CandidateModal.tsx
 
 **Zmeny:**
+
 1. **Import** (line 4):
+
    ```typescript
-   import { PhotoLightbox } from './PhotoLightbox';
+   import { PhotoLightbox } from "./PhotoLightbox";
    ```
 
 2. **State** (line 28):
+
    ```typescript
    const [showPhotoLightbox, setShowPhotoLightbox] = useState(false);
    ```
 
 3. **Handler** (lines 42-46):
+
    ```typescript
    const handlePhotoClick = () => {
      if (candidate.photo_url) {
-       triggerHaptic('light');
+       triggerHaptic("light");
        setShowPhotoLightbox(true);
      }
    };
    ```
 
 4. **Photo div** (lines 61-64):
+
    ```typescript
    <div
      className={cn(
@@ -242,10 +253,12 @@ dist/
 ```
 
 ### TypeScript:
+
 ✅ No errors
 ✅ Full type safety
 
 ### Code Quality:
+
 ✅ React.FC<Props>
 ✅ Proper imports
 ✅ Dark mode support
@@ -340,6 +353,7 @@ Build:
 ## 💾 DEPLOYMENT READY
 
 ### What's Already Done:
+
 1. ✅ PhotoLightbox component created
 2. ✅ CandidateCard integrated
 3. ✅ CandidateModal integrated
@@ -348,6 +362,7 @@ Build:
 6. ✅ Database already has photo_url column (from previous migration)
 
 ### Ready to Deploy:
+
 ```bash
 # dist/ folder is already built and ready
 # Just upload to production server
@@ -396,24 +411,24 @@ Mobile:
 
 ## 📞 TROUBLESHOOTING
 
-| Issue | Solution |
-|-------|----------|
-| "Lightbox doesn't open" | Check if candidate.photo_url is set |
-| "Photo not displaying" | Verify Supabase Storage path correct |
-| "Lightbox behind modal" | Check z-index (fixed inset-0 z-50) |
+| Issue                      | Solution                              |
+| -------------------------- | ------------------------------------- |
+| "Lightbox doesn't open"    | Check if candidate.photo_url is set   |
+| "Photo not displaying"     | Verify Supabase Storage path correct  |
+| "Lightbox behind modal"    | Check z-index (fixed inset-0 z-50)    |
 | "Close button not working" | Click outside photo should also close |
-| "Dark mode broken" | Verify Tailwind dark: classes |
+| "Dark mode broken"         | Verify Tailwind dark: classes         |
 
 ---
 
 ## 🎊 SÚHRN ZMIEN
 
-| File | Type | Lines Changed | Description |
-|------|------|---------------|-------------|
-| CandidateCard.tsx | Modified | 10 | Added state, handler, PhotoLightbox component |
-| CandidateModal.tsx | Modified | 10 | Added state, handler, PhotoLightbox component |
-| PhotoLightbox.tsx | Created | 56 | New lightbox component |
-| **Total** | | **~26** | **Complete implementation** |
+| File               | Type     | Lines Changed | Description                                   |
+| ------------------ | -------- | ------------- | --------------------------------------------- |
+| CandidateCard.tsx  | Modified | 10            | Added state, handler, PhotoLightbox component |
+| CandidateModal.tsx | Modified | 10            | Added state, handler, PhotoLightbox component |
+| PhotoLightbox.tsx  | Created  | 56            | New lightbox component                        |
+| **Total**          |          | **~26**       | **Complete implementation**                   |
 
 ---
 
@@ -454,6 +469,6 @@ Mobile:
 
 **Status**: ✅ Implementation Complete  
 **Time**: 30 minutes from request to deployment-ready  
-**Quality**: Production Grade  
+**Quality**: Production Grade
 
 **👉 The lightbox feature is ready to use! 🎉**

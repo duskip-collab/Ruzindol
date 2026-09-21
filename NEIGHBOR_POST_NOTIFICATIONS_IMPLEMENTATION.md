@@ -13,11 +13,13 @@
 **Účel:** Pridať trigger pre notifikácie príspevkov "Susedský život" (susedsky_zivot)
 
 **Funkcia vytvorená:**
+
 ```sql
 CREATE OR REPLACE FUNCTION public.enqueue_notifications_for_susedsky_zivot_posts()
 ```
 
 **Logika:**
+
 - Spúšťa sa po INSERT do tabuľky `posts`
 - Filtruje len príspevky s typom `susedsky_zivot`
 - Vytvára notifikáciu typu `neighbor_post` pre všetkých ostatných profilov v komunite
@@ -31,6 +33,7 @@ CREATE OR REPLACE FUNCTION public.enqueue_notifications_for_susedsky_zivot_posts
   - **is_critical:** `false`
 
 **Trigger vytvorený:**
+
 ```sql
 CREATE TRIGGER trg_enqueue_notifications_susedsky_zivot_posts
   AFTER INSERT ON public.posts
@@ -47,11 +50,13 @@ Táto úprava umožňuje spracovanie nového typu notifikácie `neighbor_post`.
 #### 2.1 Funkcia: `resolveTargetUrl()` (riadok 31)
 
 **Staré:**
+
 ```typescript
 if (type === "official_alert" || type === "hlasnik") return "/nastenka";
 ```
 
 **Nové:**
+
 ```typescript
 if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post") return "/nastenka";
 ```
@@ -63,16 +68,24 @@ if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post")
 #### 2.2 Funkcia: `isCommunityBroadcastNotification()` (riadok 45)
 
 **Staré:**
+
 ```typescript
 return type === "announcement" || type === "official_alert" || type === "group_announcement";
 ```
 
 **Nové:**
+
 ```typescript
-return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
+return (
+  type === "announcement" ||
+  type === "official_alert" ||
+  type === "group_announcement" ||
+  type === "neighbor_post"
+);
 ```
 
 **Účel:** Klasifikovať `neighbor_post` ako "community broadcast" notifikáciu, čo znamená:
+
 - Push notifikácia sa pošle aj keď sú notifikácie zakázané (ale nie pri kritickej)
 - Nastaví sa `requireInteraction: true` (notifikácia ostane viditeľná)
 - Urgency v push header sa nastaví na "high"
@@ -133,22 +146,27 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ### Existujúce notifikácie (NEZMENÉ):
 
 ✅ **Announcements (RSS)** - typ: `announcement`
+
 - Trigger: `enqueue_notifications_for_announcements()`
 - Status: Bez zmien
 
 ✅ **Obecný Hlásnik (hlasnik/official_alert)** - typ: `official_alert`
+
 - Trigger: `enqueue_notifications_for_hlasnik_posts()` (existuje)
 - Status: Bez zmien (naďalej funguje)
 
 ✅ **Skupinové Oznamy** - typ: `group_announcement`
+
 - Trigger: `enqueue_notifications_for_group_announcements()`
 - Status: Bez zmien
 
 ✅ **Podnet - Odpoveď (Inquiry Answer)** - typ: `inquiry_answer`
+
 - Trigger: `handle_inquiry_answer_update()`
 - Status: Bez zmien
 
 ✅ **Push notifikácie** - edge function: `send-push/index.ts`
+
 - Status: Bez zmien (len pridané nové mapovanie)
 
 ---
@@ -156,6 +174,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ## 🚀 Nasadenie
 
 ### Krok 1: Aplikovať migráciu
+
 ```
 1. Supabase Console > SQL Editor
 2. Skopírovať obsah: supabase/migrations/20260910121000_add_neighbor_post_notifications.sql
@@ -164,6 +183,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ```
 
 ### Krok 2: Deploypnúť zmeny v send-push
+
 ```
 1. Deploypnúť zmeny v supabase/functions/send-push/index.ts
 2. Verifikovať, že edge function sa znovu nasadila
@@ -173,6 +193,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ### Krok 3: Testovacie scénáre
 
 #### Test A: Príspevok v "Susedský Život"
+
 ```
 1. Prihlasit sa ako používateľ A
 2. Prejsť na "Nastenka" > "📣 Info pre susedov"
@@ -185,6 +206,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ```
 
 #### Test B: Oznam v "Obecný Hlásnik"
+
 ```
 1. Prihlasit sa ako starosta
 2. Prejsť na "Nastenka" > "📢 Hlásnik"
@@ -201,10 +223,12 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ## 📊 Očakávané výsledky
 
 ### Pred úpravami:
+
 - ❌ "Susedský život" príspevky - **žiadne notifikácie**
 - ✅ "Obecný hlásnik" - **notifikácie fungujú**
 
 ### Po úpravách:
+
 - ✅ "Susedský život" príspevky - **notifikácie posielané všetkým ostatným**
 - ✅ "Obecný hlásnik" - **naďalej funguje bez zmien**
 - ✅ Všetky ostatné notifikácie - **bez zmien**
@@ -214,14 +238,17 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ## 📚 Vzťahujúce sa súbory
 
 ### Databáza:
+
 - `supabase/migrations/20260910121000_add_neighbor_post_notifications.sql` - **NOVÝ TRIGGER**
 - `supabase/migrations/20260805173000_push_notifications_pipeline.sql` - existujúci push pipeline
 
 ### Edge Functions:
+
 - `supabase/functions/send-push/index.ts` - **UPRAVENÉ** (2 funkcie)
 - `supabase/functions/send-push/logic.ts` - bez zmien
 
 ### Frontend:
+
 - `src/screens/NastenkaScreen.tsx` - vytvorenie príspevkov (bez zmien)
 - `src/context/NotificationContext.tsx` - spracovanie notifikácií (bez zmien)
 - `src/lib/push.ts` - push subscription management (bez zmien)

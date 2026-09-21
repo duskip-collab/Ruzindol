@@ -7,7 +7,7 @@ Používatelia hlásili, že po kliknutí na "Vymazať všetkých" sa kandidáti
 ### ROOT CAUSE (Hlavný dôvod):
 
 1. **ElectionsEditModal.tsx** (Riadky 150-157):
-   - Funkcie `clearAllMayorCandidates()` a `clearAllCouncilCandidates()` 
+   - Funkcie `clearAllMayorCandidates()` a `clearAllCouncilCandidates()`
    - Nastavovali pole na `[emptyCandidate()]` - jeden prázdny kandidát
    - To malo problém: Keď sa formulár uložil, filter na riadku 201-202 vyfiltral prázdneho kandidáta
    - Výsledok: Žiadny delete sa neuskutočnil!
@@ -32,17 +32,17 @@ Používatelia hlásili, že po kliknutí na "Vymazať všetkých" sa kandidáti
 ```typescript
 // PRED (CHYBNE):
 const clearAllMayorCandidates = () => {
-  setFormData(prev => ({
+  setFormData((prev) => ({
     ...prev,
-    candidates_mayor: [emptyCandidate()]  // ❌ Vracia 1 prázdny
+    candidates_mayor: [emptyCandidate()], // ❌ Vracia 1 prázdny
   }));
 };
 
 // PO (SPRÁVNE):
 const clearAllMayorCandidates = () => {
-  setFormData(prev => ({
+  setFormData((prev) => ({
     ...prev,
-    candidates_mayor: []  // ✅ Vracia prázdne pole
+    candidates_mayor: [], // ✅ Vracia prázdne pole
   }));
 };
 ```
@@ -75,10 +75,12 @@ To isté pre `clearAllCouncilCandidates()`.
 ```typescript
 // PRED:
 if (
-  (formData.candidates_mayor.length === 1 && !formData.candidates_mayor[0].full_name.trim()) &&
-  (formData.candidates_council.length === 1 && !formData.candidates_council[0].full_name.trim())
+  formData.candidates_mayor.length === 1 &&
+  !formData.candidates_mayor[0].full_name.trim() &&
+  formData.candidates_council.length === 1 &&
+  !formData.candidates_council[0].full_name.trim()
 ) {
-  setError('Pridaj aspoň jedného kandidáta');
+  setError("Pridaj aspoň jedného kandidáta");
   return;
 }
 
@@ -101,22 +103,19 @@ if (data.attachments.length > 0) {
   const attachmentsToUpsert = data.attachments
     .filter((a) => a.file_url)
     .map((a) => ({
-      id: a.id,  // ❌ ID nových prílohy nemá
+      id: a.id, // ❌ ID nových prílohy nemá
       // ... ostatné polia
     }));
-  
+
   const { error: attachError } = await supabase
-    .from('elections_attachments')
-    .upsert(attachmentsToUpsert);  // ❌ UPSERT bez ID = chyba
+    .from("elections_attachments")
+    .upsert(attachmentsToUpsert); // ❌ UPSERT bez ID = chyba
 }
 
 // PO (SPRÁVNE: Najprv vymaž, potom vlož):
 // 1. Vymaž staré prílohy
 if (data.id) {
-  await supabase
-    .from('elections_attachments')
-    .delete()
-    .eq('election_id', electionId);
+  await supabase.from("elections_attachments").delete().eq("election_id", electionId);
 }
 
 // 2. Vlož nové prílohy
@@ -131,13 +130,13 @@ if (data.attachments.length > 0) {
       file_url: a.file_url,
       file_size_bytes: a.file_size_bytes,
       description: a.description,
-      sort_order: idx,  // ✅ Správny sort_order
-      uploaded_by: profile?.id
+      sort_order: idx, // ✅ Správny sort_order
+      uploaded_by: profile?.id,
     }));
-  
+
   const { error: attachError } = await supabase
-    .from('elections_attachments')
-    .insert(attachmentsToInsert);  // ✅ INSERT, nie UPSERT
+    .from("elections_attachments")
+    .insert(attachmentsToInsert); // ✅ INSERT, nie UPSERT
 }
 ```
 
@@ -206,13 +205,13 @@ if (data.attachments.length > 0) {
 
 ## 📊 DETAILY ZMIEN
 
-| Súbor | Riadky | Zmena | Dôvod |
-|-------|--------|-------|-------|
-| ElectionsEditModal.tsx | 150-157 | `[emptyCandidate()]` → `[]` | Vracia naozaj prázdne pole |
-| ElectionsEditModal.tsx | 179-194 | Odstranená validácia "aspoň 1 kandidát" | Voľby bez kandidátov sú legálne |
-| ElectionsEditModal.tsx | 354 | `.some()` → `.length > 0` | Správna logika pre viditeľnosť tlačítka |
-| ElectionsEditModal.tsx | 397 | `.some()` → `.length > 0` | To isté pre poslanecov |
-| ElectionsScreen.tsx | 207-238 | DELETE, potom INSERT | Prevzorná logika: vymaž staré, vlož nové |
+| Súbor                  | Riadky  | Zmena                                   | Dôvod                                    |
+| ---------------------- | ------- | --------------------------------------- | ---------------------------------------- |
+| ElectionsEditModal.tsx | 150-157 | `[emptyCandidate()]` → `[]`             | Vracia naozaj prázdne pole               |
+| ElectionsEditModal.tsx | 179-194 | Odstranená validácia "aspoň 1 kandidát" | Voľby bez kandidátov sú legálne          |
+| ElectionsEditModal.tsx | 354     | `.some()` → `.length > 0`               | Správna logika pre viditeľnosť tlačítka  |
+| ElectionsEditModal.tsx | 397     | `.some()` → `.length > 0`               | To isté pre poslanecov                   |
+| ElectionsScreen.tsx    | 207-238 | DELETE, potom INSERT                    | Prevzorná logika: vymaž staré, vlož nové |
 
 ---
 
@@ -245,4 +244,3 @@ if (data.attachments.length > 0) {
 **Status**: ✅ HOTOVO
 **Overené**: Build a dev server
 **Prípravný dátum**: 8. september 2026 (v čase psania)
-

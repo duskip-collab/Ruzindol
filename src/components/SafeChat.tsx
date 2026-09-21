@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, X, User2, ShieldAlert, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
 export type ChatMessage = {
   id: string;
@@ -53,7 +54,7 @@ export function SafeChat({
       setLoading(false);
     })();
 
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     let isMounted = true;
 
     const setupRealtime = async () => {
@@ -61,29 +62,29 @@ export function SafeChat({
         // Generuj náhodný suffix IBA VO VNÚTRI setupRealtime - NE v hlavnom tele!
         const randomSuffix = Math.random().toString(36).substring(2, 7);
         const channelName = `chat-${chatId}-${randomSuffix}`;
-        
+
         channel = supabase.channel(channelName, {
-          config: { broadcast: { ack: true } }
+          config: { broadcast: { ack: true } },
         });
-        
+
         channel.on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
-          (payload: any) => {
+          (payload: RealtimePostgresInsertPayload<ChatMessage>) => {
             if (!isMounted) return;
-            const m = payload.new as ChatMessage;
+            const m = payload.new;
             setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-          }
+          },
         );
 
         await channel.subscribe((status: string) => {
           if (!isMounted) return;
-          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
-            console.warn('Chat realtime status:', status);
+          if (status !== "SUBSCRIBED" && status !== "SUBSCRIBING") {
+            console.warn("Chat realtime status:", status);
           }
         });
       } catch (err) {
-        console.error('Error setting up chat realtime:', err);
+        console.error("Error setting up chat realtime:", err);
       }
     };
 
@@ -149,16 +150,17 @@ export function SafeChat({
           </div>
           <span
             className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${
-              isLocked
-                ? "bg-amber-100 text-amber-800 ring-amber-200"
-                : "chip-muted"
+              isLocked ? "bg-amber-100 text-amber-800 ring-amber-200" : "chip-muted"
             }`}
           >
             {messages.length} / {MAX_MESSAGES}
           </span>
         </div>
 
-        <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto bg-[color:var(--bg-surface-hover)]/55 p-4">
+        <div
+          ref={scrollRef}
+          className="flex-1 space-y-2.5 overflow-y-auto bg-[color:var(--bg-surface-hover)]/55 p-4"
+        >
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -228,7 +230,11 @@ export function SafeChat({
               <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
               <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-900">
                 <span className="font-semibold">
-                  ⚠️ {error ?? (!canSendMessages ? "Režim čítania pre správy." : "Limit správ pre tento chat bol dosiahnutý.")}
+                  ⚠️{" "}
+                  {error ??
+                    (!canSendMessages
+                      ? "Režim čítania pre správy."
+                      : "Limit správ pre tento chat bol dosiahnutý.")}
                 </span>{" "}
                 Detaily (miesto, čas, telefón) si, prosím, dohodnite osobne.
               </p>

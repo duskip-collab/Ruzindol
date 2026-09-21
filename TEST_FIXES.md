@@ -3,6 +3,7 @@
 ## Status: ✅ OPRAVENO
 
 ### Problém
+
 - Tlačítka v modáloch "Nové voľby" a "Pridať kandidáta" sú prekryté spodnou navigačnou lištou
 - Modály sa nekrorovo pozicionujú vzhľadom na spodnú lištu
 - Nedostatočný padding pre mobilné zariadenia
@@ -10,6 +11,7 @@
 ### Implementované Riešenia
 
 #### 1. Z-Index Hierarchia
+
 ```css
 Modal Content:    z-[9999]  ← VRCH
 Modal Backdrop:   z-[9998]  ← Pod obsahom
@@ -18,15 +20,18 @@ Bottom Nav:       z-40      ← DÓL (pod všetkou)
 ```
 
 #### 2. Padding Odsúv
+
 - **AnimatedModal**: `pb-32 sm:pb-40` (namiesto pb-20 sm:pb-24)
 - **InquiryModal**: `pb-28` v obsahu, `pb-safe` v footeri
 - **WarehouseItemEditForm**: `pb-safe` v formulári
 - **PostLightbox**: `pb-safe` v footeri
 
 #### 3. Safe Area Support
+
 ```css
 pb-safe → env(safe-area-inset-bottom)
 ```
+
 - Automatická ochrana pred notch/home indicator
 - Desktop: 0px
 - iOS: env value (väčšinou 20-34px)
@@ -34,19 +39,20 @@ pb-safe → env(safe-area-inset-bottom)
 
 ### Skontrolované Komponenty
 
-| Komponent | Zmena | Status |
-|-----------|-------|--------|
-| AnimatedModal | z-index, pb-32 sm:pb-40, pb-safe | ✓ |
-| BottomNav | z-40 | ✓ |
-| InquiryModal | z-index, pb-safe | ✓ |
-| WarehouseItemEditForm | pb-safe | ✓ |
-| PostLightbox | pb-safe | ✓ |
-| CandidateModal | Používa AnimatedModal | ✓ |
-| ElectionsEditModal | Používa AnimatedModal | ✓ |
+| Komponent             | Zmena                            | Status |
+| --------------------- | -------------------------------- | ------ |
+| AnimatedModal         | z-index, pb-32 sm:pb-40, pb-safe | ✓      |
+| BottomNav             | z-40                             | ✓      |
+| InquiryModal          | z-index, pb-safe                 | ✓      |
+| WarehouseItemEditForm | pb-safe                          | ✓      |
+| PostLightbox          | pb-safe                          | ✓      |
+| CandidateModal        | Používa AnimatedModal            | ✓      |
+| ElectionsEditModal    | Používa AnimatedModal            | ✓      |
 
 ### Testovacia Procedúra
 
 #### Na Deskope
+
 1. Otvor http://localhost:5174
 2. Naviguj: Aktuality → Voľby
 3. Klikni "Pridať volby"
@@ -57,6 +63,7 @@ pb-safe → env(safe-area-inset-bottom)
    - Tlačítka nie sú prekryté spodnou lištou
 
 #### Na Mobilnom Zariadení (Emulacia)
+
 1. Otvor Dev Tools (F12)
 2. Prepni na mobilný režim (Ctrl+Shift+M)
 3. Vyber iPhone 12 (390x844)

@@ -1,35 +1,47 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Image, Lock, Globe, AlertCircle, MapPin, Camera, Loader2, X, ShieldAlert } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { triggerHaptic } from '@/lib/haptics';
-import { compressImage } from '@/lib/compress-image';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Image,
+  Lock,
+  Globe,
+  AlertCircle,
+  MapPin,
+  Camera,
+  Loader2,
+  X,
+  ShieldAlert,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { triggerHaptic } from "@/lib/haptics";
+import { compressImage } from "@/lib/compress-image";
+import { cn } from "@/lib/utils";
 
 // Rovnaké pravidlo ako RLS politika v databáze: pridávať podnet smie iba
 // overený sused s aktivovaným invite kódom, alebo úradník / starosta / admin.
-const OFFICIAL_ROLES = ['Starosta', 'Uradnik'] as const;
+const OFFICIAL_ROLES = ["Starosta", "Uradnik"] as const;
 
-function canSubmitInquiry(profile: {
-  is_active_neighbor?: boolean;
-  invite_code?: string | null;
-  role?: string;
-  is_admin?: boolean;
-  is_official?: boolean;
-} | null): boolean {
+function canSubmitInquiry(
+  profile: {
+    is_active_neighbor?: boolean;
+    invite_code?: string | null;
+    role?: string;
+    is_admin?: boolean;
+    is_official?: boolean;
+  } | null,
+): boolean {
   if (!profile) return false;
 
   // Kontrola, či ide o manažéra / úradníka / admina
-  const isManager = 
-    profile.is_admin === true || 
-    profile.is_official === true || 
+  const isManager =
+    profile.is_admin === true ||
+    profile.is_official === true ||
     (!!profile.role && (OFFICIAL_ROLES as readonly string[]).includes(profile.role));
 
   // Kontrola, či ide o aktívneho suseda alebo suseda s invite kódom
-  const isVerifiedNeighbor = 
+  const isVerifiedNeighbor =
     profile.is_active_neighbor === true ||
-    (typeof profile.invite_code === 'string' && profile.invite_code.trim() !== '');
+    (typeof profile.invite_code === "string" && profile.invite_code.trim() !== "");
 
   return isManager || isVerifiedNeighbor;
 }
@@ -41,21 +53,21 @@ export interface InquiryModalProps {
 }
 
 const CATEGORIES = [
-  { id: 'odpad', label: 'Odpad' },
-  { id: 'cesty_chodniky', label: 'Cesty' },
-  { id: 'zelen', label: 'Zeleň' },
-  { id: 'osvetlenie', label: 'Osvetlenie' },
-  { id: 'urad_sluzby', label: 'Úrad' },
-  { id: 'ine', label: 'Iné' },
+  { id: "odpad", label: "Odpad" },
+  { id: "cesty_chodniky", label: "Cesty" },
+  { id: "zelen", label: "Zeleň" },
+  { id: "osvetlenie", label: "Osvetlenie" },
+  { id: "urad_sluzby", label: "Úrad" },
+  { id: "ine", label: "Iné" },
 ] as const;
 
 export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { profile, loading: profileLoading } = useCurrentUser();
   const isEligible = canSubmitInquiry(profile);
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]['id']>('odpad');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("odpad");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
@@ -73,9 +85,9 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
   // Lock body overflow when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.overflow = "";
       };
     }
   }, [isOpen]);
@@ -86,8 +98,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
 
     // Validate file size (max 5MB for original)
     if (file.size > 5 * 1024 * 1024) {
-      triggerHaptic('error');
-      setErrorMessage('Fotka nesmie byť väčšia ako 5 MB.');
+      triggerHaptic("error");
+      setErrorMessage("Fotka nesmie byť väčšia ako 5 MB.");
       return;
     }
 
@@ -96,35 +108,35 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
       const compressed = await compressImage(file);
       setImageFile(compressed.file);
       setImagePreview(compressed.previewUrl);
-      setImageUrl('');
+      setImageUrl("");
       setErrorMessage(null);
-      triggerHaptic('success');
+      triggerHaptic("success");
     } catch (err) {
-      triggerHaptic('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Kompresia fotky zlyhala.');
+      triggerHaptic("error");
+      setErrorMessage(err instanceof Error ? err.message : "Kompresia fotky zlyhala.");
     } finally {
       setCompressing(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
   };
 
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setImageUrl('');
+    setImageUrl("");
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const handleGetLocation = async () => {
-    triggerHaptic('light');
+    triggerHaptic("light");
     setLocationLoading(true);
-    
+
     if (!navigator.geolocation) {
-      triggerHaptic('error');
-      setErrorMessage('Geolokácia nie je podporovaná v tomto prehliadači.');
+      triggerHaptic("error");
+      setErrorMessage("Geolokácia nie je podporovaná v tomto prehliadači.");
       setLocationLoading(false);
       return;
     }
@@ -133,54 +145,52 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
       (position) => {
         setLatitude(position.coords.latitude);
         setLongitude(position.coords.longitude);
-        triggerHaptic('success');
+        triggerHaptic("success");
         setErrorMessage(null);
         setLocationLoading(false);
       },
       (error) => {
-        triggerHaptic('error');
-        const message = 
+        triggerHaptic("error");
+        const message =
           error.code === error.PERMISSION_DENIED
-            ? 'Povolenie na geolokáciu bolo zamietnuté.'
+            ? "Povolenie na geolokáciu bolo zamietnuté."
             : error.code === error.POSITION_UNAVAILABLE
-            ? 'Poloha nie je dostupná.'
-            : 'Chyba pri získavaní polohy.';
+              ? "Poloha nie je dostupná."
+              : "Chyba pri získavaní polohy.";
         setErrorMessage(message);
         setLocationLoading(false);
       },
-      { timeout: 10000, enableHighAccuracy: false }
+      { timeout: 10000, enableHighAccuracy: false },
     );
   };
 
   const uploadImageToStorage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const fileName = `inquiry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
     const filePath = fileName;
 
     const { data, error } = await supabase.storage
-      .from('inquiry-images')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      .from("inquiry-images")
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
     if (error) throw error;
-    if (!data) throw new Error('Chyba pri nahrávaní fotky.');
+    if (!data) throw new Error("Chyba pri nahrávaní fotky.");
 
-    const { data: publicUrl } = supabase.storage
-      .from('inquiry-images')
-      .getPublicUrl(data.path);
+    const { data: publicUrl } = supabase.storage.from("inquiry-images").getPublicUrl(data.path);
 
     return publicUrl.publicUrl;
   };
 
   const handleSubmit = async () => {
     if (!isEligible) {
-      triggerHaptic('error');
-      setErrorMessage('Podnet môže odoslať iba overený sused s aktivovaným invite kódom.');
+      triggerHaptic("error");
+      setErrorMessage("Podnet môže odoslať iba overený sused s aktivovaným invite kódom.");
       return;
     }
 
     if (!title.trim() || !body.trim()) {
-      triggerHaptic('error');
-      setErrorMessage('Vyplňte prosím názov a text.');
+      triggerHaptic("error");
+      setErrorMessage("Vyplňte prosím názov a text.");
       return;
     }
 
@@ -189,28 +199,28 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
       setErrorMessage(null);
 
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) throw new Error('Musíte byť prihlásený.');
+      if (userError || !userData?.user) throw new Error("Musíte byť prihlásený.");
 
       // Check if inquiries are enabled in app settings (with fallback)
       let inquiriesEnabled = true;
       try {
         const { data: settings, error: settingsError } = await supabase
-          .from('app_settings')
-          .select('inquiries_enabled')
+          .from("app_settings")
+          .select("inquiries_enabled")
           .maybeSingle();
 
-        if (settingsError && settingsError.code !== 'PGRST116') {
-          console.warn('Warning fetching app_settings:', settingsError);
+        if (settingsError && settingsError.code !== "PGRST116") {
+          console.warn("Warning fetching app_settings:", settingsError);
         }
 
         inquiriesEnabled = settings?.inquiries_enabled !== false;
       } catch (err) {
-        console.warn('Error checking inquiries_enabled, using fallback (true):', err);
+        console.warn("Error checking inquiries_enabled, using fallback (true):", err);
         inquiriesEnabled = true;
       }
 
       if (!inquiriesEnabled) {
-        throw new Error('Podnety sú v tejto chvíli vypnuté.');
+        throw new Error("Podnety sú v tejto chvíli vypnuté.");
       }
 
       // Upload image if provided
@@ -221,27 +231,27 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
         setUploading(false);
       }
 
-      const { error } = await supabase.from('mayor_inquiries').insert({
+      const { error } = await supabase.from("mayor_inquiries").insert({
         user_id: userData.user.id,
         category,
         title: title.trim(),
         body: body.trim(),
-        image_url: uploadedImageUrl || (imageUrl.trim() || null),
+        image_url: uploadedImageUrl || imageUrl.trim() || null,
         is_public: isPublic,
         is_anonymous_public: isAnonymousPublic && isPublic,
         latitude,
         longitude,
-        status: 'pending',
+        status: "pending",
       });
 
       if (error) throw error;
 
-      triggerHaptic('success');
-      setTitle('');
-      setBody('');
+      triggerHaptic("success");
+      setTitle("");
+      setBody("");
       setImageFile(null);
       setImagePreview(null);
-      setImageUrl('');
+      setImageUrl("");
       setIsPublic(true);
       setIsAnonymousPublic(false);
       setLatitude(null);
@@ -249,8 +259,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
-      triggerHaptic('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Chyba odoslania.');
+      triggerHaptic("error");
+      setErrorMessage(err instanceof Error ? err.message : "Chyba odoslania.");
     } finally {
       setSubmitting(false);
       setUploading(false);
@@ -278,10 +288,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
             aria-modal="true"
             aria-labelledby="inquiry-modal-title"
             className="fixed inset-0 z-[9998] flex flex-col h-full w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden"
-            initial={{ opacity: 0, y: '100%' }}
+            initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
           >
             {/* HEADER - Fixed */}
             <div className="shrink-0 flex items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -319,19 +329,24 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
               )}
 
               <div>
-                <label className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Kategória</label>
+                <label className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">
+                  Kategória
+                </label>
                 <div className="grid grid-cols-3 gap-1">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => { triggerHaptic('light'); setCategory(cat.id); }}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setCategory(cat.id);
+                      }}
                       disabled={submitting || uploading}
                       className={cn(
-                        'rounded-lg border p-2 text-[11px] font-medium text-center transition-colors disabled:opacity-50',
+                        "rounded-lg border p-2 text-[11px] font-medium text-center transition-colors disabled:opacity-50",
                         category === cat.id
-                          ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-200'
-                          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                          ? "border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-200"
+                          : "border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600",
                       )}
                     >
                       {cat.label}
@@ -341,26 +356,36 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
               </div>
 
               <div>
-                <label htmlFor="inquiry-title" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Názov *</label>
-                <input 
-                  id="inquiry-title" 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  placeholder="Názov podnetu" 
+                <label
+                  htmlFor="inquiry-title"
+                  className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100"
+                >
+                  Názov *
+                </label>
+                <input
+                  id="inquiry-title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Názov podnetu"
                   disabled={submitting || uploading}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 disabled:opacity-50"
                 />
               </div>
 
               <div>
-                <label htmlFor="inquiry-body" className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100">Popis *</label>
-                <textarea 
-                  id="inquiry-body" 
-                  rows={3} 
-                  value={body} 
-                  onChange={(e) => setBody(e.target.value)} 
-                  placeholder="Popíšte situáciu..." 
+                <label
+                  htmlFor="inquiry-body"
+                  className="block text-xs font-semibold mb-1 text-slate-900 dark:text-slate-100"
+                >
+                  Popis *
+                </label>
+                <textarea
+                  id="inquiry-body"
+                  rows={3}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Popíšte situáciu..."
                   disabled={submitting || uploading}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500 resize-none disabled:opacity-50"
                 />
@@ -368,8 +393,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
 
               {/* Image Upload / Preview Section */}
               <div>
-                <label className="block text-xs font-semibold mb-2 text-slate-900 dark:text-slate-100">Fotografia (voliteľne)</label>
-                
+                <label className="block text-xs font-semibold mb-2 text-slate-900 dark:text-slate-100">
+                  Fotografia (voliteľne)
+                </label>
+
                 {imagePreview ? (
                   <div className="relative rounded-xl overflow-hidden border-2 border-blue-300 dark:border-blue-700 bg-slate-100 dark:bg-slate-800">
                     <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover" />
@@ -499,27 +526,29 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                       <Lock className="h-4 w-4 text-amber-500" />
                     )}
                     <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      {isPublic ? 'Verejný podnet' : 'Súkromný podnet'}
+                      {isPublic ? "Verejný podnet" : "Súkromný podnet"}
                     </span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
-                      triggerHaptic('light');
+                      triggerHaptic("light");
                       setIsPublic(!isPublic);
                       if (!isPublic) setIsAnonymousPublic(false);
                     }}
                     disabled={submitting || uploading}
                     className={cn(
-                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50',
-                      isPublic ? 'bg-emerald-600 dark:bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50",
+                      isPublic
+                        ? "bg-emerald-600 dark:bg-emerald-600"
+                        : "bg-slate-300 dark:bg-slate-700",
                     )}
                   >
                     <span
                       className={cn(
-                        'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200',
-                        isPublic ? 'translate-x-5' : 'translate-x-0'
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200",
+                        isPublic ? "translate-x-5" : "translate-x-0",
                       )}
                     />
                   </button>
@@ -532,7 +561,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                       type="checkbox"
                       checked={isAnonymousPublic}
                       onChange={(e) => {
-                        triggerHaptic('light');
+                        triggerHaptic("light");
                         setIsAnonymousPublic(e.target.checked);
                       }}
                       disabled={submitting || uploading}
@@ -566,7 +595,11 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                 disabled={submitting || uploading || !isEligible}
                 className="rounded-xl px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors active:scale-95 disabled:opacity-50"
               >
-                {submitting || uploading ? (uploading ? 'Nahrávam fotku...' : 'Odosielam...') : 'Odoslať'}
+                {submitting || uploading
+                  ? uploading
+                    ? "Nahrávam fotku..."
+                    : "Odosielam..."
+                  : "Odoslať"}
               </button>
             </div>
           </motion.div>

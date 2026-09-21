@@ -22,13 +22,10 @@ export function LegalDocumentsDialog({
   onOpenChange,
   initialSection = "terms",
 }: LegalDocumentsDialogProps) {
+  // Sekcia sa inicializuje pri otvorení dialógu. Rodičovské komponenty odovzdávajú `key`,
+  // takže pri zmene `initialSection` sa komponent remountuje a synchronizácia v efekte
+  // (react-hooks/set-state-in-effect) nie je potrebná.
   const [section, setSection] = useState<LegalSection>(initialSection);
-
-  useEffect(() => {
-    if (open) {
-      setSection(initialSection);
-    }
-  }, [initialSection, open]);
 
   const showingTerms = section === "terms";
 
@@ -166,7 +163,12 @@ export function LegalInfoPanel() {
         </div>
       </div>
 
-      <LegalDocumentsDialog open={open} onOpenChange={setOpen} initialSection={section} />
+      <LegalDocumentsDialog
+        key={`${open ? "open" : "closed"}-${section}`}
+        open={open}
+        onOpenChange={setOpen}
+        initialSection={section}
+      />
     </>
   );
 }
@@ -186,8 +188,8 @@ function TermsContent() {
           na susedskú spoluprácu a komunikáciu (ďalej len „aplikácia").
         </p>
         <p>
-          1.2. Používateľom aplikácie sa stáva každá fyzická osoba, ktorá úspešne dokončí registráciu
-          pomocou e-mailu alebo pozývacieho kódu.
+          1.2. Používateľom aplikácie sa stáva každá fyzická osoba, ktorá úspešne dokončí
+          registráciu pomocou e-mailu alebo pozývacieho kódu.
         </p>
       </section>
 
@@ -199,12 +201,15 @@ function TermsContent() {
           2.1. Používateľ sa zaväzuje, že bude aplikáciu využívať v súlade s platnými právnymi
           predpismi SR a EÚ a dobrými mravmi.
         </p>
-        <p>
-          2.2. V aplikácii je prísne zakázané:
-        </p>
+        <p>2.2. V aplikácii je prísne zakázané:</p>
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-          <li>Uverejňovať obsah, ktorý je nezákonný, urážlivý, vulgárny, nenávistný alebo obťažujúci.</li>
-          <li>Šíriť dezinformácie, spam alebo nevyžiadanú komerčnú inzerciu nesúvisiacu s účelom aplikácie.</li>
+          <li>
+            Uverejňovať obsah, ktorý je nezákonný, urážlivý, vulgárny, nenávistný alebo obťažujúci.
+          </li>
+          <li>
+            Šíriť dezinformácie, spam alebo nevyžiadanú komerčnú inzerciu nesúvisiacu s účelom
+            aplikácie.
+          </li>
           <li>Zdieľať osobné údaje iných osôb bez ich súhlasu.</li>
         </ul>
       </section>
@@ -261,9 +266,17 @@ function PrivacyContent() {
           <FileText className="h-4 w-4" /> Aké údaje zbierame a prečo
         </div>
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-          <li><strong>E-mailová adresa:</strong> registrácia, prihlásenie, overenie identity a nevyhnutná komunikácia k účtu.</li>
-          <li><strong>Meno alebo prezývka:</strong> identifikácia používateľa v komunite a susedských aktivitách.</li>
-          <li><strong>Pozývací kód:</strong> overenie oprávnenia vstupu do komunity.</li>
+          <li>
+            <strong>E-mailová adresa:</strong> registrácia, prihlásenie, overenie identity a
+            nevyhnutná komunikácia k účtu.
+          </li>
+          <li>
+            <strong>Meno alebo prezývka:</strong> identifikácia používateľa v komunite a susedských
+            aktivitách.
+          </li>
+          <li>
+            <strong>Pozývací kód:</strong> overenie oprávnenia vstupu do komunity.
+          </li>
         </ul>
       </section>
 
@@ -271,9 +284,7 @@ function PrivacyContent() {
         <div className="flex items-center gap-2 text-base font-semibold">
           <Trash2 className="h-4 w-4" /> Doba uchovávania a bezpečnosť
         </div>
-        <p>
-          3.1. Údaje sú uchovávané po celú dobu, počas ktorej má používateľ aktívny účet.
-        </p>
+        <p>3.1. Údaje sú uchovávané po celú dobu, počas ktorej má používateľ aktívny účet.</p>
         <p>
           3.2. Dáta sú uložené na zabezpečenej infraštruktúre. Heslá sú ukladané iba vo forme
           bezpečného hashu a nie v čitateľnej podobe.
@@ -288,14 +299,14 @@ function PrivacyContent() {
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>Požadovať prístup k svojim osobným údajom a ich opravu.</li>
           <li>
-            Požadovať vymazanie účtu a všetkých údajov (právo na zabudnutie). Účet je možné kedykoľvek
-            zmazať priamo v nastaveniach profilu alebo zaslaním požiadavky správcovi.
+            Požadovať vymazanie účtu a všetkých údajov (právo na zabudnutie). Účet je možné
+            kedykoľvek zmazať priamo v nastaveniach profilu alebo zaslaním požiadavky správcovi.
           </li>
           <li>Odvolať súhlas so spracovaním údajov.</li>
         </ul>
         <p>
-          Doplňujúce upresnenie: v tejto aplikácii sa štandardne spracúvajú najmä údaje e-mail,
-          meno alebo prezývka a technické údaje potrebné na fungovanie účtu.
+          Doplňujúce upresnenie: v tejto aplikácii sa štandardne spracúvajú najmä údaje e-mail, meno
+          alebo prezývka a technické údaje potrebné na fungovanie účtu.
         </p>
       </section>
     </div>

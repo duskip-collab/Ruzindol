@@ -7,7 +7,8 @@ const MAX_AUDIO_SIZE_BYTES = 5 * 1024 * 1024;
 function extensionFor(file: File) {
   if (file.type === "audio/mpeg" || file.type === "audio/mp3") return "mp3";
   if (file.type === "audio/wav" || file.type === "audio/x-wav") return "wav";
-  if (file.type === "audio/mp4" || file.type === "audio/m4a" || file.type === "audio/x-m4a") return "m4a";
+  if (file.type === "audio/mp4" || file.type === "audio/m4a" || file.type === "audio/x-m4a")
+    return "m4a";
   if (file.type === "audio/aac") return "aac";
   if (file.type === "audio/webm") return "webm";
   return "audio";
@@ -149,7 +150,9 @@ export async function prepareAnnouncementAudio(file: File) {
   // Convert WEBM uploads to WAV so announcements remain playable on iOS devices.
   if (looksLikeWebm) {
     if (typeof AudioContext === "undefined") {
-      throw new Error("WEBM audio sa na tomto zariadení nedá previesť. Nahrajte MP3, WAV alebo M4A.");
+      throw new Error(
+        "WEBM audio sa na tomto zariadení nedá previesť. Nahrajte MP3, WAV alebo M4A.",
+      );
     }
     prepared = await transcodeWebmToWav(prepared);
   }

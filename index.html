@@ -15,39 +15,42 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Moji Susedia" />
     <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
-      <script>
-        (function () {
-          var key = "komunita.ui.theme.v1";
-          var theme = "light";
-          try {
-            var saved = window.localStorage.getItem(key);
-            if (saved === "light" || saved === "dark") {
-              theme = saved;
-            } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-              theme = "dark";
-            }
-          } catch (e) {
-            if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-              theme = "dark";
-            }
+    <script>
+      (function () {
+        var key = "komunita.ui.theme.v1";
+        var theme = "light";
+        try {
+          var saved = window.localStorage.getItem(key);
+          if (saved === "light" || saved === "dark") {
+            theme = saved;
+          } else if (
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            theme = "dark";
           }
-          document.documentElement.classList.toggle("dark", theme === "dark");
-          document.documentElement.style.colorScheme = theme;
-        })();
-      </script>
-      <script>
-        (function () {
-          var key = "komunita.ui.fontScale.v1";
-          var sizes = { "1": 16, "2": 18, "3": 20 };
-          try {
-            var raw = window.localStorage.getItem(key);
-            var size = sizes[raw || "1"] || 16;
-            document.documentElement.style.fontSize = size + "px";
-          } catch (e) {
-            document.documentElement.style.fontSize = "16px";
+        } catch (e) {
+          if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            theme = "dark";
           }
-        })();
-      </script>
+        }
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
+    <script>
+      (function () {
+        var key = "komunita.ui.fontScale.v1";
+        var sizes = { 1: 16, 2: 18, 3: 20 };
+        try {
+          var raw = window.localStorage.getItem(key);
+          var size = sizes[raw || "1"] || 16;
+          document.documentElement.style.fontSize = size + "px";
+        } catch (e) {
+          document.documentElement.style.fontSize = "16px";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -93,28 +93,45 @@ function getInitialCategories() {
 
 const Ctx = createContext<NotificationCtx | null>(null);
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function extractRecord(payload: unknown, kind: "new" | "old"): Record<string, unknown> | null {
-  const p = payload as any;
-  return (
-    p?.payload?.[kind] ??
-    p?.[kind] ??
-    p?.record?.[kind] ??
-    p?.payload?.record?.[kind] ??
-    p?.payload?.data?.[kind] ??
-    null
-  );
+  const p = asRecord(payload);
+  if (!p) return null;
+
+  const payloadNode = asRecord(p.payload);
+  const recordNode = asRecord(p.record) ?? asRecord(payloadNode?.record);
+  const candidates = [
+    payloadNode?.[kind],
+    p[kind],
+    recordNode?.[kind],
+    asRecord(payloadNode?.data)?.[kind],
+  ];
+
+  for (const candidate of candidates) {
+    const found = asRecord(candidate);
+    if (found) return found;
+  }
+
+  return null;
 }
 
 function toDbNotification(record: unknown): DbNotification | null {
-  const r = record as any;
-  if (!r?.id || !r?.user_id || !r?.created_at || !r?.type) return null;
+  const r = asRecord(record);
+  if (!r) return null;
+  if (!r.id || !r.user_id || !r.created_at || !r.type) return null;
+
   return {
     id: String(r.id),
     user_id: String(r.user_id),
     created_at: String(r.created_at),
     type: String(r.type),
-    title: r.title ?? null,
-    body: r.body ?? null,
+    title: typeof r.title === "string" ? r.title : null,
+    body: typeof r.body === "string" ? r.body : null,
     is_read: Boolean(r.is_read),
   };
 }
@@ -181,10 +198,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
 
     const now = Date.now();
-    if (
-      isPushSyncInProgressRef.current ||
-      now - lastPushSyncTimeRef.current < 3000
-    ) {
+    if (isPushSyncInProgressRef.current || now - lastPushSyncTimeRef.current < 3000) {
       return;
     }
 
@@ -409,7 +423,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("notifications")
         .select("id, user_id, created_at, type, title, body, is_read")
         .eq("user_id", currentUserId)
@@ -460,7 +474,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         .on("broadcast", { event: "INSERT" }, (payload: unknown) => {
           if (!isMounted) return;
 
-          const record = extractRecord(payload, "new") ?? ((payload as any)?.payload ?? null);
+          const record = extractRecord(payload, "new") ?? asRecord(asRecord(payload)?.payload);
           const nextItem = toDbNotification(record);
           if (!nextItem || nextItem.user_id !== currentUserId) return;
 
@@ -534,7 +548,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (!currentUserId) return;
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("notifications")
         .update({ is_read: true })
         .eq("id", id)

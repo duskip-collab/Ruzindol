@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { enableNotifications } from "@/lib/push";
@@ -50,27 +50,18 @@ export function NotificationBellTip({
   onBellClick,
   className,
 }: NotificationBellTipProps) {
-  const [showTip, setShowTip] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    
-    // Safe localStorage access with try-catch
+  // Stav sa inicializuje priamo pri prvom renderi (klientská SPA), preto nie je potrebný
+  // efekt, ktorý by synchronne nastavoval stav (react-hooks/set-state-in-effect).
+  const [showTip, setShowTip] = useState(() => {
+    if (typeof window === "undefined") return false;
     try {
-      const isDismissed = localStorage.getItem(STORAGE_KEY);
-      if (!isDismissed && !hasNotificationDot) {
-        setShowTip(true);
-      }
+      return !localStorage.getItem(STORAGE_KEY);
     } catch (error) {
-      // localStorage may be unavailable in some browsers/contexts
       console.warn("localStorage nie je dostupný:", error);
-      // Still show tip if localStorage fails (fail-safe)
-      if (!hasNotificationDot) {
-        setShowTip(true);
-      }
+      return true;
     }
-  }, [hasNotificationDot]);
+  });
+  const [isMounted, setIsMounted] = useState(() => typeof window !== "undefined");
 
   function handleDismiss() {
     setShowTip(false);
@@ -85,21 +76,21 @@ export function NotificationBellTip({
   async function handleBellClick() {
     // Close tip immediately for better UX
     setShowTip(false);
-    
+
     // Save to localStorage
     try {
       localStorage.setItem(STORAGE_KEY, "true");
     } catch (error) {
       console.warn("Nepodarilo sa uložiť stav nápovedy:", error);
     }
-    
+
     // Enable notifications
     try {
       await enableNotifications();
     } catch (error) {
       console.error("Chyba pri registrácii push notifikácií:", error);
     }
-    
+
     // Call parent callback
     onBellClick();
   }
@@ -172,8 +163,8 @@ export function NotificationBellTip({
                   🔔 Povolte notifikácie
                 </p>
                 <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed line-clamp-3">
-                  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky
-                  od susedov priamo do svojho zariadenia.
+                  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky od susedov
+                  priamo do svojho zariadenia.
                 </p>
               </div>
 

@@ -338,9 +338,7 @@ export function DigitalnyRozhlas({
       chunksRef.current = [];
 
       const mimeType =
-        (isIosDevice() && MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "") ||
+        (isIosDevice() && MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "") ||
         (isIosDevice() && MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")
           ? "audio/mp4;codecs=mp4a.40.2"
           : "") ||
@@ -412,7 +410,9 @@ export function DigitalnyRozhlas({
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setRecordError("Zvukový súbor musí mať najviac 5 MB. Väčšie súbory sa pred uložením skúsia komprimovať.");
+      setRecordError(
+        "Zvukový súbor musí mať najviac 5 MB. Väčšie súbory sa pred uložením skúsia komprimovať.",
+      );
       return;
     }
     setRecordError(null);
@@ -544,7 +544,9 @@ export function DigitalnyRozhlas({
               <p className="mt-1 text-[11px] text-neutral-600 dark:text-neutral-800">
                 Pred uložením sa súbor skomprimuje a musí zostať pod limitom 5 MB.
               </p>
-              <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-700">{audioFile.name}</p>
+              <p className="mt-0.5 text-[11px] text-neutral-500 dark:text-neutral-700">
+                {audioFile.name}
+              </p>
               <audio controls preload="none" className="mt-2 w-full">
                 <source src={audioPreviewUrl} type={audioFile.type || "audio/webm"} />
               </audio>
@@ -564,7 +566,9 @@ export function DigitalnyRozhlas({
           )}
 
           {recording && (
-            <p className="mt-2 text-[11px] font-medium text-rose-600">Nahrávam... hovorte do mikrofónu.</p>
+            <p className="mt-2 text-[11px] font-medium text-rose-600">
+              Nahrávam... hovorte do mikrofónu.
+            </p>
           )}
           {recordError && <p className="mt-2 text-[11px] text-rose-600">{recordError}</p>}
         </div>
@@ -794,7 +798,7 @@ export function RolePanels({ role }: { role: ProfileRole }) {
     <div className="flex flex-col gap-4">
       {/* Community Statistics - visible for everyone */}
       <CommunityStats municipalityId={profile?.municipality_id ?? null} />
-      
+
       {role === "VIP_Firma" && <VipDashboard postsCount={posts.length} itemsCount={itemsCount} />}
       {role === "Starosta" && (
         <PanelStarostu
@@ -879,7 +883,9 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border border-white/50 bg-white/70 p-3 text-center dark:border-neutral-300 dark:bg-neutral-200">
       <p className="text-lg font-bold text-neutral-900 dark:text-neutral-900">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-800">{label}</p>
+      <p className="text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-800">
+        {label}
+      </p>
     </div>
   );
 }

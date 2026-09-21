@@ -1,15 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { X, Loader2, MapPin, Globe, Lock, User, CheckCircle2, Clock, AlertCircle, XCircle, Send } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from "react";
+import {
+  X,
+  Loader2,
+  MapPin,
+  Globe,
+  Lock,
+  User,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  XCircle,
+  Send,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 
 export interface MayorInquiry {
   id: string;
   user_id: string;
-  category: 'odpad' | 'cesty_chodniky' | 'zelen' | 'osvetlenie' | 'urad_sluzby' | 'ine';
+  category: "odpad" | "cesty_chodniky" | "zelen" | "osvetlenie" | "urad_sluzby" | "ine";
   title: string;
   body: string;
   image_url?: string | null;
@@ -17,7 +29,7 @@ export interface MayorInquiry {
   is_anonymous_public?: boolean;
   latitude?: number | null;
   longitude?: number | null;
-  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
+  status: "pending" | "in_progress" | "resolved" | "rejected";
   answer?: string | null;
   answered_at?: string | null;
   answered_by?: string | null;
@@ -34,30 +46,30 @@ interface DashboardProps {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'Všetky' },
-  { id: 'odpad', label: 'Odpad' },
-  { id: 'cesty_chodniky', label: 'Cesty' },
-  { id: 'zelen', label: 'Zeleň' },
-  { id: 'osvetlenie', label: 'Osvetlenie' },
-  { id: 'urad_sluzby', label: 'Úrad' },
-  { id: 'ine', label: 'Iné' },
+  { id: "all", label: "Všetky" },
+  { id: "odpad", label: "Odpad" },
+  { id: "cesty_chodniky", label: "Cesty" },
+  { id: "zelen", label: "Zeleň" },
+  { id: "osvetlenie", label: "Osvetlenie" },
+  { id: "urad_sluzby", label: "Úrad" },
+  { id: "ine", label: "Iné" },
 ] as const;
 
 const STATUS_FILTERS = [
-  { id: 'all', label: 'Všetky' },
-  { id: 'pending', label: 'Čakajúce' },
-  { id: 'in_progress', label: 'V riešení' },
-  { id: 'resolved', label: 'Vyriešené' },
-  { id: 'rejected', label: 'Zamietnuté' },
+  { id: "all", label: "Všetky" },
+  { id: "pending", label: "Čakajúce" },
+  { id: "in_progress", label: "V riešení" },
+  { id: "resolved", label: "Vyriešené" },
+  { id: "rejected", label: "Zamietnuté" },
 ] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
-  odpad: 'Odpad a čistota',
-  cesty_chodniky: 'Cesty a chodníky',
-  zelen: 'Zeleň a parky',
-  osvetlenie: 'Verejné osvetlenie',
-  urad_sluzby: 'Úrad a služby',
-  ine: 'Iné',
+  odpad: "Odpad a čistota",
+  cesty_chodniky: "Cesty a chodníky",
+  zelen: "Zeleň a parky",
+  osvetlenie: "Verejné osvetlenie",
+  urad_sluzby: "Úrad a služby",
+  ine: "Iné",
 };
 
 export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onClose }) => {
@@ -65,8 +77,8 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
   const [inquiries, setInquiries] = useState<MayorInquiry[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
@@ -75,9 +87,9 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
-        document.body.style.overflow = '';
+        document.body.style.overflow = "";
       };
     }
   }, [isOpen]);
@@ -86,14 +98,14 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('mayor_inquiries')
-        .select('*, profiles!mayor_inquiries_user_id_fkey(name)')
-        .order('created_at', { ascending: false });
+        .from("mayor_inquiries")
+        .select("*, profiles!mayor_inquiries_user_id_fkey(name)")
+        .order("created_at", { ascending: false });
 
       if (!error && data) {
         const inquiries = data as unknown as MayorInquiry[];
         setInquiries(inquiries);
-        
+
         // Initialize answers and statuses from existing data
         const answersMap: Record<string, string> = {};
         const statusesMap: Record<string, string> = {};
@@ -105,53 +117,55 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
         setStatuses(statusesMap);
       }
     } catch (err) {
-      console.error('Error loading inquiries:', err);
-      triggerHaptic('error');
+      console.error("Error loading inquiries:", err);
+      triggerHaptic("error");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const id = window.setTimeout(() => {
       void loadInquiries();
-    }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [isOpen]);
 
   const filteredInquiries = inquiries.filter((inq) => {
-    const categoryMatch = selectedCategory === 'all' || inq.category === selectedCategory;
-    const statusMatch = selectedStatus === 'all' || inq.status === selectedStatus;
+    const categoryMatch = selectedCategory === "all" || inq.category === selectedCategory;
+    const statusMatch = selectedStatus === "all" || inq.status === selectedStatus;
     return categoryMatch && statusMatch;
   });
 
   const statusCounts = {
-    pending: inquiries.filter((i) => i.status === 'pending').length,
-    in_progress: inquiries.filter((i) => i.status === 'in_progress').length,
-    resolved: inquiries.filter((i) => i.status === 'resolved').length,
-    rejected: inquiries.filter((i) => i.status === 'rejected').length,
+    pending: inquiries.filter((i) => i.status === "pending").length,
+    in_progress: inquiries.filter((i) => i.status === "in_progress").length,
+    resolved: inquiries.filter((i) => i.status === "resolved").length,
+    rejected: inquiries.filter((i) => i.status === "rejected").length,
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'resolved':
+      case "resolved":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
             <CheckCircle2 className="h-3.5 w-3.5" /> Vyriešené
           </span>
         );
-      case 'in_progress':
+      case "in_progress":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/80 dark:text-blue-300">
             <Clock className="h-3.5 w-3.5" /> V riešení
           </span>
         );
-      case 'rejected':
+      case "rejected":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">
             <XCircle className="h-3.5 w-3.5" /> Zamietnuté
           </span>
         );
-      case 'pending':
+      case "pending":
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
@@ -163,48 +177,45 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
 
   const handleSubmitAnswers = async () => {
     if (selectedInquiries.size === 0) {
-      triggerHaptic('error');
-      alert('Vyberte aspoň jeden podnet.');
+      triggerHaptic("error");
+      alert("Vyberte aspoň jeden podnet.");
       return;
     }
 
     setSubmitting(true);
     try {
       for (const inquiryId of selectedInquiries) {
-        const answer = answers[inquiryId] || '';
-        const status = statuses[inquiryId] || 'pending';
+        const answer = answers[inquiryId] || "";
+        const status = statuses[inquiryId] || "pending";
 
         // If status is "resolved", delete the inquiry instead of updating it
-        if (status === 'resolved') {
-          const { error } = await supabase
-            .from('mayor_inquiries')
-            .delete()
-            .eq('id', inquiryId);
+        if (status === "resolved") {
+          const { error } = await supabase.from("mayor_inquiries").delete().eq("id", inquiryId);
 
           if (error) throw error;
         } else {
           // Otherwise update with answer and status
           const { error } = await supabase
-            .from('mayor_inquiries')
+            .from("mayor_inquiries")
             .update({
               answer: answer || null,
               status,
               answered_at: answer ? new Date().toISOString() : null,
               answered_by: userId,
             })
-            .eq('id', inquiryId);
+            .eq("id", inquiryId);
 
           if (error) throw error;
         }
       }
 
-      triggerHaptic('success');
+      triggerHaptic("success");
       setSelectedInquiries(new Set());
       await loadInquiries();
     } catch (err) {
-      console.error('Error submitting answers:', err);
-      triggerHaptic('error');
-      alert('Chyba pri ukladaní. Skúste neskôr.');
+      console.error("Error submitting answers:", err);
+      triggerHaptic("error");
+      alert("Chyba pri ukladaní. Skúste neskôr.");
     } finally {
       setSubmitting(false);
     }
@@ -232,9 +243,9 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
           {/* Fullscreen Dashboard */}
           <motion.div
             className="fixed inset-0 z-[100] flex flex-col h-full w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 overflow-hidden"
-            initial={{ opacity: 0, y: '100%' }}
+            initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
+            exit={{ opacity: 0, y: "100%" }}
           >
             {/* HEADER */}
             <div className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
@@ -261,19 +272,29 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
               {/* Status Counts */}
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-2 border border-amber-200 dark:border-amber-800">
-                  <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{statusCounts.pending}</div>
+                  <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                    {statusCounts.pending}
+                  </div>
                   <div className="text-[11px] text-amber-600 dark:text-amber-400">Čaká</div>
                 </div>
                 <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-2 border border-blue-200 dark:border-blue-800">
-                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{statusCounts.in_progress}</div>
+                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                    {statusCounts.in_progress}
+                  </div>
                   <div className="text-[11px] text-blue-600 dark:text-blue-400">V riešení</div>
                 </div>
                 <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-2 border border-emerald-200 dark:border-emerald-800">
-                  <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{statusCounts.resolved}</div>
-                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400">Vyriešené</div>
+                  <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                    {statusCounts.resolved}
+                  </div>
+                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                    Vyriešené
+                  </div>
                 </div>
                 <div className="rounded-lg bg-rose-50 dark:bg-rose-950/30 p-2 border border-rose-200 dark:border-rose-800">
-                  <div className="text-2xl font-bold text-rose-700 dark:text-rose-300">{statusCounts.rejected}</div>
+                  <div className="text-2xl font-bold text-rose-700 dark:text-rose-300">
+                    {statusCounts.rejected}
+                  </div>
                   <div className="text-[11px] text-rose-600 dark:text-rose-400">Zamietnuté</div>
                 </div>
               </div>
@@ -286,10 +307,10 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                       key={s.id}
                       onClick={() => setSelectedStatus(s.id)}
                       className={cn(
-                        'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                        "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                         selectedStatus === s.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300",
                       )}
                     >
                       {s.label}
@@ -302,10 +323,10 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                       key={c.id}
                       onClick={() => setSelectedCategory(c.id)}
                       className={cn(
-                        'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                        "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                         selectedCategory === c.id
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300",
                       )}
                     >
                       {c.label}
@@ -352,13 +373,11 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                         <h4 className="font-semibold text-sm">{inq.title}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           {inq.is_anonymous_public && inq.is_public
-                            ? 'Anonymný občan'
-                            : inq.profiles?.full_name || inq.profiles?.name || 'Neznámy'}
+                            ? "Anonymný občan"
+                            : inq.profiles?.full_name || inq.profiles?.name || "Neznámy"}
                         </p>
                       </div>
-                      <div className="flex gap-1">
-                        {getStatusBadge(inq.status)}
-                      </div>
+                      <div className="flex gap-1">{getStatusBadge(inq.status)}</div>
                     </div>
 
                     {/* Body */}
@@ -393,7 +412,7 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                       onClick={() => setExpandedId(expandedId === inq.id ? null : inq.id)}
                       className="ml-7 text-xs text-blue-600 dark:text-blue-400 hover:underline mb-2"
                     >
-                      {expandedId === inq.id ? 'Skryť' : 'Odpoveď'}
+                      {expandedId === inq.id ? "Skryť" : "Odpoveď"}
                     </button>
 
                     {expandedId === inq.id && (
@@ -403,9 +422,7 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                           <label className="text-xs font-medium block mb-1">Stav:</label>
                           <select
                             value={statuses[inq.id] || inq.status}
-                            onChange={(e) =>
-                              setStatuses({ ...statuses, [inq.id]: e.target.value })
-                            }
+                            onChange={(e) => setStatuses({ ...statuses, [inq.id]: e.target.value })}
                             className="w-full rounded px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-700"
                           >
                             <option value="pending">Čaká na vybavenie</option>
@@ -419,10 +436,8 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                         <div>
                           <label className="text-xs font-medium block mb-1">Odpoveď:</label>
                           <textarea
-                            value={answers[inq.id] || ''}
-                            onChange={(e) =>
-                              setAnswers({ ...answers, [inq.id]: e.target.value })
-                            }
+                            value={answers[inq.id] || ""}
+                            onChange={(e) => setAnswers({ ...answers, [inq.id]: e.target.value })}
                             placeholder="Napíšte odpoveď..."
                             rows={3}
                             className="w-full rounded px-2 py-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-700 resize-none"

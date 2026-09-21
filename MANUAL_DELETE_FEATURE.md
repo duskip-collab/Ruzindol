@@ -5,10 +5,12 @@
 ### 1. **Manuálne mazanie kandidátov** (Detail modal)
 
 **Kde sa mazá:**
+
 - Otvorenie detailného modálu kandidáta (klik na kartu kandidáta)
 - Tlačítko s ikonou koša v pravom rohu modálu (viditeľné len pre admin/starosta/úradník)
 
 **Ako to funguje:**
+
 1. Klik na kandidáta → Otvorí sa detail modal
 2. Admin/starosta/úradník → Vidí červené tlačítko koša vpravo hore
 3. Klik na tlačítko → Zobrazí sa potvrdenie "Vymazať kandidáta?"
@@ -17,6 +19,7 @@
 6. Kandidát zanikne zo sekcie Voľby
 
 **Kód zmien:**
+
 - `src/components/elections/CandidateModal.tsx`
   - Pridané: `onDelete?: (candidateId: string) => Promise<void>`
   - Pridané: `isAdmin?: boolean`
@@ -32,11 +35,13 @@
 ### 2. **Manuálne mazanie prílohy** (Dokumenty sekcia)
 
 **Kde sa mazá:**
+
 - Sekcia "Dokumenty a fotografie" v main view
 - Tlačítko s ikonou koša v pravom rohu každej prílohy
 - Viditeľné pri hover (len pre admin/starosta/úradník)
 
 **Ako to funguje:**
+
 1. Prejsť na Voľby sekciu
 2. Nájsť "Dokumenty a fotografie"
 3. Pri hover nad prílohou → Zobrazí sa delete tlačítko
@@ -45,6 +50,7 @@
 6. Download link zanikne
 
 **Kód zmien:**
+
 - `src/screens/ElectionsScreen.tsx`
   - Pridaná: `handleDeleteAttachment()` funkcia
   - Zmena: Prílohy z `<a>` na `<div>` štruktúru
@@ -101,6 +107,7 @@
 ## 🔄 DATA FLOW
 
 ### Mazaní kandidáta:
+
 ```
 User clicks delete → Dialog confirm → handleDeleteCandidate()
   ↓
@@ -112,6 +119,7 @@ Modal closes, candidate removed from grid
 ```
 
 ### Mazaní prílohy:
+
 ```
 User hovers attachment → Delete button appears
   ↓
@@ -129,6 +137,7 @@ Attachment removed from grid
 ## 📊 ZMENY V SÚBOROCH
 
 ### 1. CandidateModal.tsx
+
 ```typescript
 // Nové props:
 - onDelete?: (candidateId: string) => Promise<void>
@@ -147,6 +156,7 @@ Attachment removed from grid
 ```
 
 ### 2. ElectionsScreen.tsx
+
 ```typescript
 // Nové importy:
 - Trash2 z lucide-react
@@ -166,12 +176,14 @@ Attachment removed from grid
 ## ✅ DÔLEŽITÉ BODY
 
 ### Bezpečnosť:
+
 - ✅ Delete je dostupný iba pre admin/starosta/úradník
 - ✅ Kontrola oprávnenia pred zobrazením tlačítka
 - ✅ Potvrdenie pred mazaním (delete dialog)
 - ✅ Haptic feedback na akcii
 
 ### UX:
+
 - ✅ Delete tlačítko viditeľné len pri hover (prílohy)
 - ✅ Jasný dialóg s potvrdením
 - ✅ Modal sa automaticky zatvára po mazaní
@@ -179,6 +191,7 @@ Attachment removed from grid
 - ✅ Bez staré záznamy - reálny delete z DB
 
 ### Performance:
+
 - ✅ Bez N+1 queries
 - ✅ Efektívne loadData() s jedným callom
 - ✅ Minimal re-renders
@@ -219,4 +232,3 @@ Attachment removed from grid
 **Status**: ✅ **HOTOVO**
 **Build Status**: ✅ **ÚSPEŠNE**
 **Prípravný dátum**: 8. september 2026 (v čase psania)
-

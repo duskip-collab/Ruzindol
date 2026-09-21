@@ -94,8 +94,8 @@ export function NearbyCatalog() {
               onClick={() => setFilter(f.key)}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                 active
-                    ? "btn-primary-glow shadow-sm"
-                    : "chip-muted hover:bg-[color:var(--bg-surface-hover)]"
+                  ? "btn-primary-glow shadow-sm"
+                  : "chip-muted hover:bg-[color:var(--bg-surface-hover)]"
               }`}
             >
               <span className="mr-1">{f.emoji}</span>
@@ -150,7 +150,9 @@ function ItemTile({ item }: { item: Row }) {
       </div>
       <div className="flex flex-col gap-0.5 p-2">
         <h4 className="line-clamp-1 text-xs font-semibold text-foreground">{item.title}</h4>
-        <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground">{item.description}</p>
+        <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground">
+          {item.description}
+        </p>
         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
           {item.profiles?.name ?? "Sused"}
         </p>

@@ -82,17 +82,72 @@ const PRIORITY_META: Record<Priority, { label: string; dot: string; ring: string
   };
 
 const TILES = [
-  { id: "podnety", label: "PODNETY", icon: <MessageSquare className="h-5 w-5" />, colorClass: "bg-emerald-600 text-white" },
-  { id: "calendar", label: "Zdieľaný kalendár", icon: <CalendarDays className="h-5 w-5" />, colorClass: "bg-blue-500 text-white" },
-  { id: "rss", label: "RSS oznamy obce", icon: <Rss className="h-5 w-5" />, colorClass: "bg-emerald-500 text-white" },
-  { id: "odpad", label: "Kalendár zberu odpadu", icon: <Recycle className="h-5 w-5" />, colorClass: "bg-amber-800 text-white" },
-  { id: "kontakty", label: "Stránkové dni & Kontakty OÚ", icon: <Building2 className="h-5 w-5" />, colorClass: "bg-slate-600 text-white" },
-  { id: "rozhlas", label: "Digitálny rozhlas", icon: <Radio className="h-5 w-5" />, colorClass: "bg-orange-500 text-white" },
-  { id: "dhz", label: "DHZ Ružindol", icon: <Flame className="h-5 w-5" />, colorClass: "bg-red-500 text-white" },
-  { id: "osk", label: "OŠK Ružindol", icon: <Trophy className="h-5 w-5" />, colorClass: "bg-indigo-500 text-white" },
-  { id: "seniori", label: "Dôchodcovia", icon: <HeartHandshake className="h-5 w-5" />, colorClass: "bg-rose-500 text-white" },
-  { id: "farnost", label: "Farnosť", icon: <Church className="h-5 w-5" />, colorClass: "bg-purple-600 text-white" },
-  { id: "sluzby", label: "Služby & Firmy", icon: <Wrench className="h-5 w-5" />, colorClass: "bg-teal-600 text-white" },
+  {
+    id: "podnety",
+    label: "PODNETY",
+    icon: <MessageSquare className="h-5 w-5" />,
+    colorClass: "bg-emerald-600 text-white",
+  },
+  {
+    id: "calendar",
+    label: "Zdieľaný kalendár",
+    icon: <CalendarDays className="h-5 w-5" />,
+    colorClass: "bg-blue-500 text-white",
+  },
+  {
+    id: "rss",
+    label: "RSS oznamy obce",
+    icon: <Rss className="h-5 w-5" />,
+    colorClass: "bg-emerald-500 text-white",
+  },
+  {
+    id: "odpad",
+    label: "Kalendár zberu odpadu",
+    icon: <Recycle className="h-5 w-5" />,
+    colorClass: "bg-amber-800 text-white",
+  },
+  {
+    id: "kontakty",
+    label: "Stránkové dni & Kontakty OÚ",
+    icon: <Building2 className="h-5 w-5" />,
+    colorClass: "bg-slate-600 text-white",
+  },
+  {
+    id: "rozhlas",
+    label: "Digitálny rozhlas",
+    icon: <Radio className="h-5 w-5" />,
+    colorClass: "bg-orange-500 text-white",
+  },
+  {
+    id: "dhz",
+    label: "DHZ Ružindol",
+    icon: <Flame className="h-5 w-5" />,
+    colorClass: "bg-red-500 text-white",
+  },
+  {
+    id: "osk",
+    label: "OŠK Ružindol",
+    icon: <Trophy className="h-5 w-5" />,
+    colorClass: "bg-indigo-500 text-white",
+  },
+  {
+    id: "seniori",
+    label: "Dôchodcovia",
+    icon: <HeartHandshake className="h-5 w-5" />,
+    colorClass: "bg-rose-500 text-white",
+  },
+  {
+    id: "farnost",
+    label: "Farnosť",
+    icon: <Church className="h-5 w-5" />,
+    colorClass: "bg-purple-600 text-white",
+  },
+  {
+    id: "sluzby",
+    label: "Služby & Firmy",
+    icon: <Wrench className="h-5 w-5" />,
+    colorClass: "bg-teal-600 text-white",
+  },
 ];
 
 function timeAgo(iso: string) {
@@ -118,8 +173,8 @@ export function AktualityScreen() {
   const [activeTile, setActiveTile] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
-  const isOfficialOrAdmin = profile?.is_admin || profile?.role === "Starosta" || profile?.role === "Uradnik";
-  const showElections = electionsEnabled || isOfficialOrAdmin;
+  const isOfficial = profile?.role === "Starosta" || profile?.role === "Uradnik";
+  const showElections = electionsEnabled || isOfficial;
 
   const dynamicTiles = useMemo(() => {
     if (!showElections) return TILES;
@@ -170,13 +225,11 @@ export function AktualityScreen() {
         .eq("source", "internal")
         .order("published_at", { ascending: false })
         .limit(120),
-      supabase
-        .from("municipality_office_info")
-        .select("*")
-        .maybeSingle(),
+      supabase.from("municipality_office_info").select("*").maybeSingle(),
     ]);
 
-    if (rssRes.error) console.warn("[RSS] Supabase načítanie zlyhalo, zobrazujem dostupné dáta.", rssRes.error);
+    if (rssRes.error)
+      console.warn("[RSS] Supabase načítanie zlyhalo, zobrazujem dostupné dáta.", rssRes.error);
     if (internalRes.error) console.error("Internal announcements load failed", internalRes.error);
 
     const rssItems = (rssRes.data as Announcement[] | null) ?? [];
@@ -240,17 +293,12 @@ export function AktualityScreen() {
 
     let res;
     if (officeInfo?.id) {
-      res = await supabase
-        .from("municipality_office_info")
-        .update(payload)
-        .eq("id", officeInfo.id);
+      res = await supabase.from("municipality_office_info").update(payload).eq("id", officeInfo.id);
     } else {
-      res = await supabase
-        .from("municipality_office_info")
-        .insert({
-          ...payload,
-          municipality_id: profile?.municipality_id ?? null,
-        });
+      res = await supabase.from("municipality_office_info").insert({
+        ...payload,
+        municipality_id: profile?.municipality_id ?? null,
+      });
     }
 
     if (res.error) {
@@ -310,7 +358,9 @@ export function AktualityScreen() {
           <div className="flex flex-col gap-6 py-4">
             <div className="text-center md:text-left">
               <h2 className="text-lg font-bold text-foreground">Vyberte si sekciu</h2>
-              <p className="text-xs text-muted-foreground">Kliknutím na dlaždicu otvoríte príslušný modul na celú stranu.</p>
+              <p className="text-xs text-muted-foreground">
+                Kliknutím na dlaždicu otvoríte príslušný modul na celú stranu.
+              </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {dynamicTiles.map((t) => (
@@ -318,15 +368,19 @@ export function AktualityScreen() {
                   key={t.id}
                   type="button"
                   onClick={() => {
-                    triggerHaptic('light');
+                    triggerHaptic("light");
                     setActiveTile(t.id);
                   }}
                   className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)] shadow-sm"
                 >
-                  <span className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm ${t.colorClass}`}>
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm ${t.colorClass}`}
+                  >
                     {t.icon}
                   </span>
-                  <span className="text-xs font-semibold leading-tight text-foreground">{t.label}</span>
+                  <span className="text-xs font-semibold leading-tight text-foreground">
+                    {t.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -337,7 +391,7 @@ export function AktualityScreen() {
               <button
                 type="button"
                 onClick={() => {
-                  triggerHaptic('light');
+                  triggerHaptic("light");
                   setActiveTile(null);
                 }}
                 className="btn-primary-glow flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold"
@@ -351,219 +405,243 @@ export function AktualityScreen() {
             </div>
 
             <div className="flex-1 pb-8">
-            {activeTile === "elections" && <ElectionsScreen />}
-            {activeTile === "podnety" && <InquiriesScreen />}
-            {activeTile === "calendar" && <SharedCalendar />}
-            {activeTile === "odpad" && <SharedCalendar categoryFilter="odpad" />}
-            {activeTile === "rss" && (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">Oficiálne oznamy a RSS obce</h2>
-                  <span className="text-xs text-muted-foreground">{rssAnnouncements.length} oznamov</span>
-                </div>
-                {loading ? (
-                  <div className="flex items-center justify-center py-16 text-neutral-400">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : rssAnnouncements.length === 0 ? (
-                  <p className="py-12 text-center text-xs text-neutral-500">Zatiaľ žiadne oznamy.</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                    {rssAnnouncements
-                      .filter((it) => pinOrder.includes(it.priority))
-                      .map((it) => (
-                      <AnnouncementCard
-                        key={it.id}
-                        item={it}
-                        pinned
-                        canDelete={isAdmin}
-                        onDelete={() => handleDelete(it.id)}
-                      />
-                    ))}
-                    {rssAnnouncements
-                      .filter((it) => !pinOrder.includes(it.priority))
-                      .map((it) => (
-                      <AnnouncementCard
-                        key={it.id}
-                        item={it}
-                        canDelete={isAdmin}
-                        onDelete={() => handleDelete(it.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {activeTile === "rozhlas" && (
-              <div className="flex flex-col gap-5">
-                <div className="app-card rounded-3xl p-5 shadow-sm space-y-4">
+              {activeTile === "elections" && <ElectionsScreen />}
+              {activeTile === "podnety" && <InquiriesScreen />}
+              {activeTile === "calendar" && <SharedCalendar />}
+              {activeTile === "odpad" && <SharedCalendar categoryFilter="odpad" />}
+              {activeTile === "rss" && (
+                <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <Radio className="h-4 w-4 text-primary" /> Digitálny rozhlas
+                    <h2 className="text-sm font-semibold text-foreground">
+                      Oficiálne oznamy a RSS obce
                     </h2>
                     <span className="text-xs text-muted-foreground">
-                      {internalAnnouncements.length} aktívnych hlásení
+                      {rssAnnouncements.length} oznamov
                     </span>
                   </div>
-
-                  {isAdmin && (
-                    <div className="border-b pb-4 mb-4">
-                      <DigitalnyRozhlas
-                        userId={userId}
-                        onPosted={() => {
-                          setSyncing(true);
-                          void load().finally(() => setSyncing(false));
-                        }}
-                      />
+                  {loading ? (
+                    <div className="flex items-center justify-center py-16 text-neutral-400">
+                      <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
-                  )}
-
-                  {internalAnnouncements.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-3">
-                      {internalAnnouncements.map((it) => (
-                        <AnnouncementCard
-                          key={it.id}
-                          item={it}
-                          canDelete={isAdmin}
-                          onDelete={() => handleDelete(it.id)}
-                        />
-                      ))}
-                    </div>
+                  ) : rssAnnouncements.length === 0 ? (
+                    <p className="py-12 text-center text-xs text-neutral-500">
+                      Zatiaľ žiadne oznamy.
+                    </p>
                   ) : (
-                    <div className="py-16 text-center text-sm text-neutral-500 dark:text-neutral-400">
-                      Aktuálne nie je k dispozícii
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {activeTile === "kontakty" && (
-              <div className="app-card rounded-3xl p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-primary" /> Stránkové dni & Kontakty OÚ Ružindol
-                  </h2>
-                  {isAdmin && !editingKontakty && (
-                    <button
-                      onClick={() => setEditingKontakty(true)}
-                      className="btn-primary-glow px-3 py-1.5 text-xs font-semibold rounded-xl"
-                    >
-                      Upraviť kontakty
-                    </button>
-                  )}
-                </div>
-
-                {editingKontakty ? (
-                  <form onSubmit={saveKontakty} className="space-y-4 pt-2">
-                    {kontaktyError && (
-                      <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-600 dark:bg-rose-950/50 dark:text-rose-300">
-                        {kontaktyError}
-                      </div>
-                    )}
-                    <label className="block">
-                      <span className="text-xs font-medium text-muted-foreground">Úradné hodiny (každý deň na nový riadok)</span>
-                      <textarea
-                        value={editOfficeHours}
-                        onChange={(e) => setEditOfficeHours(e.target.value)}
-                        rows={5}
-                        className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                        required
-                      />
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted-foreground">Adresa</span>
-                        <input
-                          value={editAddress}
-                          onChange={(e) => setEditAddress(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                          required
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted-foreground">Telefón</span>
-                        <input
-                          value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                          required
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted-foreground">E-mail</span>
-                        <input
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                          required
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted-foreground">Starosta / Predstaviteľ</span>
-                        <input
-                          value={editMayor}
-                          onChange={(e) => setEditMayor(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-                          required
-                        />
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2 pt-2">
-                      <button
-                        type="submit"
-                        disabled={kontaktyBusy}
-                        className="btn-primary-glow px-4 py-2 text-xs font-semibold rounded-xl disabled:opacity-50"
-                      >
-                        {kontaktyBusy ? "Ukladá sa..." : "Uložiť zmeny"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingKontakty(false);
-                          if (officeInfo) {
-                            setEditOfficeHours(officeInfo.office_hours);
-                            setEditAddress(officeInfo.address);
-                            setEditPhone(officeInfo.phone);
-                            setEditEmail(officeInfo.email);
-                            setEditMayor(officeInfo.mayor);
-                          }
-                        }}
-                        className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
-                      >
-                        Zrušiť
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="app-surface-muted p-4 rounded-2xl space-y-2">
-                      <h3 className="font-semibold text-foreground">Úradné hodiny</h3>
-                      {(officeInfo?.office_hours ?? "Pondelok: 8:00 - 12:00 | 12:30 - 15:30\nUtorok: nestránkový deň\nStreda: 8:00 - 12:00 | 12:30 - 17:00\nŠtvrtok: nestránkový deň\nPiatok: 8:00 - 13:00")
-                        .split("\n")
-                        .map((line, idx) => (
-                          <p key={idx} className="text-xs text-muted-foreground">{line}</p>
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      {rssAnnouncements
+                        .filter((it) => pinOrder.includes(it.priority))
+                        .map((it) => (
+                          <AnnouncementCard
+                            key={it.id}
+                            item={it}
+                            pinned
+                            canDelete={isAdmin}
+                            onDelete={() => handleDelete(it.id)}
+                          />
+                        ))}
+                      {rssAnnouncements
+                        .filter((it) => !pinOrder.includes(it.priority))
+                        .map((it) => (
+                          <AnnouncementCard
+                            key={it.id}
+                            item={it}
+                            canDelete={isAdmin}
+                            onDelete={() => handleDelete(it.id)}
+                          />
                         ))}
                     </div>
-                    <div className="app-surface-muted p-4 rounded-2xl space-y-2">
-                      <h3 className="font-semibold text-foreground">Kontaktné údaje</h3>
-                      <p className="text-xs text-muted-foreground">Adresa: {officeInfo?.address ?? "Obecný úrad Ružindol, 919 61 Ružindol"}</p>
-                      <p className="text-xs text-muted-foreground">Telefón: {officeInfo?.phone ?? "033 / 5511 223"}</p>
-                      <p className="text-xs text-muted-foreground">E-mail: {officeInfo?.email ?? "ou@ruzindol.sk"}</p>
-                      <p className="text-xs text-muted-foreground">Starosta: {officeInfo?.mayor ?? "PhDr. Starosta obce"}</p>
+                  )}
+                </div>
+              )}
+              {activeTile === "rozhlas" && (
+                <div className="flex flex-col gap-5">
+                  <div className="app-card rounded-3xl p-5 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Radio className="h-4 w-4 text-primary" /> Digitálny rozhlas
+                      </h2>
+                      <span className="text-xs text-muted-foreground">
+                        {internalAnnouncements.length} aktívnych hlásení
+                      </span>
                     </div>
+
+                    {isAdmin && (
+                      <div className="border-b pb-4 mb-4">
+                        <DigitalnyRozhlas
+                          userId={userId}
+                          onPosted={() => {
+                            setSyncing(true);
+                            void load().finally(() => setSyncing(false));
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {internalAnnouncements.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {internalAnnouncements.map((it) => (
+                          <AnnouncementCard
+                            key={it.id}
+                            item={it}
+                            canDelete={isAdmin}
+                            onDelete={() => handleDelete(it.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-16 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                        Aktuálne nie je k dispozícii
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-            {activeTile === "dhz" && <AktualityGroupsPanel initialGroup="dhz" />}
-            {activeTile === "osk" && <AktualityGroupsPanel initialGroup="osk_ruzindol" />}
-            {activeTile === "seniori" && <AktualityGroupsPanel initialGroup="dochodcovia" />}
-            {activeTile === "farnost" && <AktualityGroupsPanel initialGroup="farnost" />}
-            {activeTile === "sluzby" && <AktualityGroupsPanel initialGroup="sluzby" />}
+                </div>
+              )}
+              {activeTile === "kontakty" && (
+                <div className="app-card rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" /> Stránkové dni & Kontakty OÚ
+                      Ružindol
+                    </h2>
+                    {isAdmin && !editingKontakty && (
+                      <button
+                        onClick={() => setEditingKontakty(true)}
+                        className="btn-primary-glow px-3 py-1.5 text-xs font-semibold rounded-xl"
+                      >
+                        Upraviť kontakty
+                      </button>
+                    )}
+                  </div>
+
+                  {editingKontakty ? (
+                    <form onSubmit={saveKontakty} className="space-y-4 pt-2">
+                      {kontaktyError && (
+                        <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-600 dark:bg-rose-950/50 dark:text-rose-300">
+                          {kontaktyError}
+                        </div>
+                      )}
+                      <label className="block">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Úradné hodiny (každý deň na nový riadok)
+                        </span>
+                        <textarea
+                          value={editOfficeHours}
+                          onChange={(e) => setEditOfficeHours(e.target.value)}
+                          rows={5}
+                          className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                          required
+                        />
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label className="block">
+                          <span className="text-xs font-medium text-muted-foreground">Adresa</span>
+                          <input
+                            value={editAddress}
+                            onChange={(e) => setEditAddress(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                            required
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-medium text-muted-foreground">Telefón</span>
+                          <input
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                            required
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-medium text-muted-foreground">E-mail</span>
+                          <input
+                            value={editEmail}
+                            onChange={(e) => setEditEmail(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                            required
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Starosta / Predstaviteľ
+                          </span>
+                          <input
+                            value={editMayor}
+                            onChange={(e) => setEditMayor(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                            required
+                          />
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          type="submit"
+                          disabled={kontaktyBusy}
+                          className="btn-primary-glow px-4 py-2 text-xs font-semibold rounded-xl disabled:opacity-50"
+                        >
+                          {kontaktyBusy ? "Ukladá sa..." : "Uložiť zmeny"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingKontakty(false);
+                            if (officeInfo) {
+                              setEditOfficeHours(officeInfo.office_hours);
+                              setEditAddress(officeInfo.address);
+                              setEditPhone(officeInfo.phone);
+                              setEditEmail(officeInfo.email);
+                              setEditMayor(officeInfo.mayor);
+                            }
+                          }}
+                          className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                        >
+                          Zrušiť
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="app-surface-muted p-4 rounded-2xl space-y-2">
+                        <h3 className="font-semibold text-foreground">Úradné hodiny</h3>
+                        {(
+                          officeInfo?.office_hours ??
+                          "Pondelok: 8:00 - 12:00 | 12:30 - 15:30\nUtorok: nestránkový deň\nStreda: 8:00 - 12:00 | 12:30 - 17:00\nŠtvrtok: nestránkový deň\nPiatok: 8:00 - 13:00"
+                        )
+                          .split("\n")
+                          .map((line, idx) => (
+                            <p key={idx} className="text-xs text-muted-foreground">
+                              {line}
+                            </p>
+                          ))}
+                      </div>
+                      <div className="app-surface-muted p-4 rounded-2xl space-y-2">
+                        <h3 className="font-semibold text-foreground">Kontaktné údaje</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Adresa: {officeInfo?.address ?? "Obecný úrad Ružindol, 919 61 Ružindol"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Telefón: {officeInfo?.phone ?? "033 / 5511 223"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          E-mail: {officeInfo?.email ?? "ou@ruzindol.sk"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Starosta: {officeInfo?.mayor ?? "PhDr. Starosta obce"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTile === "dhz" && <AktualityGroupsPanel initialGroup="dhz" />}
+              {activeTile === "osk" && <AktualityGroupsPanel initialGroup="osk_ruzindol" />}
+              {activeTile === "seniori" && <AktualityGroupsPanel initialGroup="dochodcovia" />}
+              {activeTile === "farnost" && <AktualityGroupsPanel initialGroup="farnost" />}
+              {activeTile === "sluzby" && <AktualityGroupsPanel initialGroup="sluzby" />}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
 
       {showForm && isAdmin && userId && (
         <AdminForm
@@ -643,7 +721,8 @@ function AnnouncementCard({
           </audio>
           {isLegacyWebmOnIos && (
             <p className="mt-1 text-[11px] text-amber-700">
-              Staršia nahrávka WEBM môže mať na iPhone problém s prehratím. Pri nových nahrávkach už ukladáme iOS kompatibilný formát.
+              Staršia nahrávka WEBM môže mať na iPhone problém s prehratím. Pri nových nahrávkach už
+              ukladáme iOS kompatibilný formát.
             </p>
           )}
         </div>
@@ -737,9 +816,14 @@ function AdminForm({
           <h2 className="font-semibold">📝 Nový oznam (admin)</h2>
         </div>
 
-        <form onSubmit={submit} className={`flex flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
+        <form
+          onSubmit={submit}
+          className={`flex flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}
+        >
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Typ / Priorita</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Typ / Priorita
+            </label>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {(Object.keys(PRIORITY_META) as Priority[]).map((p) => {
                 const m = PRIORITY_META[p];
@@ -769,7 +853,9 @@ function AdminForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Názov príspevku</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Názov príspevku
+            </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -780,7 +866,9 @@ function AdminForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Obsah / Text</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Obsah / Text
+            </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -791,7 +879,9 @@ function AdminForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Dátum publikovania</label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              Dátum publikovania
+            </label>
             <input
               type="datetime-local"
               value={publishedAt}

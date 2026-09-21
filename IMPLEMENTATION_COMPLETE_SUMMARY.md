@@ -12,6 +12,7 @@
 ### 🆕 Nové Súbory
 
 #### 1. **Databázová Migrácia**
+
 - **Súbor:** `supabase/migrations/20260908120000_elections_management.sql`
 - **Čo:** Vytvorenie tabuliek `elections` a `elections_attachments` s RLS políciami
 - **Včetne:** Rozšírenie `election_candidates` o `election_id` a `sort_order`
@@ -19,6 +20,7 @@
 #### 2. **Komponenty (React/TypeScript)**
 
 ##### a) `src/components/elections/ElectionsEditModal.tsx`
+
 - **Veľkosť:** 23.5 KB
 - **Čo:** Hlavný modal na editáciu volieb s 4 kartami
 - **Funkcie:**
@@ -30,6 +32,7 @@
 - **TypeScript:** Plne typované s interfaces
 
 ##### b) `src/components/elections/ElectionsAttachmentUpload.tsx`
+
 - **Veľkosť:** 7.7 KB
 - **Čo:** Komponent na upload PDF a obrázkov s drag&drop
 - **Funkcie:**
@@ -44,6 +47,7 @@
 #### 3. **Dokumentácia**
 
 ##### a) `ELECTIONS_MANAGEMENT_IMPLEMENTATION.md`
+
 - **Kompletný popis** všetkých tabúľ a funkcionalitu
 - **API interfaces** - TypeScript typy
 - **Workflow** - Postup uloženia dát
@@ -51,6 +55,7 @@
 - **Poznámky** - Limitácie a rozšírenia
 
 ##### b) `ELECTIONS_DEPLOYMENT_GUIDE_SK.md`
+
 - **Krok za krokom sprievodca** na nasadenie
 - **Inštalačné pokyny** - Migrácia, Storage, Polícia
 - **Testovanie** - Manuálne a unit testy
@@ -62,6 +67,7 @@
 ### ✏️ Upravené Súbory
 
 #### 1. **src/screens/ElectionsScreen.tsx**
+
 - **Zmeny:**
   - Import `Edit3` ikony z `lucide-react`
   - Import `ElectionsEditModal` a `ElectionsData` interface
@@ -115,6 +121,7 @@
 ### Nové Tabuľky:
 
 #### `elections`
+
 ```sql
 id UUID PRIMARY KEY
 name TEXT NOT NULL
@@ -128,6 +135,7 @@ updated_at TIMESTAMPTZ DEFAULT now()
 ```
 
 #### `elections_attachments`
+
 ```sql
 id UUID PRIMARY KEY
 election_id UUID FK → elections (CASCADE DELETE)
@@ -144,12 +152,14 @@ created_at TIMESTAMPTZ DEFAULT now()
 ### Rozšírené Tabuľky:
 
 #### `election_candidates` (pridané stĺpce)
+
 ```sql
 election_id UUID FK → elections (nullable)
 sort_order INTEGER DEFAULT 0
 ```
 
 ### Indeksy:
+
 ```sql
 - idx_election_candidates_election_id
 - idx_elections_attachments_election_id
@@ -161,20 +171,25 @@ sort_order INTEGER DEFAULT 0
 ## 🔒 Bezpečnosť (RLS Polícia)
 
 ### elections - READ
+
 - ✅ Autentifikovaní: Iba `is_active = true`
 - ✅ Admin/Starosta/Úradník: Všetko
 
 ### elections - WRITE (INSERT/UPDATE/DELETE)
+
 - ✅ Admin/Starosta/Úradník: Povolené
 
 ### elections_attachments - READ
+
 - ✅ Autentifikovaní: Len k aktívnym voľbám
 - ✅ Admin/Starosta/Úradník: Všetko
 
 ### elections_attachments - WRITE
+
 - ✅ Admin/Starosta/Úradník: Povolené
 
 ### Supabase Storage (elections bucket)
+
 - ✅ PUBLIC READ
 - ✅ Authenticated UPLOAD/DELETE
 
@@ -183,6 +198,7 @@ sort_order INTEGER DEFAULT 0
 ## 🧪 Testovanie
 
 ### ✅ Build Testing
+
 ```
 Build: ✅ SUCCESS
 Command: npm run build
@@ -191,6 +207,7 @@ Status: Bez TypeScript chýb
 ```
 
 ### ✅ Komponenty
+
 - [x] `ElectionsEditModal` - Otestovaný s 4 kartami
 - [x] `ElectionsAttachmentUpload` - Drag&drop, validácia
 - [x] `ElectionsScreen` rozšírenie - Edit tlačidlo, integrácia
@@ -201,6 +218,7 @@ Status: Bez TypeScript chýb
 - [x] Haptic feedback
 
 ### ✅ Logika
+
 - [x] Vytvorenie nových volieb
 - [x] Editácia existujúcich volieb
 - [x] Dynamické pridávanie kandidátov (bez limitov)
@@ -247,16 +265,19 @@ Status: Bez TypeScript chýb
 ## 📈 Performance
 
 ### Build Size Impact
+
 - **CSS:** +0 KB (shared styling)
 - **JS:** +150 KB (nové komponenty)
 - **Total:** Minimal impact na bundle
 
 ### Load Time
+
 - **Modal open:** <100ms (lazy load)
 - **Upload:** ~1s za 1MB (závisí od internetu)
 - **Save candidates:** ~100ms na 10 kandidátov
 
 ### Database
+
 - **Create election:** ~10ms
 - **Insert 50 candidates:** ~50ms
 - **Upsert attachments:** ~20ms
@@ -266,13 +287,14 @@ Status: Bez TypeScript chýb
 ## 📚 API Interfaces
 
 ### ElectionsData
+
 ```typescript
 interface ElectionsData {
   id?: string;
   name: string;
   description?: string;
   election_date?: string;
-  status?: 'draft' | 'active' | 'closed';
+  status?: "draft" | "active" | "closed";
   candidates_mayor: CandidateRow[];
   candidates_council: CandidateRow[];
   attachments: AttachmentFile[];
@@ -280,12 +302,13 @@ interface ElectionsData {
 ```
 
 ### CandidateRow
+
 ```typescript
 interface CandidateRow {
   id?: string;
   full_name: string;
   party_or_independent: string;
-  position_type: 'starosta' | 'poslanec';
+  position_type: "starosta" | "poslanec";
   age?: number | null;
   profession?: string | null;
   motto?: string | null;
@@ -300,11 +323,12 @@ interface CandidateRow {
 ```
 
 ### AttachmentFile
+
 ```typescript
 interface AttachmentFile {
   id: string;
   file_name: string;
-  file_type: 'pdf' | 'image';
+  file_type: "pdf" | "image";
   file_url: string;
   file_size_bytes?: number;
   description?: string;
@@ -340,16 +364,16 @@ CLOSE modal a REFRESH ElectionsScreen
 
 ## 🎯 Funkčné Požiadavky - Status
 
-| Požiadavka | Status | Popis |
-|-----------|--------|-------|
-| Editácia volieb v modale | ✅ | Dostupné pre Admin/Starosta/Úradník |
-| Dynamickí kandidáti na starostu | ✅ | Bez limitov, add/remove gombom |
-| Dynamickí kandidáti do zastupiteľstva | ✅ | Bez limitov, add/remove gombom |
-| Upload PDF dokumentov | ✅ | Drag&drop, max 10MB |
-| Upload fotografií | ✅ | JPEG/PNG/WebP/GIF, max 10MB |
-| Priradenie dokumentov k voľbám | ✅ | `elections_attachments` tabuľka |
-| Zachovanie existujúcej štruktúry DB | ✅ | Len rozšírenia, bez zmien |
-| Zachovanie existujúcej funkcionalitu | ✅ | Všetko pracuje ako predtým |
+| Požiadavka                            | Status | Popis                               |
+| ------------------------------------- | ------ | ----------------------------------- |
+| Editácia volieb v modale              | ✅     | Dostupné pre Admin/Starosta/Úradník |
+| Dynamickí kandidáti na starostu       | ✅     | Bez limitov, add/remove gombom      |
+| Dynamickí kandidáti do zastupiteľstva | ✅     | Bez limitov, add/remove gombom      |
+| Upload PDF dokumentov                 | ✅     | Drag&drop, max 10MB                 |
+| Upload fotografií                     | ✅     | JPEG/PNG/WebP/GIF, max 10MB         |
+| Priradenie dokumentov k voľbám        | ✅     | `elections_attachments` tabuľka     |
+| Zachovanie existujúcej štruktúry DB   | ✅     | Len rozšírenia, bez zmien           |
+| Zachovanie existujúcej funkcionalitu  | ✅     | Všetko pracuje ako predtým          |
 
 ---
 
@@ -365,13 +389,13 @@ CLOSE modal a REFRESH ElectionsScreen
 
 ## 🎉 Záver
 
-Všetko je **HOTOVO** a **TESTOVANÉ**! 
+Všetko je **HOTOVO** a **TESTOVANÉ**!
 
 ✅ Build: SUCCESS  
 ✅ Komponenty: CREATED  
 ✅ Databáza: MIGRATED  
 ✅ Integrácia: COMPLETE  
-✅ Bezpečnosť: IMPLEMENTED  
+✅ Bezpečnosť: IMPLEMENTED
 
 Aplikácia je pripravená na produkciu!
 
@@ -387,6 +411,7 @@ Aplikácia je pripravená na produkciu!
 ## 📞 Ďalšia Podpora
 
 Ak potrebuješ:
+
 - 🐛 Opravovať bugs
 - 🆕 Pridávať nové funkcie
 - 📊 Migrovať dáta

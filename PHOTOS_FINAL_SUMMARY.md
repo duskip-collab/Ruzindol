@@ -10,10 +10,13 @@
 ## 📋 ČO BOLO VYKONANÉ DNES
 
 ### 1. ✅ Nový File: CandidatePhotoUpload.tsx (7 KB)
+
 ```
 src/components/elections/CandidatePhotoUpload.tsx
 ```
+
 **Čo robí:**
+
 - Upload JPG, PNG, WebP obrázkov
 - Drag-drop alebo file picker
 - Max 5MB validácia
@@ -25,25 +28,32 @@ src/components/elections/CandidatePhotoUpload.tsx
 - Dark mode support
 
 ### 2. ✅ Update: ElectionsEditModal.tsx
+
 ```
 Line 9: import { CandidatePhotoUpload } from './CandidatePhotoUpload';
 Line 697-702: <CandidatePhotoUpload photo_url={...} onChange={...} />
 ```
+
 **Čo sa pridalo:**
+
 - Import komponenty
 - Volanie v CandidateRow
 - Integrácia s foto uploadom
 
 ### 3. ✅ Nový File: SQL Migration
+
 ```
 supabase/migrations/20260911120000_add_candidate_photo_url.sql
 ```
+
 **Čo robí:**
+
 - Pridá `photo_url TEXT` stĺpec
 - Vytvorí index na rýchlejšie vyhľadávanie
 - Pridá komentár pre dokumentáciu
 
 ### 4. ✅ Database: Supabase Storage
+
 ```
 Bucket: 'elections'
 Path: 'elections/candidates/{filename}.jpg'
@@ -52,12 +62,14 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 ### 5. ✅ Existing Support
+
 ```
 CandidateCard.tsx: Zobrazenie fotky v gride (66x66px)
 CandidateModal.tsx: Zobrazenie fotky v detaile
 ```
 
 ### 6. ✅ Build
+
 ```
 npm run build: SUCCESS ✅
 - TypeScript: 0 ERRORS
@@ -79,14 +91,14 @@ npm run build: SUCCESS ✅
 ```sql
 BEGIN;
 
-ALTER TABLE public.election_candidates 
+ALTER TABLE public.election_candidates
   ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
-CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url 
-  ON public.election_candidates(photo_url) 
+CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url
+  ON public.election_candidates(photo_url)
   WHERE photo_url IS NOT NULL;
 
-COMMENT ON COLUMN public.election_candidates.photo_url IS 
+COMMENT ON COLUMN public.election_candidates.photo_url IS
   'URL to candidate photo stored in Supabase Storage (elections/candidates/ path)';
 
 COMMIT;
@@ -108,6 +120,7 @@ WHERE table_name = 'election_candidates'
 ```
 
 **Máte vidieť:**
+
 ```
 column_name | data_type | is_nullable
 photo_url   | text      | YES
@@ -130,6 +143,7 @@ npm run build  # Already SUCCESS (17.80s)
 ### KROK 4: Testovanie (5-10 min)
 
 #### TEST 1: Admin Upload
+
 ```
 1. Login ako Admin/Starosta
 2. Menu → Voľby → Edit
@@ -146,6 +160,7 @@ Expected: ✅ Fotka nahraná a viditeľná
 ```
 
 #### TEST 2: Grid View
+
 ```
 1. Save modal
 2. Menu → Voľby
@@ -156,6 +171,7 @@ Expected: ✅ Fotka v gride s borderRadius
 ```
 
 #### TEST 3: Detail View
+
 ```
 1. Kliknúť na Kandidáta
 2. Detail modal
@@ -165,6 +181,7 @@ Expected: ✅ Fotka v detaile
 ```
 
 #### TEST 4: Remove Fotka
+
 ```
 1. Edit modal → Kandidát
 2. Hover na fotke → X button
@@ -176,6 +193,7 @@ Expected: ✅ Fotka odstránená, kandidát ostal
 ```
 
 #### TEST 5: Delete Kandidáta
+
 ```
 1. Edit modal → Kandidát
 2. Kliknúť "Odstrániť kandidáta"
@@ -186,6 +204,7 @@ Expected: ✅ Úplne vymazaný
 ```
 
 #### TEST 6: Neighbor View
+
 ```
 1. Login ako Sused (iný browser)
 2. Menu → Voľby
@@ -270,15 +289,18 @@ Expected: ✅ Sused vidí všetko bez Edit tlačítka
 ## 📁 FILES SUMMARY
 
 ### New Files Created:
+
 1. ✅ `src/components/elections/CandidatePhotoUpload.tsx` (7 KB)
 2. ✅ `supabase/migrations/20260911120000_add_candidate_photo_url.sql` (797 B)
 3. ✅ `CANDIDATE_PHOTOS_IMPLEMENTATION.md` (9.7 KB)
 4. ✅ `SUPABASE_SQL_PHOTOS.md` (7.4 KB)
 
 ### Modified Files:
+
 1. ✅ `src/components/elections/ElectionsEditModal.tsx` (1 line import + usage)
 
 ### Build Output:
+
 1. ✅ `dist/` folder updated (17.80s)
 
 ---
@@ -378,13 +400,13 @@ POST-DEPLOYMENT:
 
 ## 📞 SUPPORT
 
-| Problém | Riešenie |
-|---------|----------|
-| "Column photo_url does not exist" | Run SQL migration z KROK 1 |
-| Fotka sa nenahrá | Skontroľujte Storage bucket 'elections' |
-| Fotka sa nezobrazuje | F5 refresh + skontroľujte URL |
-| Upload zlyhal "File too large" | Max 5MB - skúte menší obrázok |
-| Sused nevidí fotky | Check RLS politiky v Storage |
+| Problém                           | Riešenie                                |
+| --------------------------------- | --------------------------------------- |
+| "Column photo_url does not exist" | Run SQL migration z KROK 1              |
+| Fotka sa nenahrá                  | Skontroľujte Storage bucket 'elections' |
+| Fotka sa nezobrazuje              | F5 refresh + skontroľujte URL           |
+| Upload zlyhal "File too large"    | Max 5MB - skúte menší obrázok           |
+| Sused nevidí fotky                | Check RLS politiky v Storage            |
 
 ---
 

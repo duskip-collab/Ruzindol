@@ -248,9 +248,7 @@ export function NeighborhoodPulse() {
               key={key}
               onClick={() => setTod(key)}
               className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium transition ${
-                tod === key
-                    ? "btn-primary-glow"
-                    : "text-muted-foreground"
+                tod === key ? "btn-primary-glow" : "text-muted-foreground"
               }`}
             >
               {TIME_LABEL[key].icon}

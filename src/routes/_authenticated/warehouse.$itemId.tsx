@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, Pencil } from "lucide-react";
 
@@ -57,7 +57,18 @@ function WarehouseItemDetailScreen() {
   const backToWarehouse = returnTo === "sklad" && Boolean(section);
   const { userId } = useCurrentUser();
   const [editing, setEditing] = useState(false);
-  const { data: item, error, isLoading, refetch } = useQuery({
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const {
+    data: item,
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["warehouse-item", itemId],
     queryFn: async () => {
       const { data, error: queryError } = await supabase
@@ -85,7 +96,12 @@ function WarehouseItemDetailScreen() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Položku sa nepodarilo načítať.</p>
-        <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
+        <BackLink
+          backToProfile={backToProfile}
+          backToWarehouse={backToWarehouse}
+          section={section}
+          tab={tab}
+        />
       </div>
     );
   }
@@ -96,21 +112,41 @@ function WarehouseItemDetailScreen() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto w-full max-w-5xl p-4 pb-24 md:px-8 md:py-8">
-        <BackLink backToProfile={backToProfile} backToWarehouse={backToWarehouse} section={section} tab={tab} />
+        <BackLink
+          backToProfile={backToProfile}
+          backToWarehouse={backToWarehouse}
+          section={section}
+          tab={tab}
+        />
         <article className="app-card mt-4 overflow-hidden rounded-3xl p-5 shadow-sm md:p-7">
           <div className="grid gap-3 sm:grid-cols-2">
             {[item.image_url, item.image_url_2, item.image_url_3, item.image_url_4]
               .filter((url): url is string => Boolean(url))
-              .map((url) => <img key={url} src={url} alt={item.title} className="max-h-[52vh] w-full rounded-2xl object-cover" />)}
+              .map((url) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt={item.title}
+                  className="max-h-[52vh] w-full rounded-2xl object-cover"
+                />
+              ))}
           </div>
           <div className="mt-5 flex items-start justify-between gap-4">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">{item.title}</h1>
-            <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">{priceLabel}</span>
+            <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">
+              {priceLabel}
+            </span>
           </div>
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.description}</p>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+            {item.description}
+          </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs">
-            <span className="chip-muted rounded-full px-2.5 py-1">Platnosť {getWarehouseLifetimeLabel(itemType)}</span>
-            <span className="chip-muted rounded-full px-2.5 py-1">{getWarehouseRemainingLabel(itemType, item.created_at, Date.now(), item.expires_at)}</span>
+            <span className="chip-muted rounded-full px-2.5 py-1">
+              Platnosť {getWarehouseLifetimeLabel(itemType)}
+            </span>
+            <span className="chip-muted rounded-full px-2.5 py-1">
+              {getWarehouseRemainingLabel(itemType, item.created_at, nowMs, item.expires_at)}
+            </span>
           </div>
           <div className="mt-6 border-t border-[color:var(--border-card)] pt-4">
             <p className="text-xs text-muted-foreground">Vlastník položky</p>
@@ -118,9 +154,13 @@ function WarehouseItemDetailScreen() {
               {item.profiles?.name ?? "Sused"}
               {item.profiles?.is_active_neighbor && <ActiveNeighborBadge compact />}
             </p>
-            {item.profiles?.street && <p className="mt-1 text-sm text-muted-foreground">{item.profiles.street}</p>}
+            {item.profiles?.street && (
+              <p className="mt-1 text-sm text-muted-foreground">{item.profiles.street}</p>
+            )}
           </div>
-          <p className="mt-5 text-xs text-muted-foreground">Expiruje {formatWarehouseExpiry(itemType, item.created_at, item.expires_at)}</p>
+          <p className="mt-5 text-xs text-muted-foreground">
+            Expiruje {formatWarehouseExpiry(itemType, item.created_at, item.expires_at)}
+          </p>
           {userId === item.user_id && (
             <button
               type="button"
@@ -172,7 +212,7 @@ function BackLink({
     return (
       <Link
         to="/sklad"
-        search={{ section, tab: section === "poziciovna" ? tab ?? "ponuka" : undefined }}
+        search={{ section, tab: section === "poziciovna" ? (tab ?? "ponuka") : undefined }}
         className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium"
       >
         <ArrowLeft className="h-4 w-4" /> Späť do Skladu
@@ -181,7 +221,10 @@ function BackLink({
   }
 
   return (
-    <Link to="/sklad" className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium">
+    <Link
+      to="/sklad"
+      className="btn-secondary-surface inline-flex items-center gap-2 px-3 py-2 text-sm font-medium"
+    >
       <ArrowLeft className="h-4 w-4" /> Späť do Skladu
     </Link>
   );

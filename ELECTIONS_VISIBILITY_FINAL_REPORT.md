@@ -22,6 +22,7 @@
 ## 📋 ČO JE HOTOVO
 
 ### 🔵 Funkcionality
+
 - ✅ **Toggle pre Admin/Starosta** - Zapína/Vypína viditeľnosť Volieb pre susedov
 - ✅ **Real-time aktualizácia** - Zmena sa aplikuje okamžite bez refresh
 - ✅ **Role-based viditeľnosť** - Len Officials vidíme, keď sú vypnuté
@@ -29,6 +30,7 @@
 - ✅ **RLS politiky** - Všetci čítajú, len officials menia
 
 ### 🟢 Komponenty
+
 1. **AdminElectionsToggle.tsx** ✅
    - Viditeľný v AdminPanel
    - Zobrazuje "Aktívne v PWA" / "Skryté pre obyvateľov"
@@ -50,6 +52,7 @@
    - RLS politiky nastavené
 
 ### 🟡 Fotografie kandidátov
+
 - ✅ Upload funkcionality
 - ✅ Soft delete (photo_url=NULL na remove)
 - ✅ Zobrazenie v CandidateCard a CandidateModal
@@ -60,11 +63,12 @@
 ## 🚀 TESTOVACÍ PLÁN (10 MINÚT)
 
 ### PRÍPRAVA
+
 ```
 1. Otvoriť aplikáciu v 2 browser taboch:
    Tab 1: Admin/Starosta (admin panel)
    Tab 2: Sused alebo inkognito (neighbor view)
-   
+
 2. Mať DevTools Console otvorené pre debug
 ```
 
@@ -108,12 +112,12 @@ KROKI - ADMIN (Tab 1):
   1. Kliknúť na toggle (Zapnúť Voľby)
   2. Vidíte "Aktívne v PWA" + checkmark
   3. Console: Skontrolovať realtime subscription (postgres_changes)
-  
+
 KROKI - SUSED (Tab 2):
   1. Menu → Voľby
   2. Bez refresh (F5) vidíte zmenu?
   3. Ak skúste refresh (F5), vidíte Kandidáti?
-  
+
 KROKI - ADMIN (Tab 1):
   1. Skontrolovať, že stále vidíte Edit button
   2. Kandidáti sú viditeľní aj s editom
@@ -148,18 +152,18 @@ PROBLÉM?
 KROKI - ADMIN (Tab 1):
   1. Kliknúť na toggle (Vypnúť Voľby)
   2. Vidíte "Skryté pre obyvateľov"
-  
+
 KROKI - SUSED (Tab 2):
   1. Refresh (F5) alebo čaká na realtime
   2. Menu → Voľby
   3. Vidíte "Modul volieb nie je aktívny"?
   4. Nevidíte Kandidáti?
-  
+
 KROKI - ADMIN (Tab 1):
   1. Menu → Voľby
   2. Stále vidíte Kandidáti + Edit button
   3. Modul je viditeľný len pre Officials
-  
+
 OČAKÁVANÝ VÝSLEDOK:
   ✅ Admin: Stále vidí Voľby + Edit + Kandidáti
   ✅ Sused: Vidí "Modul volieb nie je aktívny"
@@ -188,7 +192,7 @@ KROKI - SUSED (Tab 2):
   1. Otvoriť Voľby menu
   2. Hľadať "Upraviť voľby" alebo "Edit" button
   3. Hľadať "Pridať voľby" alebo "+" button
-  
+
 KROKI - ADMIN (Tab 1):
   1. Otvoriť Voľby menu
   2. Vidíte "Upraviť voľby" button?
@@ -220,7 +224,7 @@ PROBLÉM?
 KROKI - SUSED:
   1. Menu → Voľby
   2. Vidíte "Modul volieb nie je aktívny" ✓
-  
+
 KROKI - ADMIN:
   1. Menu → Voľby (bez logout)
   2. Vidíte Kandidáti aj keď je OFF?
@@ -251,7 +255,7 @@ KROKI - ADMIN:
   3. Vidíte "Nahrať fotku" button?
   4. Kliknúť a vybrať .jpg/.png obrázok
   5. Foto sa nahrá a zobrazí?
-  
+
 KROKI - SUSED:
   1. Menu → Voľby
   2. Vidíte Kandidáta s fotkou?
@@ -284,20 +288,23 @@ PROBLÉM?
 ### Ako vidieť aktuálny stav electionsEnabled:
 
 **Console v Browser (F12):**
+
 ```javascript
 // Skúsiť v aplikácii
-console.log('Check localstorage or state')
+console.log("Check localstorage or state");
 // Alebo sa pozrite na Network tab
 // a hľadajte app_settings requests
 ```
 
 **Database Check (Supabase Dashboard):**
+
 ```sql
 SELECT * FROM app_settings WHERE key = 'elections_enabled';
 -- Vidíte value = true alebo false?
 ```
 
 **Network Tab (DevTools):**
+
 ```
 Hľadajte:
   1. GET /app_settings → Response musí mať správnu hodnotu
@@ -308,6 +315,7 @@ Hľadajte:
 ### Ak niečo nefunguje:
 
 1. **Toggle sa nezobrazuje**
+
    ```
    → Logout a Login znova
    → Skontrolujte role: MUST byť Admin/Starosta/Uradnik
@@ -315,6 +323,7 @@ Hľadajte:
    ```
 
 2. **Zmena viditeľnosti nefunguje**
+
    ```
    → Skúste Ctrl+Shift+R (hard refresh)
    → Skúste Logout → Login
@@ -323,6 +332,7 @@ Hľadajte:
    ```
 
 3. **Edit button viditeľný pre susa**
+
    ```
    → Skontrolujte profile.role
    → Skontrolujte profile.is_admin
@@ -343,14 +353,14 @@ Hľadajte:
 
 Vyplňte počas testovania:
 
-| Test | Výsledok | Problém | Poznámka |
-|------|----------|---------|---------|
-| 1. Toggle v Admin Panel | ⏳ | ❌/✅ | |
-| 2. Zapnuté = Všetci vidíme | ⏳ | ❌/✅ | |
-| 3. Vypnuté = Len Officials | ⏳ | ❌/✅ | |
-| 4. Edit button viditeľnosť | ⏳ | ❌/✅ | |
-| 5. Admin vždy vidí | ⏳ | ❌/✅ | |
-| 6. Fotografie kandidátov | ⏳ | ❌/✅ | |
+| Test                       | Výsledok | Problém | Poznámka |
+| -------------------------- | -------- | ------- | -------- |
+| 1. Toggle v Admin Panel    | ⏳       | ❌/✅   |          |
+| 2. Zapnuté = Všetci vidíme | ⏳       | ❌/✅   |          |
+| 3. Vypnuté = Len Officials | ⏳       | ❌/✅   |          |
+| 4. Edit button viditeľnosť | ⏳       | ❌/✅   |          |
+| 5. Admin vždy vidí         | ⏳       | ❌/✅   |          |
+| 6. Fotografie kandidátov   | ⏳       | ❌/✅   |          |
 
 ---
 
@@ -378,6 +388,7 @@ STAV: ✅ READY FOR PRODUCTION
 ## 🎯 SUMMARY
 
 ### ✅ Hotovo:
+
 - Všetky komponenty implementované
 - Logika je správna
 - Database nastavená
@@ -385,10 +396,12 @@ STAV: ✅ READY FOR PRODUCTION
 - Build: SUCCESS (0 errors)
 
 ### ⏳ Čaká:
+
 - Manuálne testovanie (6 testov ~10 minút)
 - Production deployment
 
 ### 📝 Dokumentácia:
+
 - `ELECTIONS_VISIBILITY_TEST.md` - Detailný testovací plán
 - `ELECTIONS_VISIBILITY_VERIFICATION.md` - Technical verification
 - **Tento dokument** - Finálna správa a testing guide
@@ -398,6 +411,6 @@ STAV: ✅ READY FOR PRODUCTION
 **Stav**: 🟢 READY FOR TESTING  
 **Next Step**: Spustite 6 testov vyššie  
 **Expected Time**: ~10 minút  
-**Result**: Production deployment 
+**Result**: Production deployment
 
 **👉 BEGIN TESTING NOW!**

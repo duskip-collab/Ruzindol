@@ -23,11 +23,7 @@ function postponeIosHint(hours: number) {
 }
 
 export function usePwaInstall() {
-  useSyncExternalStore(
-    subscribePwaInstall,
-    getPwaInstallVersion,
-    getPwaInstallVersion,
-  );
+  useSyncExternalStore(subscribePwaInstall, getPwaInstallVersion, getPwaInstallVersion);
   const { canInstall, isInstalled, isPrompting } = getPwaInstallSnapshot();
   const [canShowIosHint, setCanShowIosHint] = useState(false);
 

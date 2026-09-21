@@ -11,17 +11,20 @@ Používatelia hlásili, že po kliknutí na tlačítko **"Vymazať všetkých"*
 Identifikoval som **3 hlavné problémy**:
 
 ### 1. **Logika mazaní v ElectionsEditModal.tsx**
-- Funkcie `clearAllMayorCandidates()` a `clearAllCouncilCandidates()` 
+
+- Funkcie `clearAllMayorCandidates()` a `clearAllCouncilCandidates()`
 - Vrátili `[emptyCandidate()]` namiesto prázdneho poľa `[]`
 - Filter pri savingovi (`handleSave()`) vylúčil všetkých prázdnych kandidátov
 - **Výsledok**: Databáza nemala nikdy čo mazať!
 
 ### 2. **Podmienka pre zobrazenie tlačítka "Vymazať všetkých"**
+
 - Použitá `formData.candidates_mayor.some((c) => c.full_name.trim())`
 - To skrývalo tlačítko, keď bolo vyplnené meno
 - **Správne**: `formData.candidates_mayor.length > 0` (kontroluje či pole má položky)
 
 ### 3. **Opravy prílohy v ElectionsScreen.tsx**
+
 - Prílohy sa upsertovioli bez ID (nové prílohy nemajú ID)
 - Staré prílohy sa nemaž pri úprave volieb
 - **Správne**: DELETE staré, potom INSERT nové
@@ -35,17 +38,17 @@ Identifikoval som **3 hlavné problémy**:
 ```typescript
 // PRED ❌
 const clearAllMayorCandidates = () => {
-  setFormData(prev => ({
+  setFormData((prev) => ({
     ...prev,
-    candidates_mayor: [emptyCandidate()]  // Vracia 1 prázdny
+    candidates_mayor: [emptyCandidate()], // Vracia 1 prázdny
   }));
 };
 
 // PO ✅
 const clearAllMayorCandidates = () => {
-  setFormData(prev => ({
+  setFormData((prev) => ({
     ...prev,
-    candidates_mayor: []  // Vracia prázdne pole
+    candidates_mayor: [], // Vracia prázdne pole
   }));
 };
 ```
@@ -106,7 +109,7 @@ if (data.attachments.length > 0) {
       sort_order: idx,
       uploaded_by: profile?.id
     }));
-  
+
   await supabase
     .from('elections_attachments')
     .insert(attachmentsToInsert);
@@ -118,6 +121,7 @@ if (data.attachments.length > 0) {
 ## ✅ TESTOVANÍ SCENÁRE
 
 ### Test 1: Mazaní jednotlivých kandidátov
+
 ```
 ✅ Pridaj kandidáta
 ✅ Klikni na ikonku koša
@@ -127,6 +131,7 @@ if (data.attachments.length > 0) {
 ```
 
 ### Test 2: Mazaní všetkých kandidátov
+
 ```
 ✅ Pridaj 3 kandidátov na starostu
 ✅ Klikni "Vymazať všetkých"
@@ -138,6 +143,7 @@ if (data.attachments.length > 0) {
 ```
 
 ### Test 3: Mazaní prílohy
+
 ```
 ✅ Nahraj PDF a obrázok
 ✅ Klikni "Vymazať všetko"
@@ -148,6 +154,7 @@ if (data.attachments.length > 0) {
 ```
 
 ### Test 4: Editácia s mazaniami
+
 ```
 ✅ Existujúce voľby: 2 kandidáti starosta, 3 poslanci, 2 prílohy
 ✅ Otvor "Upraviť voľby"
@@ -162,14 +169,14 @@ if (data.attachments.length > 0) {
 
 ## 📊 VÝSLEDKY
 
-| Aspekt | Pred opravou | Po oprave |
-|--------|--------------|-----------|
-| Mazaní kandidáta | ❌ Nemazá sa z DB | ✅ Mazá sa z DB |
-| "Vymazať všetkých" | ❌ Nefunguje | ✅ Funguje správne |
-| Prílohy pri úprave | ❌ UPSERT bez ID | ✅ DELETE + INSERT |
-| Validácia | ❌ Vyžaduje kandidáta | ✅ Voliteľné |
-| TypeScript | ✅ OK | ✅ OK |
-| Build | ✅ OK | ✅ OK |
+| Aspekt             | Pred opravou          | Po oprave          |
+| ------------------ | --------------------- | ------------------ |
+| Mazaní kandidáta   | ❌ Nemazá sa z DB     | ✅ Mazá sa z DB    |
+| "Vymazať všetkých" | ❌ Nefunguje          | ✅ Funguje správne |
+| Prílohy pri úprave | ❌ UPSERT bez ID      | ✅ DELETE + INSERT |
+| Validácia          | ❌ Vyžaduje kandidáta | ✅ Voliteľné       |
+| TypeScript         | ✅ OK                 | ✅ OK              |
+| Build              | ✅ OK                 | ✅ OK              |
 
 ---
 
@@ -200,6 +207,7 @@ if (data.attachments.length > 0) {
 ## ⚠️ POZNÁMKA PRE TESTOVANIA
 
 Pri testovaní v **development mode**:
+
 1. Otvorte dev server: `npm run dev` (už beží na http://localhost:5176)
 2. Prihlaste sa ako admin/starosta
 3. Prejdite na Aktuality → Voľby
@@ -207,6 +215,7 @@ Pri testovaní v **development mode**:
 5. Vykonajte všetky testovací scenáre
 
 Pri problémoch:
+
 - Pozrite si browser console (F12) pre chyby
 - Skontrolujte Supabase dashboard
 - Overujte RLS politiky sú správne nastavené
@@ -225,4 +234,3 @@ Pri problémoch:
 **Status**: ✅ **BUG FIX HOTOVO**
 **Build Status**: ✅ **ÚSPEŠNE**
 **Prípravný dátum**: 8. september 2026 (v čase psania)
-

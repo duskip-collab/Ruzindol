@@ -158,7 +158,7 @@ function handleAddToAppleCalendar(event: DbEvent, e?: React.MouseEvent) {
     `DESCRIPTION:${escapeIcs(event.description || "")}`,
     `LOCATION:${escapeIcs(event.location || "")}`,
     "END:VEVENT",
-    "END:VCALENDAR"
+    "END:VCALENDAR",
   ].join("\r\n");
 
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
@@ -188,7 +188,8 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
   const [attendanceCounts, setAttendanceCounts] = useState<Record<string, number>>({});
   const [attendanceBusyId, setAttendanceBusyId] = useState<string | null>(null);
 
-  const canManage = profile?.role === "Starosta" || profile?.role === "Uradnik" || profile?.role === "Farar";
+  const canManage =
+    profile?.role === "Starosta" || profile?.role === "Uradnik" || profile?.role === "Farar";
   const canUseDom = typeof document !== "undefined";
   const useIosBackNav = isIosDevice();
 
@@ -273,11 +274,16 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
         next.delete(eventId);
         return next;
       });
-      setAttendanceCounts((prev) => ({ ...prev, [eventId]: Math.max((prev[eventId] ?? 1) - 1, 0) }));
+      setAttendanceCounts((prev) => ({
+        ...prev,
+        [eventId]: Math.max((prev[eventId] ?? 1) - 1, 0),
+      }));
       return;
     }
 
-    const { error } = await supabase.from("event_attendees").insert({ event_id: eventId, user_id: userId });
+    const { error } = await supabase
+      .from("event_attendees")
+      .insert({ event_id: eventId, user_id: userId });
 
     setAttendanceBusyId(null);
     if (error) return;
@@ -300,7 +306,9 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
       <header className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-neutral-700 dark:text-[#f8fafc]" />
-          <h3 className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-[#f8fafc]">Zdielany kalendar obce</h3>
+          <h3 className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-[#f8fafc]">
+            Zdielany kalendar obce
+          </h3>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
           <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 font-medium text-blue-700 dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ffb26a]">
@@ -336,13 +344,17 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
         </div>
       </header>
 
-      <div className={`${fullscreen ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}>
+      <div
+        className={`${fullscreen ? "flex-1 overflow-y-auto pr-1" : "max-h-72 overflow-y-auto pr-1"}`}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-6 text-neutral-400 dark:text-[#94a3b8]">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : upcoming.length === 0 ? (
-          <p className="py-6 text-center text-xs text-neutral-500 dark:text-[#94a3b8]">Momentalne nie su naplanovane ziadne udalosti.</p>
+          <p className="py-6 text-center text-xs text-neutral-500 dark:text-[#94a3b8]">
+            Momentalne nie su naplanovane ziadne udalosti.
+          </p>
         ) : (
           <ol className="flex flex-col gap-2">
             {upcoming.map((e) => (
@@ -374,14 +386,17 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
         onClick={openExpanded}
         title="Kliknite pre rozsirenie"
       >
-        <div onClick={(e) => e.stopPropagation()}>{renderCalendarContent({ fullscreen: false })}</div>
+        <div onClick={(e) => e.stopPropagation()}>
+          {renderCalendarContent({ fullscreen: false })}
+        </div>
         <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-neutral-400">
           <Maximize2 className="h-3 w-3" />
           <span>Kliknite pre rozsirenie</span>
         </div>
       </section>
 
-      {expanded && canUseDom &&
+      {expanded &&
+        canUseDom &&
         createPortal(
           <div className="fixed inset-0 z-[150] flex h-[100dvh] w-full min-h-[100dvh] flex-col bg-[color:var(--bg-app)]/95 p-4 pt-safe backdrop-blur-xl">
             <div className={`flex h-full min-h-0 flex-col ${useIosBackNav ? "pb-20" : ""}`}>
@@ -485,7 +500,9 @@ function EventRow({
       >
         <div className="app-surface-muted flex w-12 shrink-0 flex-col items-center justify-center rounded-xl py-1 text-center shadow-sm dark:border-[color:var(--border-card)] dark:bg-[#1e222b]">
           <span className={`text-lg font-bold leading-none ${theme.accent}`}>{d.day}</span>
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-[#94a3b8]">{d.month}</span>
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-[#94a3b8]">
+            {d.month}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -504,8 +521,12 @@ function EventRow({
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-sm font-semibold text-neutral-900 dark:text-[#f8fafc]">{event.title}</p>
-          <p className="line-clamp-1 text-[11px] text-muted-foreground dark:text-[#94a3b8]">{event.description}</p>
+          <p className="mt-1 truncate text-sm font-semibold text-neutral-900 dark:text-[#f8fafc]">
+            {event.title}
+          </p>
+          <p className="line-clamp-1 text-[11px] text-muted-foreground dark:text-[#94a3b8]">
+            {event.description}
+          </p>
           {event.location && (
             <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-neutral-500 dark:text-[#94a3b8]">
               <MapPin className="h-3 w-3" />
@@ -631,13 +652,19 @@ function EventDetailModal({
         >
           <X className="h-5 w-5" />
         </button>
-        <h2 className="line-clamp-1 text-sm font-semibold text-neutral-900 dark:text-[#f8fafc] md:text-base">{event.title}</h2>
+        <h2 className="line-clamp-1 text-sm font-semibold text-neutral-900 dark:text-[#f8fafc] md:text-base">
+          {event.title}
+        </h2>
       </div>
 
-      <div className={`min-h-0 flex-1 overflow-y-auto p-4 ${useIosBackNav ? "pb-24" : ""} md:p-6 md:pb-6`}>
+      <div
+        className={`min-h-0 flex-1 overflow-y-auto p-4 ${useIosBackNav ? "pb-24" : ""} md:p-6 md:pb-6`}
+      >
         <div className={`rounded-2xl border ${theme.ring} ${theme.bg} p-4`}>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${theme.chip}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${theme.chip}`}
+            >
               {theme.icon}
               {theme.label}
             </span>
@@ -651,7 +678,9 @@ function EventDetailModal({
             )}
           </div>
 
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900 dark:text-[#f8fafc]">{event.description}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900 dark:text-[#f8fafc]">
+            {event.description}
+          </p>
 
           {event.location && (
             <p className="mt-3 flex items-center gap-1 text-xs text-neutral-500 dark:text-[#94a3b8]">
@@ -661,13 +690,21 @@ function EventDetailModal({
 
           {event.image_url && (
             <div className="app-surface-muted mt-4 overflow-hidden rounded-2xl">
-              <img src={event.image_url} alt={event.title} className="h-auto w-full object-contain" />
+              <img
+                src={event.image_url}
+                alt={event.title}
+                className="h-auto w-full object-contain"
+              />
             </div>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {canEdit && (
-              <button type="button" onClick={onEdit} className="btn-secondary-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium">
+              <button
+                type="button"
+                onClick={onEdit}
+                className="btn-secondary-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+              >
                 <Pencil className="h-3.5 w-3.5" /> Upraviť
               </button>
             )}
@@ -765,7 +802,9 @@ function EventForm({
     d.setHours(d.getHours() + 1);
     return toLocalDatetimeInput(d);
   });
-  const [endsAt, setEndsAt] = useState(() => initialEvent?.ends_at ? toLocalDatetimeInput(new Date(initialEvent.ends_at)) : "");
+  const [endsAt, setEndsAt] = useState(() =>
+    initialEvent?.ends_at ? toLocalDatetimeInput(new Date(initialEvent.ends_at)) : "",
+  );
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoName, setPhotoName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -837,9 +876,14 @@ function EventForm({
         <h2 className="font-semibold">Nova udalost</h2>
       </div>
 
-      <form onSubmit={submit} className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}>
+      <form
+        onSubmit={submit}
+        className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5 ${useIosBackNav ? "pb-24" : ""}`}
+      >
         <div>
-          <label className="text-sm font-medium text-[color:var(--text-secondary)]">Kategoria</label>
+          <label className="text-sm font-medium text-[color:var(--text-secondary)]">
+            Kategoria
+          </label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {(Object.keys(THEME) as EventCategory[]).map((t) => {
               const m = THEME[t];
@@ -898,7 +942,9 @@ function EventForm({
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[color:var(--text-secondary)]">Zaciatok</label>
+            <label className="text-sm font-medium text-[color:var(--text-secondary)]">
+              Zaciatok
+            </label>
             <input
               type="datetime-local"
               value={startsAt}
@@ -919,7 +965,9 @@ function EventForm({
         </div>
 
         <div className="app-surface-muted rounded-xl p-3">
-          <label className="mb-2 block text-sm font-medium text-[color:var(--text-secondary)]">Fotografia</label>
+          <label className="mb-2 block text-sm font-medium text-[color:var(--text-secondary)]">
+            Fotografia
+          </label>
           <input
             type="file"
             accept="image/*"
@@ -933,7 +981,11 @@ function EventForm({
           <p className="mt-2 text-[11px] text-muted-foreground">
             Obrazok sa pred uploadom automaticky komprimuje v prehliadaci.
           </p>
-          {photoName && <p className="mt-1 text-[11px] font-medium text-[color:var(--text-secondary)]">{photoName}</p>}
+          {photoName && (
+            <p className="mt-1 text-[11px] font-medium text-[color:var(--text-secondary)]">
+              {photoName}
+            </p>
+          )}
         </div>
 
         {err && (
@@ -948,7 +1000,13 @@ function EventForm({
             disabled={saving}
             className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-md active:scale-[0.99] disabled:opacity-50"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : initialEvent ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : initialEvent ? (
+              <Pencil className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             {initialEvent ? "Uložiť zmeny" : "Ulozit udalost"}
           </button>
         </div>

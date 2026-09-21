@@ -59,6 +59,7 @@ Vytvoril som nový komponent `HelpGuidePanel()` na konci `ProfilScreen.tsx` s:
 ### 3. **Responsive Design**
 
 Modal je plne responzívny:
+
 - ✅ **Desktop:** Fullscreen modal s content scrollom
 - ✅ **Mobile:** Fixed layout s proper padding a safe areas
 - ✅ **Tablet:** Optimalizovaná šírka a spacing
@@ -67,6 +68,7 @@ Modal je plne responzívny:
 ### 4. **Interakcia**
 
 Modal funguje ako všetky ostatné tlačidlá v Profile:
+
 - **Tlačidlo X** na zavretie (top-right corner)
 - **Kliknutím na sekciu** sa rozbalí na fullscreen
 - **AnimatePresence** s smooth transition animations
@@ -78,6 +80,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ## 🎨 Vizuálny Dizajn
 
 ### Header
+
 ```
 ┌────────────────────────────────────────┐
 │ 📖 Kompletná nápoveda k aplikácii...   │
@@ -86,6 +89,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ```
 
 ### Sekcie
+
 ```
 ┌────────────────────────────────────────┐
 │ 🔔 1. Zvonček a notifikácie             │
@@ -101,6 +105,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ```
 
 ### Footer
+
 ```
 ┌────────────────────────────────────────┐
 │ 💡 Ďakujeme, že používate aplikáciu... │
@@ -114,16 +119,19 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ### Kompletná Struktura:
 
 **1. 🔔 Zvonček a notifikácie**
+
 - Ako funguje zvonček
 - Reálne notifikácie z obecného úradu
 - Ako si zapnúť notifikácie (step-by-step)
 
 **2. 📄 Nástenka a Susedský život**
+
 - Čo sa zobrazuje
 - Kto to pridáva
 - Typy príspevkov (otázky, straty/nálezy, informácie)
 
 **3. 📢 Aktuality (Obecný hlásnik)**
+
 - Podnety
 - Zdieľaný kalendár
 - Oznamy obce
@@ -132,6 +140,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 - Digitálny rozhlas
 
 **4. 🛡️ Špeciálne komunitné sekcie**
+
 - OŠK Ružindol
 - DHZ Ružindol
 - Dôchodcovia Ružindol
@@ -139,16 +148,19 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 - Služby a firmy
 
 **5. 📦 Sklad (Trh a zdieľanie)**
+
 - Susedský trh
 - Darovanie
 - Susedská požičovňa
 
 **6. 💬 Správy**
+
 - Kedy sa zobrazujú
 - Účel
 - Upozornenie
 
 **7. 👤 Profil a Nastavenia**
+
 - Osobné informácie
 - Nastavenie notifikácií
 - Veľkosť písma
@@ -164,17 +176,20 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ### Súbor: `src/screens/ProfilScreen.tsx`
 
 **Zmeny:**
+
 1. Import `HelpCircle` ikony z lucide-react
 2. Pridanie nového `AccordionSection` pre "guide"
 3. Nový komponent `HelpGuidePanel()` na konci súboru
 
 **Línky kódu:**
+
 - Import: +1 ikona (HelpCircle)
 - AccordionSection: +10 líniek
 - HelpGuidePanel: +220 líniek
 - **Total:** +231 líniek kódu (no breaking changes)
 
 **State Management:**
+
 - Používa existujúci `openSection` state
 - Žiadne nové dependencies
 - Žiadne API calls
@@ -184,6 +199,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ## ✅ Testing
 
 ### Visual Testing
+
 - ✅ Modal sa zobrazuje po kliknutí na sekciu
 - ✅ Obsah je čitateľný a formátovaný
 - ✅ Farby sú konzistentné s designom
@@ -191,12 +207,14 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 - ✅ Close button (X) funguje
 
 ### Responsive Testing
+
 - ✅ Desktop: Fullscreen modal
 - ✅ Mobile: Safe areas, proper padding
 - ✅ Tablet: Optimalizovaný layout
 - ✅ Scroll: Smooth, all content accessible
 
 ### Interaction Testing
+
 - ✅ Click on section: Opens modal
 - ✅ Click X: Closes modal
 - ✅ Click outside: No close (as intended)
@@ -204,12 +222,14 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 - ✅ Back button: Closes modal on mobile
 
 ### Dark Mode
+
 - ✅ Header background adapts
 - ✅ Text contrast proper
 - ✅ Gradient colors updated
 - ✅ All readable
 
 ### Accessibility
+
 - ✅ aria-modal="true"
 - ✅ aria-label on close button
 - ✅ Keyboard navigation (Tab)
@@ -231,6 +251,7 @@ Modal funguje ako všetky ostatné tlačidlá v Profile:
 ### Obsah:
 
 Modal zobrazuje 7 sekcií s informáciami o:
+
 - Zvončeku a notifikáciách
 - Nástence a susedskom živote
 - Aktualitách a obecnom hlásníku
@@ -244,16 +265,19 @@ Modal zobrazuje 7 sekcií s informáciami o:
 ## 📊 Impact
 
 ### Bundle Size
+
 - Bez zmeny - obsah je inline v komponente
 - No new dependencies
 
 ### Performance
+
 - No new API calls
 - No new state management
 - Smooth animations
 - Lazy rendering (only when opened)
 
 ### User Experience
+
 - ✅ Easy to access (in Profile section)
 - ✅ Comprehensive documentation
 - ✅ Beautiful, organized layout
@@ -327,6 +351,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 - Ready to deploy
 
 ### User Can Now:
+
 1. ✅ Access help guide from Profile section
 2. ✅ Read 7 detailed sections about app features
 3. ✅ View in fullscreen on any device

@@ -54,7 +54,7 @@ export function GeoWizard({ onDone }: { onDone: () => void }) {
   function confirm() {
     const target = selectedMunicipality ?? municipalities[0];
     if (!target) return;
-    setGeo(target.region ?? "Bratislavský kraj", target.name, target.id);
+    setGeo(target.region ?? "Bratislavský kraj", target.name);
     finishOnboarding();
     onDone();
   }

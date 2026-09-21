@@ -2,18 +2,20 @@
 
 **Dátum**: 2025-01-11  
 **Status**: ✅ **BUILD SUCCESS** (0 errors)  
-**Feature**: Fotografie kandidátov v JPG formáte  
+**Feature**: Fotografie kandidátov v JPG formáte
 
 ---
 
 ## ✅ ČO JE HOTOVO
 
 ### 1. ✅ CandidatePhotoUpload.tsx (7 KB)
+
 ```
 src/components/elections/CandidatePhotoUpload.tsx
 ```
 
 **Funkcionality**:
+
 - ✅ Upload JPG/PNG/WebP formátov
 - ✅ Max 5MB súbor
 - ✅ Drag-drop alebo file picker
@@ -25,6 +27,7 @@ src/components/elections/CandidatePhotoUpload.tsx
 - ✅ Dark mode support
 
 ### 2. ✅ ElectionsEditModal.tsx (Updated)
+
 ```
 - Import: CandidatePhotoUpload (Line 9)
 - Usage: Line 697-702
@@ -32,16 +35,19 @@ src/components/elections/CandidatePhotoUpload.tsx
 ```
 
 ### 3. ✅ Database Migration
+
 ```
 supabase/migrations/20260911120000_add_candidate_photo_url.sql
 ```
 
 **Pridané**:
+
 - `photo_url TEXT` column
 - Index na `photo_url`
 - Comment pre dokumentáciu
 
 ### 4. ✅ Supabase Storage
+
 ```
 Bucket: 'elections'
 Path: 'elections/candidates/{uniqueName}.jpg'
@@ -49,6 +55,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 ### 5. ✅ CandidateCard.tsx (Updated)
+
 ```
 - Zobrazenie fotky v gride (66x66px, zaokrúhlené)
 - Fallback: User icon ak fotka chýba
@@ -56,6 +63,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 ### 6. ✅ CandidateModal.tsx (Updated)
+
 ```
 - Zobrazenie fotky v detaile
 - Väčšia verzia fotky
@@ -68,6 +76,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ### Pre Admin/Starosta:
 
 #### KROK 1: Otvoriť Edit Modal ✅
+
 ```
 1. Login ako Admin/Starosta
 2. Menu → Voľby
@@ -77,6 +86,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 2: Pridať Kandidáta s Fotkou ✅
+
 ```
 1. Sekcia: Starostovia alebo Poslanci
 2. Kliknúť "+ Pridať kandidáta"
@@ -88,6 +98,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 3: Skontrolovať Fotku v Gride ✅
+
 ```
 1. Save modal
 2. Menu → Voľby
@@ -97,6 +108,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 4: Detail Kandidáta ✅
+
 ```
 1. Kliknúť na Kandidáta
 2. Detail modal sa otvorí
@@ -106,6 +118,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 5: Remove Fotka ✅
+
 ```
 1. Edit Modal → Sekcia Kandidáta
 2. Hover na fotke → Vidíte X button?
@@ -115,6 +128,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 6: Delete Kandidáta ✅
+
 ```
 1. Edit Modal → Kandidát
 2. Kliknúť "Odstrániť kandidáta"
@@ -125,6 +139,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ### Pre Sused (Neighbor):
 
 #### KROK 1: Vidíte Kandidáta s Fotkou ✅
+
 ```
 1. Login ako Sused
 2. Menu → Voľby
@@ -134,6 +149,7 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ```
 
 #### KROK 2: Detail View ✅
+
 ```
 1. Kliknúť na Kandidáta
 2. Detail modal
@@ -171,16 +187,18 @@ RLS: Read (all authenticated), Write (Admin/Starosta/Uradnik)
 ### CandidatePhotoUpload Component
 
 **Props**:
+
 ```typescript
 interface CandidatePhotoUploadProps {
-  photo_url?: string | null;      // Current photo URL
-  onChange: (url: string | null) => void;  // Callback on change
-  candidateId?: string;            // For unique file naming
-  disabled?: boolean;              // Disable during loading
+  photo_url?: string | null; // Current photo URL
+  onChange: (url: string | null) => void; // Callback on change
+  candidateId?: string; // For unique file naming
+  disabled?: boolean; // Disable during loading
 }
 ```
 
 **Features**:
+
 - Upload validation (type, size)
 - Drag-drop support
 - File picker
@@ -193,12 +211,13 @@ interface CandidatePhotoUploadProps {
 ### Database Schema
 
 **Column**:
+
 ```sql
-ALTER TABLE public.election_candidates 
+ALTER TABLE public.election_candidates
   ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
-CREATE INDEX idx_election_candidates_photo_url 
-  ON public.election_candidates(photo_url) 
+CREATE INDEX idx_election_candidates_photo_url
+  ON public.election_candidates(photo_url)
   WHERE photo_url IS NOT NULL;
 ```
 
@@ -215,6 +234,7 @@ CREATE INDEX idx_election_candidates_photo_url
 ## 📋 FILE LISTING
 
 ### Modified Files:
+
 1. ✅ `src/components/elections/ElectionsEditModal.tsx`
    - Added import: `CandidatePhotoUpload`
    - Line 9: `import { CandidatePhotoUpload } from './CandidatePhotoUpload';`
@@ -229,16 +249,19 @@ CREATE INDEX idx_election_candidates_photo_url
    - Display photo in detail view
 
 ### New Files:
+
 1. ✅ `src/components/elections/CandidatePhotoUpload.tsx`
    - Complete upload component (7 KB)
    - All validation and UI logic
 
 ### Database:
+
 1. ✅ `supabase/migrations/20260911120000_add_candidate_photo_url.sql`
    - Add photo_url column
    - Add index
 
 ### Storage:
+
 1. ✅ `supabase/migrations/20260908120001_create_elections_storage_bucket.sql`
    - Already existing
    - Bucket: 'elections'
@@ -249,17 +272,19 @@ CREATE INDEX idx_election_candidates_photo_url
 ## 🚀 DEPLOYMENT STEPS
 
 ### 1. Database Migration (Supabase)
+
 ```sql
 -- Run in Supabase SQL Editor:
-ALTER TABLE public.election_candidates 
+ALTER TABLE public.election_candidates
   ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
-CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url 
-  ON public.election_candidates(photo_url) 
+CREATE INDEX IF NOT EXISTS idx_election_candidates_photo_url
+  ON public.election_candidates(photo_url)
   WHERE photo_url IS NOT NULL;
 ```
 
 ### 2. Build & Deploy
+
 ```bash
 # Already built successfully
 cd "C:\Users\Admin\Documents\Projekt APP\LOvable PRO"
@@ -271,6 +296,7 @@ npm run build  # Already SUCCESS
 ```
 
 ### 3. Verify in Production
+
 ```
 1. Login as Admin
 2. Edit Voľby
@@ -286,20 +312,24 @@ npm run build  # Already SUCCESS
 ## ✨ VALIDÁCIA FOTIEK
 
 **Povolené formáty**:
+
 - ✅ JPEG (image/jpeg)
 - ✅ PNG (image/png)
 - ✅ WebP (image/webp)
 
 **Size Limits**:
+
 - Max: 5 MB
 - Recommended: 1-2 MB (pre rýchlejší upload)
 
 **File Naming**:
+
 - Automaticky generovaný
 - Format: `{candidateId}-{timestamp}-{random}.jpg`
 - Unikátny pre každý upload
 
 **Error Messages**:
+
 - "Iba JPG, PNG alebo WebP formáty sú povolené"
 - "Súbor je príliš veľký (max 5MB)"
 - "Chyba pri nahrávaní fotky. Skúte neskôr."
@@ -381,6 +411,7 @@ STATUS: ✅ READY FOR TESTING & DEPLOYMENT
 ## 🎊 SUMMARY
 
 ### ✅ Hotovo:
+
 - CandidatePhotoUpload komponenta
 - Upload JPG/PNG/WebP
 - Max 5MB validácia
@@ -393,11 +424,13 @@ STATUS: ✅ READY FOR TESTING & DEPLOYMENT
 - RLS políci
 
 ### ⏳ Čaká:
+
 - SQL Migration (Supabase)
 - Testing (6 krokov)
 - Production deployment
 
 ### 🟢 Status:
+
 ```
 Code: ✅ COMPLETE
 Build: ✅ SUCCESS (0 errors)

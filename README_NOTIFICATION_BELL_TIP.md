@@ -9,35 +9,41 @@ Bol úspešne implementovaný komplexný feature na **vizuálne zvýraznenie iko
 ## ✅ Čo Bolo Splnené
 
 ### 1. **Vizuálny Indikátor** ✅
+
 - 🟢 Pulzujúca zelená bodka s efektom `pulse-glow`
 - 📍 2-sekundová animácia s elegantným easing
 - 💫 Viditeľná len pri prvom spustení (bez povolených notifikácií)
 
 ### 2. **Pútavý Tooltip** ✅
+
 - 🗨️ Zelený gradient bubble nad zvončekom
 - 📝 Text v slovenčine: "🔔 Povolte notifikácie"
 - 🔗 CTA button: "Kliknúť a povoliť 📲"
 - ✖️ Close button pre okamžité uzavretie
 
 ### 3. **Interaktívne Tlačidlo** ✅
+
 - 🔔 Zvonček sa jemne animuje (bounce-subtle - 2.5s)
 - 🎯 Hover effect `scale-105`
 - ⌨️ Keyboard navigation support
 - ♿ ARIA labels pre accessibility
 
 ### 4. **localStorage Logika** ✅
+
 - 💾 Kľúč: `notification_tip_dismissed`
 - ⏸️ Nápoveda sa zobrazí iba pri prvom spustení
 - 🔄 Persistencia: Permanentná (kým sa nevymaže localStorage)
 - 🛡️ Bez externých závislostí
 
 ### 5. **Integrácia s Notifikáciami** ✅
+
 - 📲 Kliknutím sa spustí `enableNotifications()`
 - 🔐 Push subskripcia sa uloží do Supabase
 - ⚡ Nápoveda sa automaticky skryje po povolení
 - 🔄 Bezproblémová integrácia bez regresií
 
 ### 6. **Tailwind CSS Dizajn** ✅
+
 - 🎨 Gradient pozadia (emerald → teal)
 - 📱 Plne responsive (desktop + mobile)
 - 🌙 Dark mode support
@@ -50,6 +56,7 @@ Bol úspešne implementovaný komplexný feature na **vizuálne zvýraznenie iko
 ### Code Files
 
 **1. `src/components/NotificationBellTip.tsx` (NOVÝ)** - 163 riadkov
+
 ```typescript
 ✅ React komponent s TypeScript
 ✅ Pulzujúca bodka indikátor
@@ -61,6 +68,7 @@ Bol úspešne implementovaný komplexný feature na **vizuálne zvýraznenie iko
 ```
 
 **2. `src/components/Header.tsx` (UPRAVENÝ)** - 4 zmeny
+
 ```typescript
 - Import: NotificationBellTip komponent
 - Riadky 82-85: Nahradenie zvončeka komponentom
@@ -81,6 +89,7 @@ Bol úspešne implementovaný komplexný feature na **vizuálne zvýraznenie iko
 ## 🏗️ Technical Architecture
 
 ### Component Flow
+
 ```
 Header.tsx
   └─ NotificationBellTip.tsx
@@ -95,11 +104,13 @@ Header.tsx
 ```
 
 ### State Management
+
 - `showTip` - Zobrazenie tooltipu (boolean)
 - `isMounted` - SSR guard (boolean)
 - `localStorage` - Persistent state (string)
 
 ### Animations (CSS)
+
 - **pulse-glow** - 2s cycle, box-shadow + scale
 - **bounce-subtle** - 2.5s cycle, translateY ±6px
 - Both GPU-optimized (60fps)
@@ -109,29 +120,33 @@ Header.tsx
 ## 🔍 Key Features
 
 ### 1. Smart Display Logic
+
 ```javascript
 // Show tooltip if:
 // 1. localStorage is NOT set (first visit)
 // AND
 // 2. Notifications are NOT enabled (hasNotificationDot === false)
 if (!localStorage.getItem("notification_tip_dismissed") && !hasNotificationDot) {
-  showTooltip()
+  showTooltip();
 }
 ```
 
 ### 2. Dismissal Options
+
 - ✅ Close button (X) - Just hide, don't enable
 - ✅ CTA button - Enable notifications AND hide
 - ✅ Click outside - Doesn't dismiss (only via buttons)
 
 ### 3. localStorage Management
+
 ```javascript
 // On dismiss/enable:
-localStorage.setItem("notification_tip_dismissed", "true")
+localStorage.setItem("notification_tip_dismissed", "true");
 // Prevents tooltip on next load
 ```
 
 ### 4. Keyboard Navigation
+
 - Tab → Focus bell
 - Enter → Open permission dialog
 - Tab → Focus CTA button
@@ -143,12 +158,12 @@ localStorage.setItem("notification_tip_dismissed", "true")
 
 ## 📱 Responsive Breakdown
 
-| Device | Behavior |
-|--------|----------|
-| **Desktop** | Tooltip above bell with arrow, full animations |
-| **Tablet** | Same as desktop, optimized touch targets |
-| **Mobile** | Tooltip fits screen (w-72), all buttons tappable |
-| **Large Screen** | Scales proportionally, hover effects |
+| Device           | Behavior                                         |
+| ---------------- | ------------------------------------------------ |
+| **Desktop**      | Tooltip above bell with arrow, full animations   |
+| **Tablet**       | Same as desktop, optimized touch targets         |
+| **Mobile**       | Tooltip fits screen (w-72), all buttons tappable |
+| **Large Screen** | Scales proportionally, hover effects             |
 
 **Touch Target Size:** ≥44x44px (WCAG AAA standard)
 
@@ -157,17 +172,20 @@ localStorage.setItem("notification_tip_dismissed", "true")
 ## 🎨 Design Details
 
 ### Colors (Tailwind)
+
 - **Emerald-500:** `#10b981` (primary green)
 - **Teal-500:** `#14b8a6` (secondary)
 - **Light Bubble:** `from-emerald-50 to-teal-50`
 - **Dark Bubble:** `from-emerald-950 to-teal-950`
 
 ### Typography
+
 - **Title:** `text-sm font-semibold text-emerald-900`
 - **Description:** `text-xs text-emerald-700 leading-relaxed`
 - **Button:** `text-xs font-semibold text-white`
 
 ### Spacing
+
 - **Bubble Width:** `w-72` (288px)
 - **Bubble Padding:** `p-4`
 - **Icon Size:** `h-4 w-4` (pulsing dot), `size-17` (bell)
@@ -178,6 +196,7 @@ localStorage.setItem("notification_tip_dismissed", "true")
 ## 🚀 Build & Deployment Status
 
 ### Build Results
+
 ```
 ✓ TypeScript: No errors
 ✓ Build time: 2.22s
@@ -187,12 +206,14 @@ localStorage.setItem("notification_tip_dismissed", "true")
 ```
 
 ### Files Generated
+
 - `dist/assets/index-*.css` - Tailwind styles
 - `dist/assets/index-*.js` - JavaScript bundle
 - `dist/sw.js` - Service worker
 - `dist/workbox-*.js` - PWA precaching
 
 ### Git Status
+
 ```
 Commit: 96eb246
 Author: Copilot
@@ -205,13 +226,13 @@ Status: ✅ Merged to main
 
 ## ⚡ Performance Metrics
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Build Time** | 2.22s | ✅ Optimal |
-| **Bundle Impact** | +1.5kB gzip | ✅ Minimal |
-| **Animation FPS** | 60fps | ✅ Smooth |
-| **Component Size** | 163 lines | ✅ Compact |
-| **Re-render Impact** | Minimal | ✅ Efficient |
+| Metric               | Value       | Status       |
+| -------------------- | ----------- | ------------ |
+| **Build Time**       | 2.22s       | ✅ Optimal   |
+| **Bundle Impact**    | +1.5kB gzip | ✅ Minimal   |
+| **Animation FPS**    | 60fps       | ✅ Smooth    |
+| **Component Size**   | 163 lines   | ✅ Compact   |
+| **Re-render Impact** | Minimal     | ✅ Efficient |
 
 ---
 
@@ -228,26 +249,28 @@ Status: ✅ Merged to main
 ## 📝 Usage Examples
 
 ### Check localStorage in Console
+
 ```javascript
 // See if tip was dismissed
-localStorage.getItem("notification_tip_dismissed")
+localStorage.getItem("notification_tip_dismissed");
 
 // Clear to show tip again
-localStorage.removeItem("notification_tip_dismissed")
+localStorage.removeItem("notification_tip_dismissed");
 
 // See all storage
-console.log(localStorage)
+console.log(localStorage);
 ```
 
 ### Test the Feature
+
 ```javascript
 // In browser DevTools → Console
 
 // Clear all localStorage
-localStorage.clear()
+localStorage.clear();
 
 // Refresh page
-location.reload()
+location.reload();
 
 // Tooltip should appear with pulsing dot
 ```
@@ -273,32 +296,35 @@ location.reload()
 
 ## 🎯 Success Criteria
 
-| Criterion | Status |
-|-----------|--------|
-| Visual hint displays | ✅ Yes |
-| Text in Slovak | ✅ Yes |
-| First visit only | ✅ Yes |
-| localStorage tracking | ✅ Yes |
-| Dismissible | ✅ Yes |
+| Criterion                     | Status |
+| ----------------------------- | ------ |
+| Visual hint displays          | ✅ Yes |
+| Text in Slovak                | ✅ Yes |
+| First visit only              | ✅ Yes |
+| localStorage tracking         | ✅ Yes |
+| Dismissible                   | ✅ Yes |
 | Integrates with notifications | ✅ Yes |
-| Tailwind design | ✅ Yes |
-| Responsive | ✅ Yes |
-| Accessible | ✅ Yes |
-| No regressions | ✅ Yes |
+| Tailwind design               | ✅ Yes |
+| Responsive                    | ✅ Yes |
+| Accessible                    | ✅ Yes |
+| No regressions                | ✅ Yes |
 
 ---
 
 ## 📚 Documentation
 
 ### For Developers
+
 - **NOTIFICATION_BELL_TIP_IMPLEMENTATION.md** - Architecture & code details
 - **Testing Guide** - Step-by-step testing procedures
 
 ### For Quick Reference
+
 - **NOTIFICATION_BELL_TIP_SK_QUICK_GUIDE.md** - Slovak cheat sheet
 - **NOTIFICATION_BELL_TIP_FINAL_SUMMARY.md** - Implementation overview
 
 ### For Project Management
+
 - **NOTIFICATION_BELL_TIP_COMPLETION_REPORT.md** - Full project report
 
 ---
@@ -306,6 +332,7 @@ location.reload()
 ## 🚀 Ready for Production
 
 ### ✅ All Requirements Met
+
 - Feature fully implemented
 - Code quality high (TypeScript, proper typing)
 - Performance optimized (60fps, minimal bundle)
@@ -375,4 +402,4 @@ A: Automatically switches colors using Tailwind dark: classes.
 
 ---
 
-*Ďakujem za skvelú spoluprácu! Aplikácia je teraz s novým vizuálnym upozornením pre notifikácie. 🎉*
+_Ďakujem za skvelú spoluprácu! Aplikácia je teraz s novým vizuálnym upozornením pre notifikácie. 🎉_

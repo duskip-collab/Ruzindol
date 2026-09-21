@@ -23,10 +23,9 @@ export function CommunityStats({ municipalityId }: { municipalityId: string | nu
 
         console.log("CommunityStats: Loading with municipalityId:", municipalityId);
 
-        const { data, error: queryError } = await supabase.rpc(
-          "get_community_statistics",
-          { _municipality_id: municipalityId },
-        );
+        const { data, error: queryError } = await supabase.rpc("get_community_statistics", {
+          _municipality_id: municipalityId ?? undefined,
+        });
 
         console.log("CommunityStats RPC response:", { data, error: queryError });
 

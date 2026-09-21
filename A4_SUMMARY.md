@@ -13,14 +13,14 @@
 
 ## 📋 3-MINÚTOVÝ TEST
 
-| Krok | Akcia | Výsledok |
-|------|-------|---------|
-| 1 | Admin Panel → Toggle viditeľný? | ✅/❌ |
-| 2 | Zapnúť → "Aktívne v PWA" | ✅/❌ |
-| 3 | Sused → Voľby → Vidíte Kandidáti? | ✅/❌ |
-| 4 | Vypnúť toggle | ✅ |
-| 5 | Sused → Voľby → "Modul nie je..."? | ✅/❌ |
-| 6 | Admin → Stále vidíte Voľby + Edit? | ✅/❌ |
+| Krok | Akcia                              | Výsledok |
+| ---- | ---------------------------------- | -------- |
+| 1    | Admin Panel → Toggle viditeľný?    | ✅/❌    |
+| 2    | Zapnúť → "Aktívne v PWA"           | ✅/❌    |
+| 3    | Sused → Voľby → Vidíte Kandidáti?  | ✅/❌    |
+| 4    | Vypnúť toggle                      | ✅       |
+| 5    | Sused → Voľby → "Modul nie je..."? | ✅/❌    |
+| 6    | Admin → Stále vidíte Voľby + Edit? | ✅/❌    |
 
 **Všetko ✅?** → Production Ready  
 **Niečo ❌?** → Skúť hard refresh (Ctrl+Shift+R)
@@ -30,6 +30,7 @@
 ## 🎯 ČO VIDÍTE
 
 ### Sused keď je Modul ON (electionsEnabled=true)
+
 ```
 ✅ Menu → Voľby (viditeľný)
 ✅ Vidíte Kandidáti (Starostovia + Poslanci)
@@ -39,6 +40,7 @@
 ```
 
 ### Sused keď je Modul OFF (electionsEnabled=false)
+
 ```
 ❌ Menu → Voľby (skrytý alebo "Modul nie je...")
 ❌ Nevidíte Kandidáti
@@ -48,6 +50,7 @@
 ```
 
 ### Admin/Starosta (VŽDY)
+
 ```
 ✅ Menu → Voľby (vždy viditeľný)
 ✅ Vidíte Kandidáti
@@ -60,12 +63,12 @@
 
 ## 🔧 KOMPONENTY
 
-| Súbor | Funkcia | Status |
-|-------|---------|--------|
-| AdminElectionsToggle.tsx | Toggle ON/OFF | ✅ |
-| ElectionsScreen.tsx | Logika viditeľnosti | ✅ |
-| AppSettingsContext.tsx | Real-time sync | ✅ |
-| AdminPanel.tsx | Modul s togglem | ✅ |
+| Súbor                    | Funkcia             | Status |
+| ------------------------ | ------------------- | ------ |
+| AdminElectionsToggle.tsx | Toggle ON/OFF       | ✅     |
+| ElectionsScreen.tsx      | Logika viditeľnosti | ✅     |
+| AppSettingsContext.tsx   | Real-time sync      | ✅     |
+| AdminPanel.tsx           | Modul s togglem     | ✅     |
 
 ---
 
@@ -84,17 +87,18 @@ SELECT * FROM app_settings WHERE key = 'elections_enabled';
 
 ## ⚡ DEBUG RÝCHLO
 
-| Problém | Riešenie |
-|---------|----------|
-| Zmena sa neukazuje | Ctrl+Shift+R |
+| Problém            | Riešenie              |
+| ------------------ | --------------------- |
+| Zmena sa neukazuje | Ctrl+Shift+R          |
 | Toggle neviditeľný | Login znova ako Admin |
-| Sused vidí Edit | Logout → Login |
+| Sused vidí Edit    | Logout → Login        |
 
 ---
 
 ## 🚀 PRODUCTION STEPS
 
 1. **✅ Build** (už hotový)
+
    ```bash
    npm run build  # SUCCESS
    ```
@@ -104,6 +108,7 @@ SELECT * FROM app_settings WHERE key = 'elections_enabled';
    - Skúste všetky 6 krokov
 
 3. **Deploy** (keď test ✅)
+
    ```bash
    # Upload dist/ folder na server
    ```
@@ -118,6 +123,7 @@ SELECT * FROM app_settings WHERE key = 'elections_enabled';
 ## 📊 EXPECTED BEHAVIOR
 
 **Admin klika toggle v Admin Panel:**
+
 ```
 Toggle ON:
   → "Aktívne v PWA" ✅
@@ -169,7 +175,7 @@ PO TESTOVANÍ:
   □ DevTools: bez chýb
   □ Database: hodnota sa zmenila
   □ Realtime: zmeny bez refresh
-  
+
 READY FOR PROD:
   □ Všetky testy ✅ PASSED
   □ Build: SUCCESS
@@ -212,4 +218,4 @@ TOTAL:        ~25-30 minút
 
 ---
 
-*Vytvorené: 2025-01-11 | Build Status: SUCCESS (0 errors)*
+_Vytvorené: 2025-01-11 | Build Status: SUCCESS (0 errors)_

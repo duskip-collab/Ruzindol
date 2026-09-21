@@ -1,4 +1,5 @@
 # DEPLOYMENT CHECKLIST - 2026-09-03
+
 ## Realtime Channel Management & Push Notifications Complete Fix
 
 ---
@@ -6,6 +7,7 @@
 ## 📋 COMPLETED WORK SUMMARY
 
 ### ✅ Phase 1: Realtime Channel Management Audit
+
 - [x] NastenkaScreen.tsx - Fixed infinite CLOSED loops
 - [x] SafeChat.tsx - Fixed channel name generation
 - [x] MojeSpravyScreen.tsx - Fixed channel name + dependency
@@ -16,6 +18,7 @@
 - [x] NotificationContext.tsx - Verified correct
 
 ### ✅ Phase 2: Realtime Table Publications
+
 - [x] Created SQL: 20260903180000_enable_post_replies_realtime.sql
   - post_replies
   - group_announcements
@@ -25,6 +28,7 @@
   - app_settings
 
 ### ✅ Phase 3: Push Notifications RLS & Upsert
+
 - [x] Fixed src/lib/push.ts with composite key upsert
 - [x] Created SQL: 20260903200000_fix_push_subscriptions_rls_comprehensive.sql
   - Composite UNIQUE (user_id, endpoint)
@@ -32,6 +36,7 @@
   - Enabled Realtime publication
 
 ### ✅ Phase 4: Documentation
+
 - [x] REALTIME_AUDIT_SUMMARY.md
 - [x] PUSH_NOTIFICATIONS_FIX_SUMMARY.md
 - [x] Session memory notes
@@ -43,6 +48,7 @@
 ### Step 1: Database Migrations (MUST RUN IN THIS ORDER)
 
 #### Migration 1: Enable Realtime Publications
+
 **File:** `supabase/migrations/20260903180000_enable_post_replies_realtime.sql`
 
 ```bash
@@ -54,6 +60,7 @@
 ```
 
 **Expected Output:**
+
 ```
 Added post_replies to supabase_realtime publication
 Added group_announcements to supabase_realtime publication
@@ -66,6 +73,7 @@ Added app_settings to supabase_realtime publication
 ---
 
 #### Migration 2: Fix Push Notifications RLS
+
 **File:** `supabase/migrations/20260903200000_fix_push_subscriptions_rls_comprehensive.sql`
 
 ```bash
@@ -77,6 +85,7 @@ Added app_settings to supabase_realtime publication
 ```
 
 **Expected Output:**
+
 ```
 Dropped single-column endpoint unique constraint
 Added composite UNIQUE constraint on (user_id, endpoint)
@@ -137,12 +146,14 @@ git push origin main
 ```
 
 #### Network Tab Check
+
 ```
 POST /rest/v1/user_push_subscriptions?on_conflict=user_id,endpoint
 Status: 200 OK (was 403/400 before)
 ```
 
 #### Realtime Functionality
+
 - [ ] Bulletin board updates appear in real-time
 - [ ] Group announcements update instantly
 - [ ] Chat messages arrive without delay
@@ -154,6 +165,7 @@ Status: 200 OK (was 403/400 before)
 ## 📦 FILES CHANGED
 
 ### React Components (Code)
+
 ```
 src/components/SafeChat.tsx                      (1 change)
 src/components/AdminPanel.tsx                    (1 change)
@@ -165,12 +177,14 @@ src/lib/push.ts                                  (1 change)
 ```
 
 ### SQL Migrations (Database)
+
 ```
 supabase/migrations/20260903180000_enable_post_replies_realtime.sql
 supabase/migrations/20260903200000_fix_push_subscriptions_rls_comprehensive.sql
 ```
 
 ### Documentation (Reference)
+
 ```
 REALTIME_AUDIT_SUMMARY.md                        (NEW)
 PUSH_NOTIFICATIONS_FIX_SUMMARY.md                (NEW)
@@ -181,6 +195,7 @@ PUSH_NOTIFICATIONS_FIX_SUMMARY.md                (NEW)
 ## ✨ EXPECTED IMPROVEMENTS
 
 ### Before Deploy
+
 - ❌ Infinite "CLOSED" status in Realtime
 - ❌ Memory leaks from unreleased channels
 - ❌ 403/400 errors on push subscription save
@@ -188,6 +203,7 @@ PUSH_NOTIFICATIONS_FIX_SUMMARY.md                (NEW)
 - ❌ State updates after component unmount
 
 ### After Deploy
+
 - ✅ Stable Realtime connections
 - ✅ No memory leaks
 - ✅ 200 OK on push subscription save
@@ -201,12 +217,14 @@ PUSH_NOTIFICATIONS_FIX_SUMMARY.md                (NEW)
 If issues occur after deployment:
 
 ### Immediate Rollback
+
 ```bash
 git revert --no-edit HEAD
 git push origin main
 ```
 
 ### Partial Rollback (if needed)
+
 ```bash
 # Only revert SQL, keep code
 # 1. Drop newly added policies in Supabase
@@ -221,11 +239,12 @@ git push origin main
 ### Issue: Still seeing "403 Forbidden" after SQL migration
 
 **Solution:**
+
 1. Verify SQL migration ran completely
 2. Check Supabase > SQL Editor > Query Logs
 3. Confirm RLS policies were recreated:
    ```sql
-   SELECT * FROM pg_policies 
+   SELECT * FROM pg_policies
    WHERE tablename = 'user_push_subscriptions';
    ```
 4. If missing, run migration again manually
@@ -233,6 +252,7 @@ git push origin main
 ### Issue: "CLOSED" status still appearing
 
 **Solution:**
+
 1. Hard refresh browser (Ctrl+Shift+R or Cmd+Shift+R)
 2. Clear browser cache
 3. Check that code changes were deployed
@@ -241,14 +261,15 @@ git push origin main
 ### Issue: Realtime updates not working after deploy
 
 **Solution:**
+
 1. Verify publication was added:
    ```sql
-   SELECT * FROM pg_publication_tables 
+   SELECT * FROM pg_publication_tables
    WHERE pubname = 'supabase_realtime';
    ```
 2. Confirm REPLICA IDENTITY FULL:
    ```sql
-   SELECT schemaname, tablename, replica_identity 
+   SELECT schemaname, tablename, replica_identity
    FROM pg_tables t
    JOIN pg_class c ON c.relname = t.tablename
    WHERE schemaname = 'public';
@@ -277,16 +298,19 @@ git push origin main
 ## 📊 METRICS TO MONITOR
 
 ### Realtime Stability
+
 - [ ] Monitor Supabase Realtime dashboard
 - [ ] Check connection count per user
 - [ ] No spike in subscription errors
 
 ### Database Performance
+
 - [ ] RLS policy execution time < 1ms
 - [ ] Push subscription upsert latency < 100ms
 - [ ] Realtime event delivery < 500ms
 
 ### User Experience
+
 - [ ] No console errors
 - [ ] Push notifications working
 - [ ] Realtime features responsive
@@ -297,6 +321,7 @@ git push origin main
 ## 📚 REFERENCES
 
 **Related Documentation:**
+
 - [REALTIME_AUDIT_SUMMARY.md](../REALTIME_AUDIT_SUMMARY.md)
 - [PUSH_NOTIFICATIONS_FIX_SUMMARY.md](../PUSH_NOTIFICATIONS_FIX_SUMMARY.md)
 - Supabase Realtime Docs: https://supabase.com/docs/guides/realtime
@@ -315,6 +340,7 @@ git push origin main
 ---
 
 **Next Steps:**
+
 1. Execute SQL migrations in order
 2. Deploy code to production
 3. Monitor for 24 hours

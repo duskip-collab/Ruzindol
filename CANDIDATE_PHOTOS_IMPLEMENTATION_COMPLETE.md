@@ -3,6 +3,7 @@
 ## ✅ ČO JE HOTOVO
 
 ### 1. 🎨 UI Komponent - CandidatePhotoUpload
+
 ```typescript
 // File: src/components/elections/ElectionsEditModal.tsx (lines 723-798)
 
@@ -17,6 +18,7 @@ Funkcie:
 ```
 
 ### 2. 📝 Form Field - CandidateRow
+
 ```typescript
 // File: src/components/elections/ElectionsEditModal.tsx (lines 699-706)
 
@@ -27,6 +29,7 @@ Pridané:
 ```
 
 ### 3. 🖼️ Zobrazenie - CandidateCard & CandidateModal
+
 ```typescript
 // File: src/components/elections/CandidateCard.tsx (lines 67-77)
 // File: src/components/elections/CandidateModal.tsx (lines 61-67)
@@ -38,6 +41,7 @@ Už implementované:
 ```
 
 ### 4. 📊 Database
+
 ```sql
 election_candidates {
   ...
@@ -47,6 +51,7 @@ election_candidates {
 ```
 
 ### 5. ✅ Build Status
+
 ```
 TypeScript: SUCCESS (0 errors)
 Vite: SUCCESS (2.26s)
@@ -58,6 +63,7 @@ PWA: SUCCESS (49 entries)
 ## 🚀 WORKFLOW
 
 ### Editácia - Upload fotky
+
 ```
 User: Voľby → Edit → Candidate (Rozšíriť) → "Vložiť fotku"
 ↓
@@ -81,6 +87,7 @@ Zobrazenie: CandidateCard ukazuje fotku
 ```
 
 ### Mazanie - Remove fotka
+
 ```
 User: Voľby → Edit → Candidate (Rozšíriť) → Kliknúť X
 ↓
@@ -98,6 +105,7 @@ Zobrazenie: CandidateCard ukazuje User ikonu
 ```
 
 ### Mazanie - Delete kandidáta
+
 ```
 User: Voľby → Edit → Candidate → Delete
 ↓
@@ -116,6 +124,7 @@ Zobrazenie: CandidateCard zmizne
 ## 📁 TECHNICKÉ DETAILY
 
 ### Storage Path
+
 ```
 Bucket: elections
 Folder: candidates/
@@ -126,6 +135,7 @@ elections/candidates/550e8400-e29b-41d4-a716-446655440000-1694350800000-peter.jp
 ```
 
 ### Public URL
+
 ```
 https://[project].supabase.co/storage/v1/object/public/elections/candidates/...
 
@@ -133,6 +143,7 @@ Ukladá sa v DB ako: photo_url
 ```
 
 ### Component Tree
+
 ```
 ElectionsEditModal
 ├── CandidateRow (Mayor)
@@ -159,30 +170,35 @@ CandidateModal
 ## 🧪 TEST SCENARIOS
 
 ### Test 1: Upload fotky
+
 ```
 Expected: Fotka sa nahrá a zobrazí
 Status: ⏳ PENDING TESTING
 ```
 
 ### Test 2: Zobrazenie
+
 ```
 Expected: CandidateCard ukazuje fotku
 Status: ⏳ PENDING TESTING
 ```
 
 ### Test 3: Remove fotka
+
 ```
 Expected: photo_url = NULL
 Status: ⏳ PENDING TESTING
 ```
 
 ### Test 4: Delete kandidáta
+
 ```
 Expected: is_active = false
 Status: ⏳ PENDING TESTING
 ```
 
 ### Test 5: Refresh
+
 ```
 Expected: Fotka ostane
 Status: ⏳ PENDING TESTING
@@ -193,6 +209,7 @@ Status: ⏳ PENDING TESTING
 ## 📋 FILES CHANGED
 
 ### Modified Files
+
 ```
 1. src/components/elections/ElectionsEditModal.tsx
    - Added Image, ImageIcon, Upload, X icons (line 4)
@@ -201,6 +218,7 @@ Status: ⏳ PENDING TESTING
 ```
 
 ### Documentation Created
+
 ```
 1. CANDIDATE_PHOTOS_FEATURE.md (Kompletná dokumentácia)
 2. PHOTOS_TEST_CHECKLIST.md (Testovací plán)
@@ -212,6 +230,7 @@ Status: ⏳ PENDING TESTING
 ## 🎯 NEXT STEPS
 
 ### 1. 🧪 Testing (10 minút)
+
 - [ ] Upload fotky (JPEG, PNG, WebP)
 - [ ] Zobrazenie v CandidateCard
 - [ ] Remove fotka
@@ -219,11 +238,13 @@ Status: ⏳ PENDING TESTING
 - [ ] Refresh a verifikácia
 
 ### 2. 🐛 Debugging (ak treba)
+
 - [ ] Skontrolovať Supabase Storage bucket
 - [ ] Skontrolovať RLS policy
 - [ ] Skontrolovať error messages
 
 ### 3. 🚀 Deployment
+
 - [ ] Final build: `npm run build`
 - [ ] Deploy to production
 - [ ] Monitor Supabase logs
@@ -232,16 +253,16 @@ Status: ⏳ PENDING TESTING
 
 ## ✨ FEATURES SUMMARY
 
-| Feature | Status | Location |
-|---------|--------|----------|
-| Upload fotky | ✅ READY | ElectionsEditModal |
-| Zobrazenie fotky | ✅ READY | CandidateCard + Modal |
-| Remove fotka | ✅ READY | CandidatePhotoUpload |
-| Delete kandidáta | ✅ READY | ElectionsScreen |
-| Validácia size | ✅ READY | CandidatePhotoUpload |
-| Validácia type | ✅ READY | CandidatePhotoUpload |
-| Error handling | ✅ READY | CandidatePhotoUpload |
-| Build | ✅ SUCCESS | npm run build |
+| Feature          | Status     | Location              |
+| ---------------- | ---------- | --------------------- |
+| Upload fotky     | ✅ READY   | ElectionsEditModal    |
+| Zobrazenie fotky | ✅ READY   | CandidateCard + Modal |
+| Remove fotka     | ✅ READY   | CandidatePhotoUpload  |
+| Delete kandidáta | ✅ READY   | ElectionsScreen       |
+| Validácia size   | ✅ READY   | CandidatePhotoUpload  |
+| Validácia type   | ✅ READY   | CandidatePhotoUpload  |
+| Error handling   | ✅ READY   | CandidatePhotoUpload  |
+| Build            | ✅ SUCCESS | npm run build         |
 
 ---
 
@@ -295,6 +316,7 @@ Vite: ✅ OPTIMIZED
 ## 📞 SUMMARY
 
 ### What's New
+
 - ✅ Fotky kandidátov na starostu a poslanca
 - ✅ Upload, zobrazenie, remove, delete
 - ✅ Supabase Storage integration
@@ -302,6 +324,7 @@ Vite: ✅ OPTIMIZED
 - ✅ Full form field in EditModal
 
 ### How to Use
+
 ```
 1. Voľby → Edit
 2. Candidate → Rozšíriť
@@ -311,6 +334,7 @@ Vite: ✅ OPTIMIZED
 ```
 
 ### Expected Result
+
 ```
 - CandidateCard: Fotka alebo User ikona
 - CandidateModal: Detail s fotkou

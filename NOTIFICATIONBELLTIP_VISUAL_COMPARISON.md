@@ -53,6 +53,7 @@ Solution:
 ### 📝 Code Comparison
 
 **PRED:**
+
 ```jsx
 <div className="absolute top-full right-0 mt-3 z-50 w-72 pointer-events-auto">
   {/* PROBLEM: absolute + right-0 + w-72 on mobile → OVERFLOW */}
@@ -60,6 +61,7 @@ Solution:
 ```
 
 **PO:**
+
 ```jsx
 <div className="fixed sm:absolute top-auto sm:top-full right-auto sm:right-0 left-0 sm:left-auto mt-3 sm:mt-3 mb-0 z-[9999] w-full sm:w-72 pointer-events-auto px-3 sm:px-0 sm:max-w-sm">
   {/* SOLUTION: 
@@ -122,6 +124,7 @@ Solution:
 ### 📝 Code Comparison
 
 **PRED - CTA Button:**
+
 ```jsx
 <button className="bg-gradient-to-r from-emerald-500 to-teal-500 ...">
   {/* NO dark mode colors - stays light green in dark mode */}
@@ -129,32 +132,41 @@ Solution:
 ```
 
 **PO - CTA Button:**
+
 ```jsx
-<button className="bg-gradient-to-r from-emerald-500 to-teal-500 
+<button
+  className="bg-gradient-to-r from-emerald-500 to-teal-500 
                     dark:from-emerald-600 dark:to-teal-600
                     shadow-md hover:shadow-lg hover:scale-105 active:scale-95
                     dark:shadow-lg dark:shadow-emerald-900/40 
                     dark:hover:shadow-emerald-900/60
-                    transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400/50">
+                    transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+>
   Kliknúť a povoliť 📲
 </button>
 ```
 
 **PRED - Close Button:**
+
 ```jsx
-<button className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 
-                    dark:bg-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-700 ...">
+<button
+  className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 
+                    dark:bg-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-700 ..."
+>
   {/* Basic dark mode, no focus ring */}
 </button>
 ```
 
 **PO - Close Button:**
+
 ```jsx
-<button className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 
+<button
+  className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 
                     active:scale-95
                     dark:bg-emerald-900/40 dark:text-emerald-200 
                     dark:hover:bg-emerald-800/60
-                    transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/50">
+                    transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+>
   <X size={14} strokeWidth={3} />
 </button>
 ```
@@ -169,12 +181,12 @@ Solution:
 // Animation definitions
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6),
                 0 0 20px rgba(16, 185, 129, 0.3);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
                 0 0 32px rgba(16, 185, 129, 0.4);
     transform: scale(1.15);
   }
@@ -194,6 +206,7 @@ Solution:
 ```
 
 **Problems:**
+
 - 🔴 No `will-change` hint → CPU rendering (12% CPU usage)
 - 🔴 No `prefers-reduced-motion` support → Accessibility issue
 - 🔴 Ambiguous `translateY(0)` without unit
@@ -205,12 +218,12 @@ Solution:
 // Animation definitions with improved clarity
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6),
                 0 0 20px rgba(16, 185, 129, 0.3);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
                 0 0 32px rgba(16, 185, 129, 0.4);
     transform: scale(1.15);
   }
@@ -242,6 +255,7 @@ Solution:
 ```
 
 **Benefits:**
+
 - ✅ `will-change` → GPU rendering (2% CPU usage)
 - ✅ `prefers-reduced-motion` → WCAG AAA compliant
 - ✅ Explicit `px` units → Clarity
@@ -268,7 +282,7 @@ Device Support      ❌ Lags on old  ✅ All devices   + ✅
 ```jsx
 // useEffect - Can crash in private browsing
 useEffect(() => {
-  const isDismissed = localStorage.getItem(STORAGE_KEY);  // ❌ Throw in private mode
+  const isDismissed = localStorage.getItem(STORAGE_KEY); // ❌ Throw in private mode
   if (!isDismissed && !hasNotificationDot) {
     setShowTip(true);
   }
@@ -276,13 +290,13 @@ useEffect(() => {
 
 // handleDismiss - Can crash
 function handleDismiss() {
-  localStorage.setItem(STORAGE_KEY, "true");  // ❌ Throw if quota exceeded
+  localStorage.setItem(STORAGE_KEY, "true"); // ❌ Throw if quota exceeded
   setShowTip(false);
 }
 
 // handleBellClick - Can crash
 async function handleBellClick() {
-  localStorage.setItem(STORAGE_KEY, "true");  // ❌ Can fail silently
+  localStorage.setItem(STORAGE_KEY, "true"); // ❌ Can fail silently
   setShowTip(false);
   try {
     await enableNotifications();
@@ -294,6 +308,7 @@ async function handleBellClick() {
 ```
 
 **Problems:**
+
 - 🔴 Private Browsing Mode (Safari, Firefox) → localStorage throws error
 - 🔴 Storage Quota Exceeded → localStorage throws error
 - 🔴 Disabled by browser policy → localStorage throws error
@@ -305,7 +320,7 @@ async function handleBellClick() {
 // useEffect - Safe with try-catch and fail-safe
 useEffect(() => {
   setIsMounted(true);
-  
+
   try {
     const isDismissed = localStorage.getItem(STORAGE_KEY);
     if (!isDismissed && !hasNotificationDot) {
@@ -333,25 +348,26 @@ function handleDismiss() {
 
 // handleBellClick - Safe with multiple try-catch blocks
 async function handleBellClick() {
-  setShowTip(false);  // Close immediately for UX
-  
+  setShowTip(false); // Close immediately for UX
+
   try {
     localStorage.setItem(STORAGE_KEY, "true");
   } catch (error) {
     console.warn("Nepodarilo sa uložiť stav nápovedy:", error);
   }
-  
+
   try {
     await enableNotifications();
   } catch (error) {
     console.error("Chyba pri registrácii push notifikácií:", error);
   }
-  
-  onBellClick();  // Always call callback
+
+  onBellClick(); // Always call callback
 }
 ```
 
 **Benefits:**
+
 - ✅ Private Browsing Mode → Works (just doesn't persist)
 - ✅ Quota Exceeded → Works (graceful degradation)
 - ✅ Browser Policy → Works (shows tip every time)
@@ -434,6 +450,7 @@ Improvements:
 ### 📝 Code Comparison
 
 **PRED - Close Button:**
+
 ```jsx
 <button className="h-6 w-6 items-center justify-center ...">
   {/* Too small: 6x6px for touch target */}
@@ -441,6 +458,7 @@ Improvements:
 ```
 
 **PO - Close Button:**
+
 ```jsx
 <button className="h-8 w-8 items-center justify-center ...">
   {/* Better: 8x8px = 32x32 recommended touch size */}
@@ -448,19 +466,21 @@ Improvements:
 ```
 
 **PRED - Text:**
+
 ```jsx
 <p className="text-xs text-emerald-700 leading-relaxed">
-  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky
-  od susedov priamo do svojho zariadenia.
+  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky od susedov priamo do svojho
+  zariadenia.
   {/* Text can wrap unexpectedly and break layout */}
 </p>
 ```
 
 **PO - Text:**
+
 ```jsx
 <p className="text-xs text-emerald-700 leading-relaxed line-clamp-3">
-  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky
-  od susedov priamo do svojho zariadenia.
+  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky od susedov priamo do svojho
+  zariadenia.
   {/* line-clamp-3 ensures max 3 lines, no overflow */}
 </p>
 ```
@@ -472,17 +492,22 @@ Improvements:
 ### ❌ PRED - Potential Z-Index Conflict
 
 ```jsx
-<header className="z-50">        {/* Header: z-50 */}
+<header className="z-50">
+  {" "}
+  {/* Header: z-50 */}
   <div className="flex items-center gap-2">
     <NotificationBellTip />
-      <div className="z-50">     {/* Bubble: also z-50! */}
-        {/* Which one appears on top? Depends on DOM order! */}
-      </div>
+    <div className="z-50">
+      {" "}
+      {/* Bubble: also z-50! */}
+      {/* Which one appears on top? Depends on DOM order! */}
+    </div>
   </div>
 </header>
 ```
 
 **Problems:**
+
 - 🔴 Header and Bubble both have `z-50`
 - 🔴 Stacking order depends on DOM position (fragile)
 - 🔴 No guarantee Bubble appears above everything
@@ -491,17 +516,22 @@ Improvements:
 ### ✅ PO - Guaranteed Visibility
 
 ```jsx
-<header className="z-50">        {/* Header: z-50 */}
+<header className="z-50">
+  {" "}
+  {/* Header: z-50 */}
   <div className="flex items-center gap-2">
     <NotificationBellTip />
-      <div className="z-[9999]">  {/* Bubble: z-[9999] = 200x higher! */}
-        {/* Always appears on top, regardless of DOM order */}
-      </div>
+    <div className="z-[9999]">
+      {" "}
+      {/* Bubble: z-[9999] = 200x higher! */}
+      {/* Always appears on top, regardless of DOM order */}
+    </div>
   </div>
 </header>
 ```
 
 **Benefits:**
+
 - ✅ `z-[9999]` >> `z-50` header (9999 vs 50)
 - ✅ DOM order irrelevant
 - ✅ Guaranteed visibility
@@ -524,18 +554,18 @@ Improvements:
 
 ## Summary Table: PRED vs PO
 
-| Feature | PRED | PO | Impact |
-|---------|------|-----|--------|
-| **Mobile Popup** | Absolute, cutoff | Fixed/fullwidth | 🔴 HIGH |
-| **Dark Mode** | Light BG + light button | Dark BG + dark button | 🟠 MED |
-| **GPU Rendering** | No `will-change` | `will-change: transform` | 🟠 MED |
-| **a11y Motion** | No support | `prefers-reduced-motion` | 🟠 MED |
-| **localStorage** | No error handling | Try-catch, fail-safe | 🟠 MED |
-| **Tap Target** | 6x6px | 8x8px | 🟡 LOW |
-| **Text Overflow** | No protection | `line-clamp-3` | 🟡 LOW |
-| **Z-Index** | z-50 (conflict) | z-[9999] (safe) | 🟠 MED |
-| **Keyboard Focus** | Missing | Added on all buttons | 🟡 LOW |
-| **Arrow on Mobile** | Always shown | `hidden sm:block` | 🟡 LOW |
+| Feature             | PRED                    | PO                       | Impact  |
+| ------------------- | ----------------------- | ------------------------ | ------- |
+| **Mobile Popup**    | Absolute, cutoff        | Fixed/fullwidth          | 🔴 HIGH |
+| **Dark Mode**       | Light BG + light button | Dark BG + dark button    | 🟠 MED  |
+| **GPU Rendering**   | No `will-change`        | `will-change: transform` | 🟠 MED  |
+| **a11y Motion**     | No support              | `prefers-reduced-motion` | 🟠 MED  |
+| **localStorage**    | No error handling       | Try-catch, fail-safe     | 🟠 MED  |
+| **Tap Target**      | 6x6px                   | 8x8px                    | 🟡 LOW  |
+| **Text Overflow**   | No protection           | `line-clamp-3`           | 🟡 LOW  |
+| **Z-Index**         | z-50 (conflict)         | z-[9999] (safe)          | 🟠 MED  |
+| **Keyboard Focus**  | Missing                 | Added on all buttons     | 🟡 LOW  |
+| **Arrow on Mobile** | Always shown            | `hidden sm:block`        | 🟡 LOW  |
 
 ---
 

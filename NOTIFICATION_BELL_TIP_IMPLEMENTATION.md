@@ -20,9 +20,9 @@ Bol implementovaný nový komponent `NotificationBellTip`, ktorý prináša pút
 
 ```typescript
 interface NotificationBellTipProps {
-  hasNotificationDot: boolean;      // Označuje či sú povolené notifikácie
-  onBellClick: () => void;           // Callback na kliknutie zvončeka
-  className?: string;                // Tailwind CSS triedy
+  hasNotificationDot: boolean; // Označuje či sú povolené notifikácie
+  onBellClick: () => void; // Callback na kliknutie zvončeka
+  className?: string; // Tailwind CSS triedy
 }
 ```
 
@@ -42,16 +42,20 @@ interface NotificationBellTipProps {
 ### Vizuálne Prvky
 
 #### 1. **Pulzujúca Bodka** (Indikátor)
+
 ```css
 @keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6), 
-                0 0 20px rgba(16, 185, 129, 0.3);
+  0%,
+  100% {
+    box-shadow:
+      0 0 12px rgba(16, 185, 129, 0.6),
+      0 0 20px rgba(16, 185, 129, 0.3);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 
-                0 0 32px rgba(16, 185, 129, 0.4);
+    box-shadow:
+      0 0 20px rgba(16, 185, 129, 0.8),
+      0 0 32px rgba(16, 185, 129, 0.4);
     transform: scale(1.15);
   }
 }
@@ -62,9 +66,11 @@ interface NotificationBellTipProps {
 - Farba: Emerald green (`rgba(16, 185, 129, ...)`)
 
 #### 2. **Tlačidlo Zvončeka s Animáciou**
+
 ```css
 @keyframes bounce-subtle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -80,6 +86,7 @@ interface NotificationBellTipProps {
 #### 3. **Pútavý Tooltip / Bubble**
 
 Vlastnosti:
+
 - **Pozícia:** Nad zvončekom (`bottom-full mb-3`)
 - **Sfarbenie:** Gradient od emerald-50 k teal-50 (light mode) / emerald-950 k teal-950 (dark mode)
 - **Šírka:** 288px (w-72)
@@ -102,23 +109,18 @@ Vlastnosti:
 3. **Nahradenie tlačidla** - Zvonček je teraz komponent `NotificationBellTip`
 
 **Pred:**
+
 ```tsx
-<button
-  type="button"
-  onClick={handleBellClick}
-  className="..."
->
+<button type="button" onClick={handleBellClick} className="...">
   <Bell size={17} strokeWidth={2} />
   {hasNotificationDot && <span className="..." />}
 </button>
 ```
 
 **Po:**
+
 ```tsx
-<NotificationBellTip
-  hasNotificationDot={hasNotificationDot}
-  onBellClick={handleBellClick}
-/>
+<NotificationBellTip hasNotificationDot={hasNotificationDot} onBellClick={handleBellClick} />
 ```
 
 ### Logika Povolenia Notifikácií
@@ -127,20 +129,21 @@ V `NotificationBellTip.tsx`:
 
 ```typescript
 async function handleBellClick() {
-  localStorage.setItem(STORAGE_KEY, "true");  // Uložiť do localStorage
-  setShowTip(false);                           // Skryť nápovedu
+  localStorage.setItem(STORAGE_KEY, "true"); // Uložiť do localStorage
+  setShowTip(false); // Skryť nápovedu
   try {
-    await enableNotifications();                // Volať existujúcu funkciu z lib/push.ts
+    await enableNotifications(); // Volať existujúcu funkciu z lib/push.ts
   } catch (error) {
     console.error("Chyba pri registrácii push notifikácií:", error);
   }
-  onBellClick();                               // Existujúci callback
+  onBellClick(); // Existujúci callback
 }
 ```
 
 ## Správanie v Rôznych Scenáriách
 
 ### Scenár 1: Prvý Spustenie (Bez Notifikácií)
+
 1. Komponenta sa montuje
 2. Skontroluje localStorage - `notification_tip_dismissed` neexistuje
 3. `hasNotificationDot === false`
@@ -148,6 +151,7 @@ async function handleBellClick() {
 5. Zvonček sa jemne animuje hore-dole
 
 ### Scenár 2: Používateľ Klikne "Kliknúť a Povoliť"
+
 1. `enableNotifications()` sa zavolá
 2. Spustí sa Notification.requestPermission() dialog
 3. Po súhlase sa subskripcia uloží do Supabase
@@ -156,18 +160,21 @@ async function handleBellClick() {
 6. Zvonček prestáva pulzovať
 
 ### Scenár 3: Používateľ Klikne "Zatvoriť"
+
 1. `localStorage.setItem(STORAGE_KEY, "true")`
 2. Tooltip sa okamžite skryje
 3. Pulzujúca bodka zmizne
 4. Nápoveda sa viac nezobrazí (kým nevymaže localStorage)
 
 ### Scenár 4: Opätovné Spustenie Aplikácie
+
 1. Komponenta sa montuje
 2. Skontroluje localStorage
 3. Ak `notification_tip_dismissed === "true"` → nič sa nezobrazí
 4. Ak notifikácie sú už povolené (`hasNotificationDot === true`) → nápoveda sa nezobrazí
 
 ### Scenár 5: Dark Mode
+
 - Bubble sa automaticky prepína na dark variant (Tailwind dark: classes)
 - Pulzujúca bodka ostáva v emerald green (je viditeľná aj v dark mode)
 - Border a shadows sú adjustené pre dark mode (`dark:border-emerald-700/60`, `dark:from-emerald-950`)
@@ -175,12 +182,14 @@ async function handleBellClick() {
 ## Responsive Dizajn
 
 ### Desktop (sm+)
+
 - Tooltip sa zobrazuje nad zvončekom
 - CTA button je v bubbleu
 - Close button je viditeľný v pravom hornom rohu
 - Arrow pointuje presne na zvonček
 
 ### Mobile
+
 - Tooltip je plne responsívny (w-72 sa prispôsobuje na menšom displaji)
 - Všetky prvky sú dotknutiteľné (cielová veľkosť ≥ 44x44px)
 - Bubble si zachováva svoj layout aj na malom displeji
@@ -202,13 +211,13 @@ async function handleBellClick() {
 
 ```javascript
 // Skontrolovať či je nastavené
-localStorage.getItem("notification_tip_dismissed")  // "true" alebo null
+localStorage.getItem("notification_tip_dismissed"); // "true" alebo null
 
 // Vymazať nápovedu (na testovanie)
-localStorage.removeItem("notification_tip_dismissed")
+localStorage.removeItem("notification_tip_dismissed");
 
 // Zmazať všetko
-localStorage.clear()
+localStorage.clear();
 ```
 
 ## Kompatibilita

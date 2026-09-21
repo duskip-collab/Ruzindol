@@ -1,6 +1,6 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface PhotoLightboxProps {
   photoUrl: string | null | undefined;

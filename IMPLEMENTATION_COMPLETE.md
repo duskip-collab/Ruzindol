@@ -3,7 +3,9 @@
 ## 📋 Zhrnutie vykonaných zmien
 
 ### Otázka 1: ✅ Editácia volieb priamo v modale
+
 **Status**: HOTOVO
+
 - ElectionsEditModal je plne funkčný
 - Umožňuje editovať: názov, popis, dátum, status volieb
 - Dynamické pridávanie kandidátov na starostu a poslanecov
@@ -11,7 +13,9 @@
 - Veci, dokumenty a fotografie sa nahrávajú a spravujú
 
 ### Otázka 2: ✅ Kandidáti na starostu a obecné zastupiteľstvo
+
 **Status**: HOTOVO
+
 - Dynamické pridávanie kandidátov (tlačítko "+ Pridať kandidáta")
 - Neobmedzený počet kandidátov
 - Mazanie jednotlivých kandidátov (ikonka koša)
@@ -20,9 +24,11 @@
 - Po vymazaní sú záznam reálne odstránené z databázy
 
 ### Otázka 3: ✅ Priradenie a zobrazenie dokumentov a fotografií
+
 **Status**: HOTOVO
 
 #### Nahrávanie prílohy:
+
 - ElectionsAttachmentUpload komponenta
 - Drag & drop alebo kliknutie na upload
 - Podpora: PDF a obrázky (JPEG, PNG, WebP, GIF)
@@ -30,6 +36,7 @@
 - Upload do Supabase storage bucketu 'elections'
 
 #### Zobrazenie prílohy pre susedov:
+
 - Nová sekcia v ElectionsScreen: "Dokumenty a fotografie"
 - Grid zobrazenie (1 stĺpec na mobiloch, 2 na desktopu)
 - Obrázky: Náhľad s aspect-ratio 16:9
@@ -130,6 +137,7 @@ CREATE TABLE elections_attachments (
 ## 🧪 Testovací scenár
 
 ### Test A: Nová voľba s prílohou
+
 ```
 1. Login ako admin/starosta/úradník
 2. Prejdite na Aktuality → Voľby
@@ -150,6 +158,7 @@ CREATE TABLE elections_attachments (
 ```
 
 ### Test B: Editácia existujúcej voľby
+
 ```
 1. Kliknite na Edit ikonu
 2. ✅ Modal by mal obsahovať všetky existujúce kandidáty a prílohy
@@ -160,6 +169,7 @@ CREATE TABLE elections_attachments (
 ```
 
 ### Test C: Zobrazenie pre susedov
+
 ```
 1. Login ako sused (bez práv na úpravu)
 2. Prejdite na Aktuality → Voľby
@@ -170,6 +180,7 @@ CREATE TABLE elections_attachments (
 ```
 
 ### Test D: Mazanie kandidátov
+
 ```
 1. Login ako admin/starosta
 2. Otvrite Edit modál
@@ -181,6 +192,7 @@ CREATE TABLE elections_attachments (
 ```
 
 ### Test E: Mobilný responsive
+
 ```
 1. Otvrite aplikáciu na iPhone 12 (390px)
 2. Prejdite na Voľby
@@ -194,9 +206,11 @@ CREATE TABLE elections_attachments (
 ## 🔧 Technické zmeny
 
 ### Súbory upravené:
+
 - ✅ `src/screens/ElectionsScreen.tsx` - Pridané prílohy, edit funkcie
 
 ### Súbory nezmenené (sú funkčné):
+
 - ✅ `src/components/elections/ElectionsEditModal.tsx`
 - ✅ `src/components/elections/ElectionsAttachmentUpload.tsx`
 - ✅ `src/components/elections/CandidateCard.tsx`
@@ -231,4 +245,3 @@ CREATE TABLE elections_attachments (
 **Dátum**: 8. september 2026
 **Status**: ✅ IMPLEMENTÁCIA KOMPLETNÁ
 **Príprava na produkciu**: HOTOVA
-

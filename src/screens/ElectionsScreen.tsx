@@ -1,26 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { Vote, Award, Loader2, RefreshCw, Edit3, FileText, Image as ImageIcon, Download, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAppSettings } from '@/hooks/useAppSettings';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import CandidateCard, { Candidate } from '@/components/elections/CandidateCard';
-import CandidateModal from '@/components/elections/CandidateModal';
-import ElectionsEditModal, { ElectionsData } from '@/components/elections/ElectionsEditModal';
-import PollCard, { Poll } from '@/components/polls/PollCard';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from "react";
+import {
+  Vote,
+  Award,
+  Loader2,
+  RefreshCw,
+  Edit3,
+  FileText,
+  Image as ImageIcon,
+  Download,
+  Trash2,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import CandidateCard, { Candidate } from "@/components/elections/CandidateCard";
+import CandidateModal from "@/components/elections/CandidateModal";
+import ElectionsEditModal, { ElectionsData } from "@/components/elections/ElectionsEditModal";
+import type { CandidateRow } from "@/components/elections/ElectionsEditModal";
+import type { AttachmentFile } from "@/components/elections/ElectionsAttachmentUpload";
+import PollCard, { Poll } from "@/components/polls/PollCard";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
 
-type Attachment = {
-  id: string;
+type CandidateDbRow = Database["public"]["Tables"]["election_candidates"]["Row"];
+type AttachmentDbRow = Database["public"]["Tables"]["elections_attachments"]["Row"];
+type Attachment = Omit<AttachmentFile, "description" | "file_size_bytes"> & {
   election_id: string;
-  file_name: string;
-  file_type: 'pdf' | 'image';
-  file_url: string;
   file_size_bytes?: number;
   description?: string;
-  sort_order: number;
   created_at: string;
 };
+
+function toPositionType(value: string): CandidateRow["position_type"] | null {
+  return value === "starosta" || value === "poslanec" ? value : null;
+}
+
+function toCandidate(row: CandidateDbRow): Candidate | null {
+  const position_type = toPositionType(row.position_type);
+  return position_type ? { ...row, position_type } : null;
+}
+
+function toCandidateRow(row: CandidateDbRow): CandidateRow | null {
+  const position_type = toPositionType(row.position_type);
+  return position_type
+    ? {
+        id: row.id,
+        full_name: row.full_name,
+        party_or_independent: row.party_or_independent,
+        position_type,
+        age: row.age,
+        profession: row.profession,
+        motto: row.motto,
+        bio: row.bio,
+        email: row.email,
+        website_url: row.website_url,
+        facebook_url: row.facebook_url,
+        program_priorities: row.program_priorities,
+        photo_url: row.photo_url,
+        sort_order: row.sort_order,
+      }
+    : null;
+}
+
+function toAttachment(row: AttachmentDbRow): Attachment | null {
+  if (row.file_type !== "pdf" && row.file_type !== "image") return null;
+  return {
+    id: row.id,
+    election_id: row.election_id,
+    file_name: row.file_name,
+    file_type: row.file_type,
+    file_url: row.file_url,
+    file_size_bytes: row.file_size_bytes ?? undefined,
+    description: row.description ?? undefined,
+    sort_order: row.sort_order,
+    created_at: row.created_at,
+  };
+}
 
 export function ElectionsScreen() {
   const { electionsEnabled, loading: settingsLoading } = useAppSettings();
@@ -31,24 +87,50 @@ export function ElectionsScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candModalOpen, setCandModalOpen] = useState(false);
-  const [posFilter, setPosFilter] = useState<'vsetko' | 'starosta' | 'poslanec'>('vsetko');
+  const [posFilter, setPosFilter] = useState<"vsetko" | "starosta" | "poslanec">("vsetko");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentElection, setCurrentElection] = useState<ElectionsData | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: cData } = await supabase.from('election_candidates').select('*').eq('is_active', true);
-      if (cData) setCandidates(cData as unknown as Candidate[]);
-      const { data: pData } = await supabase.from('polls').select('*, options:poll_options(*)');
-      if (pData) setPolls(pData as unknown as Poll[]);
+      const { data: cData } = await supabase
+        .from("election_candidates")
+        .select("*")
+        .eq("is_active", true);
+      if (cData)
+        setCandidates(
+          cData.flatMap((candidate) => {
+            const normalized = toCandidate(candidate);
+            return normalized ? [normalized] : [];
+          }),
+        );
+      const { data: pData } = await supabase.from("polls").select("*, options:poll_options(*)");
+      if (pData) {
+        setPolls(
+          pData.map((poll) => ({
+            ...poll,
+            options: poll.options,
+          })),
+        );
+      }
       // Načítaj prílohy volieb
       const { data: aData } = await supabase
-        .from('elections_attachments')
-        .select('*')
-        .order('sort_order', { ascending: true });
-      if (aData) setAttachments(aData as unknown as Attachment[]);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+        .from("elections_attachments")
+        .select("*")
+        .order("sort_order", { ascending: true });
+      if (aData)
+        setAttachments(
+          aData.flatMap((attachment) => {
+            const normalized = toAttachment(attachment);
+            return normalized ? [normalized] : [];
+          }),
+        );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditElections = async () => {
@@ -56,151 +138,169 @@ export function ElectionsScreen() {
       setLoading(true);
       // Načítaj aktívnu voľbu
       const { data: electionsData } = await supabase
-        .from('elections')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .from("elections")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (electionsData && electionsData.length > 0) {
         const election = electionsData[0];
-         
+
         // Načítaj kandidátov IBA AKTÍVNYCH
         const { data: candidatesData } = await supabase
-          .from('election_candidates')
-          .select('*')
-          .eq('election_id', election.id)
-          .eq('is_active', true);
+          .from("election_candidates")
+          .select("*")
+          .eq("election_id", election.id)
+          .eq("is_active", true);
 
         // Načítaj prílohy
         const { data: attachmentsData } = await supabase
-          .from('elections_attachments')
-          .select('*')
-          .eq('election_id', election.id)
-          .order('sort_order', { ascending: true });
+          .from("elections_attachments")
+          .select("*")
+          .eq("election_id", election.id)
+          .order("sort_order", { ascending: true });
 
-        const mayorCandidates = (candidatesData || [])
-          .filter((c: any) => c.position_type === 'starosta')
-          .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
-        
-        const councilCandidates = (candidatesData || [])
-          .filter((c: any) => c.position_type === 'poslanec')
-          .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+        const normalizedCandidates = (candidatesData ?? []).flatMap((candidate) => {
+          const normalized = toCandidateRow(candidate);
+          return normalized ? [normalized] : [];
+        });
+        const mayorCandidates = normalizedCandidates
+          .filter((candidate) => candidate.position_type === "starosta")
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-        const attachmentsAsFiles = (attachmentsData || []).map((a: Attachment) => ({
-          id: a.id,
-          file_name: a.file_name,
-          file_type: a.file_type,
-          file_url: a.file_url,
-          file_size_bytes: a.file_size_bytes,
-          description: a.description,
-          sort_order: a.sort_order
-        }));
+        const councilCandidates = normalizedCandidates
+          .filter((candidate) => candidate.position_type === "poslanec")
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+        const attachmentsAsFiles = (attachmentsData ?? []).flatMap((attachment) => {
+          const normalized = toAttachment(attachment);
+          return normalized
+            ? [
+                {
+                  id: normalized.id,
+                  file_name: normalized.file_name,
+                  file_type: normalized.file_type,
+                  file_url: normalized.file_url,
+                  file_size_bytes: normalized.file_size_bytes,
+                  description: normalized.description,
+                  sort_order: normalized.sort_order,
+                },
+              ]
+            : [];
+        });
 
         setCurrentElection({
           id: election.id,
           name: election.name,
-          description: election.description,
-          election_date: election.election_date,
-          status: election.status,
-          candidates_mayor: mayorCandidates.length > 0 ? mayorCandidates : [emptyElectionCandidate()],
-          candidates_council: councilCandidates.length > 0 ? councilCandidates : [emptyElectionCandidate()],
-          attachments: attachmentsAsFiles
+          description: election.description ?? undefined,
+          election_date: election.election_date ?? undefined,
+          status:
+            election.status === "draft" ||
+            election.status === "active" ||
+            election.status === "closed"
+              ? election.status
+              : "draft",
+          candidates_mayor:
+            mayorCandidates.length > 0 ? mayorCandidates : [emptyElectionCandidate()],
+          candidates_council:
+            councilCandidates.length > 0 ? councilCandidates : [emptyElectionCandidate()],
+          attachments: attachmentsAsFiles,
         });
       } else {
         setCurrentElection(null);
       }
 
-      triggerHaptic('light');
+      triggerHaptic("light");
       setEditModalOpen(true);
     } catch (err) {
-      console.error('Error loading election for edit:', err);
+      console.error("Error loading election for edit:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const emptyElectionCandidate = () => ({
-    full_name: '',
-    party_or_independent: '',
-    position_type: 'starosta' as const,
+    full_name: "",
+    party_or_independent: "",
+    position_type: "starosta" as const,
     age: undefined,
-    profession: '',
-    motto: '',
-    bio: '',
-    email: '',
-    website_url: '',
-    facebook_url: '',
+    profession: "",
+    motto: "",
+    bio: "",
+    email: "",
+    website_url: "",
+    facebook_url: "",
     program_priorities: [],
-    sort_order: 0
+    sort_order: 0,
   });
 
   const handleSaveElection = async (data: ElectionsData) => {
     try {
+      if (!profile?.id) throw new Error("Pre správu volieb musí byť používateľ prihlásený.");
       const { data: electionResult, error: electionError } = data.id
         ? await supabase
-            .from('elections')
+            .from("elections")
             .update({
               name: data.name,
               description: data.description,
               election_date: data.election_date,
               status: data.status,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
-            .eq('id', data.id)
+            .eq("id", data.id)
             .select()
         : await supabase
-            .from('elections')
+            .from("elections")
             .insert({
               name: data.name,
               description: data.description,
               election_date: data.election_date,
               status: data.status,
-              created_by: profile?.id,
-              created_at: new Date().toISOString()
+              created_by: profile.id,
+              created_at: new Date().toISOString(),
             })
             .select();
 
       if (electionError) throw new Error(electionError.message);
       const electionId = electionResult?.[0]?.id;
-      if (!electionId) throw new Error('Voľby sa nepodarilo vytvoriť');
+      if (!electionId) throw new Error("Voľby sa nepodarilo vytvoriť");
 
       // Vymažem starých kandidátov
       if (data.id) {
-        await supabase
-          .from('election_candidates')
-          .delete()
-          .eq('election_id', electionId);
+        await supabase.from("election_candidates").delete().eq("election_id", electionId);
       }
 
       // Vložím nových kandidátov
       const allCandidates = [
         ...data.candidates_mayor.map((c, i) => ({ ...c, election_id: electionId, sort_order: i })),
-        ...data.candidates_council.map((c, i) => ({ ...c, election_id: electionId, sort_order: i }))
+        ...data.candidates_council.map((c, i) => ({
+          ...c,
+          election_id: electionId,
+          sort_order: i,
+        })),
       ];
 
       if (allCandidates.length > 0) {
-        const { error: candError } = await supabase
-          .from('election_candidates')
-          .insert(
-            allCandidates.map((c) => ({
-              full_name: c.full_name,
-              party_or_independent: c.party_or_independent,
-              position_type: c.position_type,
-              age: c.age,
-              profession: c.profession,
-              motto: c.motto,
-              bio: c.bio,
-              email: c.email,
-              website_url: c.website_url,
-              facebook_url: c.facebook_url,
-              program_priorities: c.program_priorities,
-              photo_url: c.photo_url,
-              election_id: electionId,
-              sort_order: c.sort_order,
-              is_active: true
-            }))
-          );
+        const { error: candError } = await supabase.from("election_candidates").insert(
+          allCandidates.map((c) => ({
+            full_name: c.full_name,
+            party_or_independent: c.party_or_independent,
+            position_type: c.position_type,
+            age: c.age,
+            profession: c.profession,
+            motto: c.motto,
+            bio: c.bio,
+            email: c.email,
+            website_url: c.website_url,
+            facebook_url: c.facebook_url,
+            program_priorities: c.program_priorities,
+            photo_url: c.photo_url,
+            election_id: electionId,
+            sort_order: c.sort_order,
+            is_active: true,
+          })),
+        );
 
         if (candError) throw new Error(candError.message);
       }
@@ -208,10 +308,7 @@ export function ElectionsScreen() {
       // Handleuj prílohy (attachments)
       // 1. Vymažem staré prílohy ak editujeme
       if (data.id) {
-        await supabase
-          .from('elections_attachments')
-          .delete()
-          .eq('election_id', electionId);
+        await supabase.from("elections_attachments").delete().eq("election_id", electionId);
       }
 
       // 2. Vložím nové prílohy
@@ -226,23 +323,23 @@ export function ElectionsScreen() {
             file_size_bytes: a.file_size_bytes,
             description: a.description,
             sort_order: idx,
-            uploaded_by: profile?.id
+            uploaded_by: profile.id,
           }));
 
         if (attachmentsToInsert.length > 0) {
           const { error: attachError } = await supabase
-            .from('elections_attachments')
+            .from("elections_attachments")
             .insert(attachmentsToInsert);
 
           if (attachError) throw new Error(attachError.message);
         }
       }
 
-      triggerHaptic('success');
+      triggerHaptic("success");
       void loadData();
       setCurrentElection(null);
-    } catch (error: any) {
-      console.error('Save election error:', error);
+    } catch (error) {
+      console.error("Save election error:", error);
       throw error;
     }
   };
@@ -251,16 +348,16 @@ export function ElectionsScreen() {
   const handleDeleteCandidate = async (candidateId: string) => {
     try {
       const { error } = await supabase
-        .from('election_candidates')
+        .from("election_candidates")
         .update({ is_active: false })
-        .eq('id', candidateId);
+        .eq("id", candidateId);
 
       if (error) throw new Error(error.message);
-      
-      triggerHaptic('success');
+
+      triggerHaptic("success");
       void loadData();
     } catch (error) {
-      console.error('Delete candidate error:', error);
+      console.error("Delete candidate error:", error);
       throw error;
     }
   };
@@ -269,30 +366,42 @@ export function ElectionsScreen() {
   const handleDeleteAttachment = async (attachmentId: string) => {
     try {
       const { error } = await supabase
-        .from('elections_attachments')
+        .from("elections_attachments")
         .delete()
-        .eq('id', attachmentId);
+        .eq("id", attachmentId);
 
       if (error) throw new Error(error.message);
-      
-      triggerHaptic('success');
+
+      triggerHaptic("success");
       void loadData();
     } catch (error) {
-      console.error('Delete attachment error:', error);
+      console.error("Delete attachment error:", error);
       throw error;
     }
   };
 
-  useEffect(() => { void loadData(); }, []);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
-  if (settingsLoading) return <div className="p-8 text-center text-xs"><Loader2 className="h-5 w-5 animate-spin inline" /></div>;
+  if (settingsLoading)
+    return (
+      <div className="p-8 text-center text-xs">
+        <Loader2 className="h-5 w-5 animate-spin inline" />
+      </div>
+    );
 
-  const isOfficial = profile?.is_admin || profile?.role === 'Starosta' || profile?.role === 'Uradnik';
+  const isOfficial = profile?.role === "Starosta" || profile?.role === "Uradnik";
   if (!electionsEnabled && !isOfficial) {
     return null;
   }
 
-  const filtered = candidates.filter((c) => posFilter === 'vsetko' || c.position_type === posFilter);
+  const filtered = candidates.filter(
+    (c) => posFilter === "vsetko" || c.position_type === posFilter,
+  );
 
   return (
     <div className="space-y-5 p-4 max-w-4xl mx-auto pb-12">
@@ -305,31 +414,48 @@ export function ElectionsScreen() {
         </div>
         <div className="flex items-center gap-2">
           {isOfficial && (
-            <button 
-              type="button" 
-              onClick={() => { 
-                triggerHaptic('light'); 
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
                 void handleEditElections();
-              }} 
+              }}
               className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
               title="Upraviť voľby"
             >
               <Edit3 className="h-4 w-4" />
             </button>
           )}
-          <button type="button" onClick={() => { triggerHaptic('light'); void loadData(); }} className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("light");
+              void loadData();
+            }}
+            className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </button>
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold flex items-center gap-1.5"><Award className="h-4 w-4 text-amber-500" /> Kandidáti ({filtered.length})</h2>
+          <h2 className="text-sm font-bold flex items-center gap-1.5">
+            <Award className="h-4 w-4 text-amber-500" /> Kandidáti ({filtered.length})
+          </h2>
           <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            {(['vsetko', 'starosta', 'poslanec'] as const).map((f) => (
-              <button key={f} type="button" onClick={() => setPosFilter(f)} className={cn('px-2 py-0.5 text-xs font-semibold rounded-lg', posFilter === f ? 'bg-white dark:bg-slate-900' : 'text-slate-500')}>
-                {f === 'vsetko' ? 'Všetci' : f === 'starosta' ? 'Starosta' : 'Poslanci'}
+            {(["vsetko", "starosta", "poslanec"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setPosFilter(f)}
+                className={cn(
+                  "px-2 py-0.5 text-xs font-semibold rounded-lg",
+                  posFilter === f ? "bg-white dark:bg-slate-900" : "text-slate-500",
+                )}
+              >
+                {f === "vsetko" ? "Všetci" : f === "starosta" ? "Starosta" : "Poslanci"}
               </button>
             ))}
           </div>
@@ -337,23 +463,41 @@ export function ElectionsScreen() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((cand) => (
-            <CandidateCard key={cand.id} candidate={cand} onSelect={(c) => { setSelectedCandidate(c); setCandModalOpen(true); }} />
+            <CandidateCard
+              key={cand.id}
+              candidate={cand}
+              onSelect={(c) => {
+                setSelectedCandidate(c);
+                setCandModalOpen(true);
+              }}
+            />
           ))}
         </div>
       </div>
 
       {polls.length > 0 && (
         <div className="space-y-3 pt-3 border-t dark:border-slate-800">
-          <h2 className="text-sm font-bold flex items-center gap-1.5"><Vote className="h-4 w-4 text-blue-500" /> Ankety</h2>
+          <h2 className="text-sm font-bold flex items-center gap-1.5">
+            <Vote className="h-4 w-4 text-blue-500" /> Ankety
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {polls.map((p) => (<PollCard key={p.id} poll={p} isActiveNeighbor={Boolean(profile?.is_active_neighbor)} onVoteSuccess={loadData} />))}
+            {polls.map((p) => (
+              <PollCard
+                key={p.id}
+                poll={p}
+                isActiveNeighbor={Boolean(profile?.is_active_neighbor)}
+                onVoteSuccess={loadData}
+              />
+            ))}
           </div>
         </div>
       )}
 
       {attachments.length > 0 && (
         <div className="space-y-3 pt-3 border-t dark:border-slate-800">
-          <h2 className="text-sm font-bold flex items-center gap-1.5"><FileText className="h-4 w-4 text-amber-600" /> Dokumenty a fotografie</h2>
+          <h2 className="text-sm font-bold flex items-center gap-1.5">
+            <FileText className="h-4 w-4 text-amber-600" /> Dokumenty a fotografie
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {attachments.map((att) => (
               <div
@@ -366,7 +510,7 @@ export function ElectionsScreen() {
                   rel="noopener noreferrer"
                   className="flex-1 flex flex-col hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all"
                 >
-                  {att.file_type === 'image' ? (
+                  {att.file_type === "image" ? (
                     <div className="aspect-video overflow-hidden bg-slate-100 dark:bg-slate-900">
                       <img
                         src={att.file_url}
@@ -418,15 +562,16 @@ export function ElectionsScreen() {
         </div>
       )}
 
-      <CandidateModal 
-        candidate={selectedCandidate} 
-        isOpen={candModalOpen} 
-        onClose={() => setCandModalOpen(false)} 
+      <CandidateModal
+        candidate={selectedCandidate}
+        isOpen={candModalOpen}
+        onClose={() => setCandModalOpen(false)}
         onDelete={handleDeleteCandidate}
         isAdmin={isOfficial}
       />
-      
-      <ElectionsEditModal 
+
+      <ElectionsEditModal
+        key={`${currentElection?.id ?? "new"}-${editModalOpen ? "open" : "closed"}`}
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSave={handleSaveElection}

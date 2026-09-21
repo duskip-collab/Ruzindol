@@ -9,14 +9,17 @@
 ## 📋 Súhrn zmien
 
 ### 1️⃣ **NOVÁ MIGRÁCIA** (Databáza)
+
 - **Súbor:** `supabase/migrations/20260910121000_add_neighbor_post_notifications.sql`
 - **Zmena:** Pridaný trigger pre notifikácie "Susedský život"
 
 ### 2️⃣ **UPRAVENÁ EDGE FUNCTION** (Push)
+
 - **Súbor:** `supabase/functions/send-push/index.ts`
 - **Zmeny:** 2 funkcie (bez zmeny ostatného kódu)
 
 ### 3️⃣ **FRONTEND** ✅ BEZ ZMIEN
+
 - `src/context/NotificationContext.tsx` - Automaticky spracúva všetky typy notifikácií
 - `src/screens/NastenkaScreen.tsx` - Už má logiku pre "susedsky_zivot"
 - `src/lib/push.ts` - Bez zmien
@@ -85,7 +88,12 @@ if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post")
 return type === "announcement" || type === "official_alert" || type === "group_announcement";
 
 // PO:
-return type === "announcement" || type === "official_alert" || type === "group_announcement" || type === "neighbor_post";
+return (
+  type === "announcement" ||
+  type === "official_alert" ||
+  type === "group_announcement" ||
+  type === "neighbor_post"
+);
 ```
 
 ---
@@ -150,6 +158,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ## ✨ VÝSLEDKY
 
 ### PRED ÚPRAVAMI
+
 ```
 "Susedský život" príspevok
 ├─ ❌ Notifikácia v aplikácii: NIE
@@ -163,6 +172,7 @@ return type === "announcement" || type === "official_alert" || type === "group_a
 ```
 
 ### PO ÚPRAVÁCH
+
 ```
 "Susedský život" príspevok
 ├─ ✅ Notifikácia v aplikácii: ÁNO (priority: oznam)
@@ -185,6 +195,7 @@ Ostatné notifikácie
 ## 🚀 NASADENIE - KROK ZA KROKOM
 
 ### 1. Aplikovať SQL migráciu
+
 ```
 1. Otvoriť Supabase Console
 2. Prejsť na SQL Editor
@@ -194,6 +205,7 @@ Ostatné notifikácie
 ```
 
 ### 2. Deployonutť Edge Function
+
 ```
 1. Nasadiť zmeny v supabase/functions/send-push/index.ts
 2. Supabase automaticky deployuje edge functions
@@ -201,6 +213,7 @@ Ostatné notifikácie
 ```
 
 ### 3. Nasadiť Frontend (bez zmien)
+
 ```
 1. Frontend netreba meniť
 2. Notifikácie sa spracúvajú automaticky
@@ -211,6 +224,7 @@ Ostatné notifikácie
 ## 🧪 VERIFIKAČNÝ TEST
 
 ### Test A: Príspevok v "Susedský Život"
+
 ```
 Užívateľ A:
 1. Prihlásenie
@@ -227,6 +241,7 @@ Užívateľ B (iný prehliadač/zariadenie):
 ```
 
 ### Test B: Oznam v "Obecný Hlásnik"
+
 ```
 Starosta:
 1. Prihlásenie (ako starosta)
@@ -273,6 +288,7 @@ Testovateľnosť:   VYSOKÁ (jasný tok notifikácií)
 ## 🔐 BEZPEČNOSŤ
 
 ✅ **Bez zmien v bezpečnosti:**
+
 - RLS politiky na tabuľke `posts` - bez zmien
 - RLS politiky na tabuľke `notifications` - bez zmien
 - Notifikácie sa posielajú len autentifikovaným používateľom
@@ -283,6 +299,7 @@ Testovateľnosť:   VYSOKÁ (jasný tok notifikácií)
 ## 📞 SUPPORT
 
 Ak sa objaví problém:
+
 1. Skontrolovať Supabase logov (SQL errors)
 2. Skontrolovať edge function logov (send-push errors)
 3. Skontrolovať browser console

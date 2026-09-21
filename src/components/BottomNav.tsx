@@ -31,7 +31,11 @@ export function BottomNav({
 
   if (layout === "sidebar") {
     return (
-      <nav role="tablist" aria-label="Bočná navigácia aplikácie" className={cn("flex flex-col gap-1", className)}>
+      <nav
+        role="tablist"
+        aria-label="Bočná navigácia aplikácie"
+        className={cn("flex flex-col gap-1", className)}
+      >
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -44,12 +48,10 @@ export function BottomNav({
               aria-selected={isActive}
               aria-label={tab.label}
               type="button"
-              onClick={() => triggerHaptic('light')}
+              onClick={() => triggerHaptic("light")}
               className={cn(
                 "group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all",
-                isActive
-                  ? "nav-tab-active"
-                  : "nav-tab-idle",
+                isActive ? "nav-tab-active" : "nav-tab-idle",
               )}
             >
               <span
@@ -92,11 +94,9 @@ export function BottomNav({
             aria-selected={isActive}
             aria-label={tab.label}
             type="button"
-            onClick={() => triggerHaptic('light')}
+            onClick={() => triggerHaptic("light")}
             className={`group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-1 py-2 transition-all active:scale-95 ${
-              isActive
-                ? "nav-tab-active"
-                : "nav-tab-idle"
+              isActive ? "nav-tab-active" : "nav-tab-idle"
             }`}
           >
             <span
@@ -119,4 +119,3 @@ export function BottomNav({
     </nav>
   );
 }
-

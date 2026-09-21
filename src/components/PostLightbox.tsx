@@ -188,7 +188,7 @@ export function PostLightbox({
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
                       liked
                         ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
-                          : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-300 dark:text-neutral-900"
+                        : "bg-white text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-300 dark:text-neutral-900"
                     } ${locked ? "cursor-not-allowed opacity-40" : ""}`}
                   >
                     <Heart className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />

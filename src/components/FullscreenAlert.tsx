@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
 type Alert = {
   id: string;
@@ -17,7 +18,10 @@ function playPriorityFeedback() {
   if (typeof window === "undefined") return;
 
   try {
-    const AudioCtx = window.AudioContext || (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!AudioCtx) return;
     const context = new AudioCtx();
     const oscillator = context.createOscillator();
@@ -66,30 +70,35 @@ export function FullscreenAlert() {
       showAlert((data?.[0] as Alert | undefined) ?? null);
     })();
 
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
 
     const setupRealtime = async () => {
       try {
         channel = supabase.channel("fullscreen-critical-alerts", {
-          config: { broadcast: { ack: true } }
+          config: { broadcast: { ack: true } },
         });
-        
+
         channel.on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "announcements", filter: "priority=eq.vystraha" },
-          (payload) => {
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "announcements",
+            filter: "priority=eq.vystraha",
+          },
+          (payload: RealtimePostgresInsertPayload<Alert>) => {
             const row = payload.new as Alert;
             showAlert(row);
-          }
+          },
         );
 
         await channel.subscribe((status: string) => {
-          if (status !== 'SUBSCRIBED' && status !== 'SUBSCRIBING') {
-            console.warn('Alert realtime status:', status);
+          if (status !== "SUBSCRIBED" && status !== "SUBSCRIBING") {
+            console.warn("Alert realtime status:", status);
           }
         });
       } catch (err) {
-        console.error('Error setting up alert realtime:', err);
+        console.error("Error setting up alert realtime:", err);
       }
     };
 

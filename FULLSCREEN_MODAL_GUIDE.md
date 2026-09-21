@@ -22,6 +22,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ## 📐 ARCHITEKTÚRA
 
 ### AnimatedModal.tsx
+
 ```typescript
 // Nové props:
 - fullscreen?: boolean      // true = fullscreen mode
@@ -29,6 +30,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### ElectionsEditModal.tsx
+
 ```typescript
 <AnimatedModal
   fullscreen={true}  // ← Nové!
@@ -38,25 +40,35 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### styles.css
+
 ```css
 /* Nové CSS classes: */
-.safe-area-inset-bottom { /* Notch support */ }
-.safe-area-inset-top { /* Notch support */ }
-.safe-area-inset-left { /* Notch support */ }
-.safe-area-inset-right { /* Notch support */ }
+.safe-area-inset-bottom {
+  /* Notch support */
+}
+.safe-area-inset-top {
+  /* Notch support */
+}
+.safe-area-inset-left {
+  /* Notch support */
+}
+.safe-area-inset-right {
+  /* Notch support */
+}
 ```
 
 ---
 
 ## 📱 RESPONSIVE ZACHOVANIE
 
-| Zariadenie | Režim | Poznámka |
-|-----------|-------|----------|
-| **Mobile** | Fullscreen | Zaberá celú obrazovku |
-| **Tablet** | Fullscreen | Stále fullscreen |
+| Zariadenie  | Režim      | Poznámka              |
+| ----------- | ---------- | --------------------- |
+| **Mobile**  | Fullscreen | Zaberá celú obrazovku |
+| **Tablet**  | Fullscreen | Stále fullscreen      |
 | **Desktop** | Fullscreen | Zaberá celú obrazovku |
 
 ### Safe Areas (Notch Support)
+
 - ✅ iPhone X, XI, 12, 13, 14, 15+ (Dynamic Island)
 - ✅ Android s notchom
 - ✅ iPad Pro s Home indicatoru
@@ -73,7 +85,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ├──────────────────────────────┤
 │                              │
 │  Content (scrollable)        │  ← Rolovateľný obsah
-│  - Informácie                │  
+│  - Informácie                │
 │  - Kandidáti na starostu     │
 │  - Kandidáti do zastup.      │
 │  - Prílohy                   │
@@ -93,6 +105,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ## 🛠️ DETAILY IMPLEMENTÁCIE
 
 ### 1. Fullscreen Container
+
 ```tsx
 <div className={cn(
   'fixed inset-0 z-50 flex items-center justify-center transition-all',
@@ -101,31 +114,36 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### 2. Modal Box
+
 ```tsx
 <motion.div className={cn(
-  fullscreen 
+  fullscreen
     ? 'h-full max-h-screen rounded-none'  // ← Fullscreen
     : 'max-w-lg max-h-[90vh] rounded-2xl' // ← Normal modal
 )}>
 ```
 
 ### 3. Scrollable Content
+
 ```tsx
 <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 pb-20 sm:pb-24">
   {/* Content */}
 </div>
 ```
+
 - `flex-1` - Zaberá dostupný priestor
 - `overflow-y-auto` - Vertikálny scroll
 - `overscroll-contain` - Zlepšené scroll "bounce" na mobile
 - `pb-20 sm:pb-24` - Padding na konci pre buttony
 
 ### 4. Sticky Footer
+
 ```tsx
 <div className="shrink-0 border-t bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 flex items-center justify-end gap-3 sticky bottom-0 safe-area-inset-bottom">
   {/* Buttons */}
 </div>
 ```
+
 - `sticky bottom-0` - Vždy pri konci
 - `safe-area-inset-bottom` - Padding pre notch
 - `shrink-0` - Neredukuje sa pri scroll
@@ -135,6 +153,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ## 🚀 TESTING
 
 ### Test 1: Mobile Fullscreen
+
 ```
 1. Otvri app na mobile (iOS/Android)
 2. Choď na Voľby → Edit
@@ -147,6 +166,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### Test 2: Notch Safety
+
 ```
 1. Na iPhone X+: Otvor modal
 2. Očakávaný výsledok:
@@ -155,6 +175,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### Test 3: Tablet/Desktop
+
 ```
 1. Otvri na iPad alebo desktop
 2. Očakávaný výsledok:
@@ -164,6 +185,7 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ```
 
 ### Test 4: Scroll Behavior
+
 ```
 1. V modale s mnohými kandidátmi scrolluj
 2. Očakávaný výsledok:
@@ -177,12 +199,14 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 ## 🔧 COMPATIBILITY
 
 ### Browsers
+
 - ✅ Chrome/Edge 90+
 - ✅ Firefox 88+
 - ✅ Safari 14+
 - ✅ Mobile browsers (iOS Safari, Chrome Android)
 
 ### Safe Area Support
+
 - ✅ CSS `env(safe-area-inset-*)` - Moderné browsery
 - ✅ Fallback padding - Staršie zariadenia
 - ✅ Manual testing na:
@@ -195,19 +219,20 @@ Modal "Voľby" sa teraz otvára na **celú obrazovku** s lepším scrollovaním.
 
 ## 📊 RESPONSIVE BREAKPOINTS
 
-| Breakpoint | Width | Padding | Example |
-|-----------|-------|---------|---------|
-| Mobile | < 640px | 1rem | iPhone 12, 13, 14 |
-| sm | 640px | 1.5rem | iPhone Pro Max |
-| md | 768px | 1.5rem | iPad mini |
-| lg | 1024px | 1.5rem | iPad Air |
-| xl | 1280px | 1.5rem | iPad Pro |
+| Breakpoint | Width   | Padding | Example           |
+| ---------- | ------- | ------- | ----------------- |
+| Mobile     | < 640px | 1rem    | iPhone 12, 13, 14 |
+| sm         | 640px   | 1.5rem  | iPhone Pro Max    |
+| md         | 768px   | 1.5rem  | iPad mini         |
+| lg         | 1024px  | 1.5rem  | iPad Air          |
+| xl         | 1280px  | 1.5rem  | iPad Pro          |
 
 ---
 
 ## ⚙️ ALGORITMY SCROLL
 
 ### Overscroll Behavior
+
 ```css
 /* Smooth scroll na iOS */
 -webkit-overflow-scrolling: touch;
@@ -217,6 +242,7 @@ overscroll-behavior: contain;
 ```
 
 ### Haptic Feedback
+
 - ✅ Light haptic - pri otvorení modalu
 - ✅ Success haptic - pri uložení
 - ✅ Error haptic - pri chybe
@@ -226,6 +252,7 @@ overscroll-behavior: contain;
 ## 🎨 DARK MODE
 
 Modal automaticky zmení farby podľa dark mode:
+
 - ✅ Header: light/dark
 - ✅ Content: light/dark
 - ✅ Footer: light/dark
@@ -235,17 +262,18 @@ Modal automaticky zmení farby podľa dark mode:
 
 ## 📚 SÚBORY ZMIEN
 
-| Súbor | Zmena |
-|-------|-------|
-| [src/components/AnimatedModal.tsx](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/components/AnimatedModal.tsx) | Fullscreen support |
-| [src/components/elections/ElectionsEditModal.tsx](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/components/elections/ElectionsEditModal.tsx) | fullscreen=true |
-| [src/styles.css](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/styles.css) | Safe-area CSS |
+| Súbor                                                                                                                                                    | Zmena              |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| [src/components/AnimatedModal.tsx](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/components/AnimatedModal.tsx)                               | Fullscreen support |
+| [src/components/elections/ElectionsEditModal.tsx](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/components/elections/ElectionsEditModal.tsx) | fullscreen=true    |
+| [src/styles.css](/c:/Users/Admin/Documents/Projekt%20APP/LOvable%20PRO/src/styles.css)                                                                   | Safe-area CSS      |
 
 ---
 
 ## 🚨 KNOWN ISSUES
 
 ### None! ✅
+
 Všetko funguje podľa špecifikácie.
 
 ---
@@ -270,6 +298,7 @@ Všetko funguje podľa špecifikácie.
 ## 📞 SUPPORT
 
 Ak máš problémy:
+
 1. Skontroluj browser console (F12)
 2. Skontroluj či CSS je aplikovaná
 3. Overifikuj responsive breakpoints (F12 → Device Toolbar)

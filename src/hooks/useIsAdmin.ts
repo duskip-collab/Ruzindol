@@ -8,10 +8,9 @@ export function useIsAdmin(userId: string | null | undefined) {
 
   useEffect(() => {
     let alive = true;
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+    // Bez prihláseného používateľa nie je čo kontrolovať; návratová hodnota `loading`
+    // je už odvodená (viď return na konci hooku), preto tu netreba setState.
+    if (!userId) return;
     (async () => {
       setLoading(true);
       try {

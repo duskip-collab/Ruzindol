@@ -3,6 +3,7 @@
 ## Analýza aktuálneho stavu
 
 ### ✅ Čo už funguje:
+
 1. **ElectionsEditModal.tsx** - Modál na úpravu volieb
    - Dynamické pridávanie kandidátov na starostu (mayor)
    - Dynamické pridávanie kandidátov do zastupiteľstva (council)
@@ -31,6 +32,7 @@
    - Rozdelenie práv (RLS) - admin/starosta/úradník môžu editovať
 
 ### ❌ Čo chýba:
+
 1. **Zobrazenie príloh v ElectionsScreen**
    - Nevidno dokumenty a fotky pre susedov
    - Nie je sekcia na zobrazenie prílohy volieb
@@ -42,6 +44,7 @@
 ## Implementácia - Potrebné zmeny
 
 ### 1. ElectionsScreen.tsx - Rozšírenie o prílohy
+
 ```
 - Pridať stav pre voľby (elections) a prílohy (attachments)
 - Rozšíriť loadData() aby načítala elections a attachments
@@ -50,6 +53,7 @@
 ```
 
 ### 2. ElectionsEditModal.tsx - Overenie
+
 ```
 - Skontrolovať, či všetky funkcie pracujú
 - Testovať mazanie kandidátov
@@ -57,6 +61,7 @@
 ```
 
 ### 3. Nový komponent (voliteľno) - AttachmentsViewer
+
 ```
 - Komponent na zobrazenie prílohi volieb
 - Gallery view pre obrázky
@@ -67,6 +72,7 @@
 ## Technické detaily
 
 ### Databázová štruktúra
+
 ```sql
 -- elections tabuľka
 CREATE TABLE elections (
@@ -103,6 +109,7 @@ CREATE TABLE elections_attachments (
 ## Test plán
 
 ### 1. Vytvorenie volieb s prílohou
+
 - [ ] Otvoriť Edit Voľby
 - [ ] Vyplniť základné info (názov, popis, dátum)
 - [ ] Pridať starostu a poslancov
@@ -111,12 +118,14 @@ CREATE TABLE elections_attachments (
 - [ ] Uložiť zmeny
 
 ### 2. Zobrazenie príloh pre susedov
+
 - [ ] Otvoriť Aktuality → Voľby
 - [ ] Skontrolovať, že sa prílohy zobrazujú
 - [ ] Skontrolovať, že sa PDF a obrázky zobrazujú správne
 - [ ] Skontrolovať download funkciu
 
 ### 3. Mazanie kandidátov
+
 - [ ] Otvoriť Edit Voľby
 - [ ] Vymazať jedného kandidáta
 - [ ] Vymazať všetkých kandidátov

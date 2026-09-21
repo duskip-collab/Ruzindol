@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Copy, Check, Shield, MapPin, UserCog, Trash2, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ProfileRole } from "@/hooks/useCurrentUser";
 import { Input } from "@/components/ui/input";
 import { AdminElectionsToggle } from "@/components/admin/AdminElectionsToggle";
@@ -98,7 +99,9 @@ function InviteCodeManager() {
         .order("name"),
       supabase
         .from("invite_codes")
-        .select("id, code, created_by, role, municipality_id, created_at, used_by, used_at, shared_at, shared_via")
+        .select(
+          "id, code, created_by, role, municipality_id, created_at, used_by, used_at, shared_at, shared_via",
+        )
         .order("created_at", { ascending: false })
         .limit(200),
     ]);
@@ -337,7 +340,9 @@ function InviteCodeManager() {
                 return (
                   <tr key={c.id} className="border-t border-neutral-100 dark:border-white/5">
                     <td className="px-2 py-1.5 font-mono tracking-wider">
-                      <span className={status !== "free" ? "text-neutral-400 line-through" : ""}>{c.code}</span>
+                      <span className={status !== "free" ? "text-neutral-400 line-through" : ""}>
+                        {c.code}
+                      </span>
                       {status === "free" && (
                         <button
                           onClick={() => copy(c.code)}
@@ -381,7 +386,9 @@ function InviteCodeManager() {
                           {c.shared_via ? ` (${c.shared_via})` : ""}
                         </div>
                       )}
-                      {c.used_at && <div>Použitý: {new Date(c.used_at).toLocaleDateString("sk-SK")}</div>}
+                      {c.used_at && (
+                        <div>Použitý: {new Date(c.used_at).toLocaleDateString("sk-SK")}</div>
+                      )}
                     </td>
                     <td className="px-1 py-1.5">
                       <button
@@ -427,35 +434,31 @@ function RoleAssigner() {
       void load();
     }, 0);
 
-    let channel: any = null;
+    let channel: RealtimeChannel | null = null;
     let isMounted = true;
 
     const setupChannel = async () => {
       try {
         channel = supabase.channel("admin-users-live", {
-          config: { broadcast: { ack: true } }
+          config: { broadcast: { ack: true } },
         });
-        
-        channel.on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "profiles" },
-          () => {
-            if (!isMounted) return;
-            void load();
-          }
-        );
+
+        channel.on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+          if (!isMounted) return;
+          void load();
+        });
 
         await channel.subscribe((status: string) => {
           if (!isMounted) return;
-          if (status === 'SUBSCRIBED') {
-            console.log('Admin panel realtime subscribed');
-          } else if (status !== 'SUBSCRIBING') {
-            console.warn('Realtime subscription status:', status);
+          if (status === "SUBSCRIBED") {
+            console.log("Admin panel realtime subscribed");
+          } else if (status !== "SUBSCRIBING") {
+            console.warn("Realtime subscription status:", status);
           }
         });
       } catch (err) {
         if (isMounted) {
-          console.error('Error setting up realtime channel:', err);
+          console.error("Error setting up realtime channel:", err);
         }
       }
     };
@@ -529,8 +532,12 @@ function RoleAssigner() {
               className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs dark:border-white/10 dark:bg-white/5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">{u.name}</p>
-                <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">{u.email ?? "—"}</p>
+                <p className="truncate font-medium text-neutral-800 dark:text-neutral-200">
+                  {u.name}
+                </p>
+                <p className="truncate text-[11px] text-neutral-500 dark:text-neutral-400">
+                  {u.email ?? "—"}
+                </p>
               </div>
               <select
                 value={u.role}

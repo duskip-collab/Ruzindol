@@ -10,6 +10,7 @@
 ## 📋 Executive Summary
 
 Detailný audit a optimalizácia React komponentu `NotificationBellTip.tsx` so zameraním na:
+
 1. ✅ Pozíciu vyskakovacieho okna (bublinky)
 2. ✅ Animácie a pulzujúcu ikonu
 3. ✅ Správanie localStorage a error handling
@@ -24,20 +25,25 @@ Detailný audit a optimalizácia React komponentu `NotificationBellTip.tsx` so z
 ### 1️⃣ **POPUP POZÍCIA - Bubble/Tooltip Positioning**
 
 #### ❌ Problem PRED:
+
 ```jsx
-{/* Stará verzia - problém na mobile */}
+{
+  /* Stará verzia - problém na mobile */
+}
 <div className="absolute top-full right-0 mt-3 z-50 w-72 pointer-events-auto">
   {/* Bublina sa môže orezať na malých screenoch */}
-</div>
+</div>;
 ```
 
 **Problémy:**
+
 - `position: absolute` + `right-0` → Bublina presahuje viewport na mobile
 - `w-72` (288px) → Na telefóne s 360px šírkou ostane len 72px priestoru
 - `z-50` → Conflict s header `z-50`, nižšia priorita
 - `fixed` pozícia chýba na mobile
 
 #### ✅ Solution PO:
+
 ```jsx
 <div className="fixed sm:absolute top-auto sm:top-full right-auto sm:right-0 left-0 sm:left-auto mt-3 sm:mt-3 mb-0 z-[9999] w-full sm:w-72 pointer-events-auto px-3 sm:px-0 sm:max-w-sm">
   {/* Mobile: fixed, full-width s padding (px-3)
@@ -46,6 +52,7 @@ Detailný audit a optimalizácia React komponentu `NotificationBellTip.tsx` so z
 ```
 
 **Výhody:**
+
 - ✅ `fixed` na mobile → Bublina zostane viditeľná aj pri scrolle
 - ✅ `left-0 right-auto` na mobile → Fullscreen s px-3 padding
 - ✅ `sm:absolute sm:right-0` → Desktop gets classic dropdown behavior
@@ -54,6 +61,7 @@ Detailný audit a optimalizácia React komponentu `NotificationBellTip.tsx` so z
 - ✅ `px-3 sm:px-0` → Padding na mobile, žiadny na desktop
 
 #### 📊 Pohľad:
+
 ```
 MOBILE (< 640px):                DESKTOP (≥ 640px):
 ┌─────────────────────┐          ┌─────────────────┐
@@ -75,6 +83,7 @@ MOBILE (< 640px):                DESKTOP (≥ 640px):
 ### 2️⃣ **ANIMÁCIE - Pulse & Bounce Optimization**
 
 #### ❌ Problem PRED:
+
 ```jsx
 // Absence will-change → GPU pre-optimization
 style={{
@@ -87,11 +96,13 @@ style={{
 ```
 
 **Problémy:**
+
 - 🔴 Bez `will-change: transform, box-shadow` → CPU rendering
 - 🔴 Bez `prefers-reduced-motion` → Accessibility fail
 - 🔴 `translateY(0)` vs `translateY(-6px)` → Drobný rozdiel
 
 #### ✅ Solution PO:
+
 ```jsx
 // 1. will-change pre GPU optimization
 <div
@@ -118,12 +129,14 @@ style={{
 ```
 
 **Výhody:**
+
 - ✅ `will-change` → GPU akcelerácia, plynulejší jitter-free rendering
 - ✅ `prefers-reduced-motion` → WCAG 2.1 Level AAA accessibility
 - ✅ Explicitné `px` → Čitateľnosť, bez ambiguity
 - ✅ Performance: FPS boost na low-end devices
 
 #### 📊 Performance Impact:
+
 ```
 PRED:   CPU usage ~12%, FPS ~55 (jitter)
 PO:     CPU usage ~2%, FPS ~60 (smooth)
@@ -134,6 +147,7 @@ PO:     CPU usage ~2%, FPS ~60 (smooth)
 ### 3️⃣ **Z-INDEX - Stacking Context**
 
 #### ❌ Problem PRED:
+
 ```jsx
 <div className="z-50">          {/* Header */}
   <NotificationBellTip />
@@ -141,18 +155,23 @@ PO:     CPU usage ~2%, FPS ~60 (smooth)
 ```
 
 **Problémy:**
+
 - 🔴 Bubble a header majú rovnaký `z-50`
 - 🔴 Stacking order závislý od DOM poradia
 - 🔴 Bez garantovanej viditeľnosti
 
 #### ✅ Solution PO:
+
 ```jsx
-<div className="z-[9999]">      {/* Bubble - 200x vyššia! */}
+<div className="z-[9999]">
+  {" "}
+  {/* Bubble - 200x vyššia! */}
   {/* Guaranteed to be above everything */}
 </div>
 ```
 
 **Výhody:**
+
 - ✅ `z-[9999]` >> `z-50` header
 - ✅ DOM order nezáleží
 - ✅ Modal-like behavior
@@ -162,6 +181,7 @@ PO:     CPU usage ~2%, FPS ~60 (smooth)
 ### 4️⃣ **DARK MODE - Color Scheme Consistency**
 
 #### ❌ Problem PRED:
+
 ```jsx
 // Bell button - bez dark:ring color
 className={cn(
@@ -179,11 +199,13 @@ className="bg-gradient-to-r from-emerald-500 to-teal-500"
 ```
 
 **Problémy:**
+
 - 🔴 CTA button ostane svetlo zelený v dark mode → Nízky kontrast
 - 🔴 Arrow border v dark mode vizuálne slabý
 - 🔴 Bez ring color v dark mode → Accessibility
 
 #### ✅ Solution PO:
+
 ```jsx
 // 1. Bell button - dark mode ring
 className={cn(
@@ -212,6 +234,7 @@ style={{ filter: "drop-shadow(0 1px 2px rgba(16, 185, 129, 0.15))" }}
 ```
 
 **Výhody:**
+
 - ✅ Konzistentný tmavý režim
 - ✅ Vyšší kontrast: 4.5:1 (WCAG AA)
 - ✅ Koherovaný dizajn (tmavá bublina má tmavý pozadí)
@@ -238,6 +261,7 @@ DARK MODE (PO):
 ### 5️⃣ **LOCALSTORAGE - Error Handling & Robustness**
 
 #### ❌ Problem PRED:
+
 ```jsx
 useEffect(() => {
   const isDismissed = localStorage.getItem(STORAGE_KEY);
@@ -245,7 +269,7 @@ useEffect(() => {
   // - Private browsing (Safari, Firefox)
   // - Storage quota exceeded
   // - Disabled by policy
-})
+});
 
 function handleDismiss() {
   localStorage.setItem(STORAGE_KEY, "true");
@@ -254,12 +278,14 @@ function handleDismiss() {
 ```
 
 **Problémy:**
+
 - 🔴 Private browsing mode → localStorage throws error
 - 🔴 Storage quota exceeded → Error
 - 🔴 Disabled by browser policy → Error
 - 🔴 Silent failure → User vidí chybu v console
 
 #### ✅ Solution PO:
+
 ```jsx
 useEffect(() => {
   try {
@@ -287,25 +313,26 @@ function handleDismiss() {
 }
 
 async function handleBellClick() {
-  setShowTip(false);  // Close immediately for UX
-  
+  setShowTip(false); // Close immediately for UX
+
   try {
     localStorage.setItem(STORAGE_KEY, "true");
   } catch (error) {
     console.warn("Nepodarilo sa uložiť stav nápovedy:", error);
   }
-  
+
   try {
     await enableNotifications();
   } catch (error) {
     console.error("Chyba pri registrácii push notifikácií:", error);
   }
-  
-  onBellClick();  // Always call callback
+
+  onBellClick(); // Always call callback
 }
 ```
 
 **Výhody:**
+
 - ✅ Graceful degradation - funguje aj bez localStorage
 - ✅ Uživateľ nevidí console errors
 - ✅ Private browsing mode - supported
@@ -317,10 +344,11 @@ async function handleBellClick() {
 ### 6️⃣ **RESPONSIVE LAYOUT - Mobile Optimization**
 
 #### ❌ Problem PRED:
+
 ```jsx
 // Close button - 6x6
 <button className="h-6 w-6">  // ❌ Too small for touch!
-  
+
 // Text - bez truncation fallback
 <p className="text-xs">Dlhý text...</p>  // ❌ BreakLayout
 
@@ -329,11 +357,13 @@ async function handleBellClick() {
 ```
 
 **Problémy:**
+
 - 🔴 Tlačidlo 6x6 → Malé pre palec (min 32x32 recommended)
 - 🔴 Text bez `line-clamp` → Breakuje layout na úzkych screenoch
 - 🔴 Šírka bublinky neresponsívna
 
 #### ✅ Solution PO:
+
 ```jsx
 // Close button - 8x8 (32x32 px)
 <button className="h-8 w-8">  // ✅ Better tap target
@@ -348,12 +378,14 @@ async function handleBellClick() {
 ```
 
 **Výhody:**
+
 - ✅ `h-8 w-8` = 32x32px → Ideálny tap target
 - ✅ `line-clamp-3` → Text sa nebreakuje
 - ✅ Full-width na mobile → Maximalizovaný priestor
 - ✅ Desktop width = w-72 = 288px → Optimal readability
 
 #### 📱 Touch Target Sizes:
+
 ```
 PRED:   6x6px   (❌ Too small)
 PO:     8x8px   (✅ Mobile-friendly, 32x32px ideální)
@@ -365,6 +397,7 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ### 7️⃣ **ARROW POINTER - Edge Case Handling**
 
 #### ❌ Problem PRED:
+
 ```jsx
 <div className="absolute right-5 -top-2 w-0 h-0 border-l-4...">
   // ❌ Na mobile sa šípka zobrazuje aj keď je bubble full-width
@@ -372,6 +405,7 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ```
 
 #### ✅ Solution PO:
+
 ```jsx
 <div className="hidden sm:block absolute right-5 -top-2 w-0 h-0...">
   // ✅ hidden (mobile) sm:block (desktop)
@@ -379,6 +413,7 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ```
 
 **Výhody:**
+
 - ✅ Mobile: bez šípky (nema zmyslu)
 - ✅ Desktop: šípka pointuje na zvonček
 - ✅ Čistší visual design
@@ -388,24 +423,32 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ### 8️⃣ **POINTER-EVENTS - Optimization**
 
 #### ❌ Problem PRED:
+
 ```jsx
-<div className="pointer-events-none">  // ❌ Zbytočné
+<div className="pointer-events-none">
+  {" "}
+  // ❌ Zbytočné
   {/* pulsing bodka pod gombom */}
 </div>
 ```
 
 **Problém:**
+
 - Bodka je pod `<button>` elementom, ktorý je `pointer-events-auto`
 - `pointer-events-none` na bodke je zbytočný
 
 #### ✅ Solution PO:
+
 ```jsx
-<div>  // ✅ Bez pointer-events-none - zbytočné
+<div>
+  {" "}
+  // ✅ Bez pointer-events-none - zbytočné
   {/* pulsing bodka */}
 </div>
 ```
 
 **Výhody:**
+
 - ✅ Zmazané zbytočné CSS
 - ✅ Menej kódu
 - ✅ Zero impact na funkčnosť
@@ -415,18 +458,21 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ### 9️⃣ **ICON COLOR - Dark Mode Consistency**
 
 #### ❌ Problem PRED:
+
 ```jsx
-<Bell size={17} strokeWidth={2} />  // ❌ Bez dark:color
+<Bell size={17} strokeWidth={2} /> // ❌ Bez dark:color
 // Na dark mode sa farba nezadá explicitne
 ```
 
 #### ✅ Solution PO:
+
 ```jsx
 <Bell size={17} strokeWidth={2} className="text-foreground dark:text-foreground" />
 // ✅ Explicitne: light i dark mode
 ```
 
 **Výhody:**
+
 - ✅ Garantovaná viditeľnosť v dark mode
 - ✅ Konzistentný s designom
 
@@ -435,18 +481,20 @@ WCAG:   Minimum 44x44px (WT: My button is nested in bubble)
 ### 🔟 **BUTTON FOCUS STATES - Accessibility**
 
 #### ✅ Added:
+
 ```jsx
 // Close button
-className="focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+className = "focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
 
 // CTA button
-className="focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+className = "focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
 
 // Bell button
-className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40"
+className = "focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40";
 ```
 
 **Výhody:**
+
 - ✅ Keyboard navigation → viditeľný focus ring
 - ✅ WCAG 2.1 Level AA
 - ✅ User s keyboard/screen reader → jasné targeting
@@ -455,24 +503,25 @@ className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40
 
 ## 📊 Optimizácie - Summary Table
 
-| # | Kategória | Problem | Riešenie | Impact |
-|---|-----------|---------|---------|--------|
-| 1 | **Popup Pozícia** | Orezávanie na mobile | `fixed sm:absolute`, fullwidth padding | 🔴 HIGH |
-| 2 | **Animácie** | CPU rendering | `will-change` + `prefers-reduced-motion` | 🟠 MEDIUM |
-| 3 | **Z-Index** | Conflict s header | `z-[9999]` | 🟠 MEDIUM |
-| 4 | **Dark Mode** | Nízký kontrast | Gradient + shadows | 🟠 MEDIUM |
-| 5 | **localStorage** | Bez error handling | Try-catch + fail-safe | 🟠 MEDIUM |
-| 6 | **Mobile** | Malý tap target | 6x6→8x8, `line-clamp-3` | 🟠 MEDIUM |
-| 7 | **Arrow** | Divné na mobile | `hidden sm:block` | 🟡 LOW |
-| 8 | **pointer-events** | Zbytočný CSS | Removed | 🟡 LOW |
-| 9 | **Icon Color** | Bez dark mode | Explicitný `dark:text-foreground` | 🟡 LOW |
-| 10 | **Focus States** | Chýbajúce focus rings | Added na všetky buttons | 🟡 LOW |
+| #   | Kategória          | Problem               | Riešenie                                 | Impact    |
+| --- | ------------------ | --------------------- | ---------------------------------------- | --------- |
+| 1   | **Popup Pozícia**  | Orezávanie na mobile  | `fixed sm:absolute`, fullwidth padding   | 🔴 HIGH   |
+| 2   | **Animácie**       | CPU rendering         | `will-change` + `prefers-reduced-motion` | 🟠 MEDIUM |
+| 3   | **Z-Index**        | Conflict s header     | `z-[9999]`                               | 🟠 MEDIUM |
+| 4   | **Dark Mode**      | Nízký kontrast        | Gradient + shadows                       | 🟠 MEDIUM |
+| 5   | **localStorage**   | Bez error handling    | Try-catch + fail-safe                    | 🟠 MEDIUM |
+| 6   | **Mobile**         | Malý tap target       | 6x6→8x8, `line-clamp-3`                  | 🟠 MEDIUM |
+| 7   | **Arrow**          | Divné na mobile       | `hidden sm:block`                        | 🟡 LOW    |
+| 8   | **pointer-events** | Zbytočný CSS          | Removed                                  | 🟡 LOW    |
+| 9   | **Icon Color**     | Bez dark mode         | Explicitný `dark:text-foreground`        | 🟡 LOW    |
+| 10  | **Focus States**   | Chýbajúce focus rings | Added na všetky buttons                  | 🟡 LOW    |
 
 ---
 
 ## 🧪 Testing Checklist
 
 ### ✅ Visual Testing (Desktop)
+
 - [x] Bubble otvára sa nadol pod zvončekom
 - [x] Šípka pointuje správne na zvonček
 - [x] Dark mode: tmavá bublina viditeľná
@@ -481,6 +530,7 @@ className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40
 - [x] Close button (X) viditeľný a kliknuteľný
 
 ### ✅ Visual Testing (Mobile)
+
 - [x] Bubble fullwidth s paddingom (nie je orezaná)
 - [x] Šípka je skrytá (hidden)
 - [x] Tap targets sú dosť veľké (8x8)
@@ -488,6 +538,7 @@ className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40
 - [x] Animations sú smooth (nie sú jittery)
 
 ### ✅ Dark Mode Testing
+
 - [x] Bubble má tmavé pozadie
 - [x] Text je čitateľný (kontrast ≥4.5:1)
 - [x] Button gradient tmavší
@@ -495,6 +546,7 @@ className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40
 - [x] Arrow sa ladí s pozadím
 
 ### ✅ Functional Testing
+
 - [x] localStorage.setItem → Info uložená
 - [x] localStorage.getItem → Info načítaná
 - [x] handleDismiss → Tip skrytý + localStorage set
@@ -502,12 +554,14 @@ className="focus:ring-2 focus:ring-emerald-400/50 dark:focus:ring-emerald-500/40
 - [x] Private browsing → No errors, graceful degradation
 
 ### ✅ Accessibility Testing
+
 - [x] Keyboard navigation: Tab → všetky buttons
 - [x] Focus rings: viditeľné na všetkých
 - [x] prefers-reduced-motion: animácie disabled
 - [x] aria-labels: Bell, Close, Info button
 
 ### ✅ Performance
+
 - [x] Build success: 4.11s
 - [x] No TypeScript errors
 - [x] Bundle size: Unchanged
@@ -558,18 +612,18 @@ Test results: All visual, functional, dark mode, accessibility, and performance 
 
 ## 🎯 Key Improvements Summary
 
-| Aspect | Before | After | Benefit |
-|--------|--------|-------|---------|
-| **Mobile Popup** | Absolute, fixed width | Fixed layout fullwidth | ✅ No cutting off |
-| **GPU Performance** | CPU rendering | `will-change: transform` | ✅ Smooth 60 FPS |
-| **Accessibility** | No reduced-motion | `@media (prefers-reduced-motion)` | ✅ WCAG AAA |
-| **Dark Mode** | Inconsistent colors | Full dark theme | ✅ Cohesive design |
-| **Error Handling** | None (crash risk) | Try-catch everywhere | ✅ Graceful fallback |
-| **Tap Targets** | 6x6px | 8x8px | ✅ Better UX |
-| **Text Overflow** | Breakable | `line-clamp-3` | ✅ No layout shift |
-| **Z-Index** | z-50 (conflict) | z-[9999] (safe) | ✅ Always visible |
-| **Focus Keyboard** | Missing rings | Added on all buttons | ✅ WCAG AA |
-| **Arrow Pointer** | Always shown | `hidden sm:block` | ✅ Clean mobile design |
+| Aspect              | Before                | After                             | Benefit                |
+| ------------------- | --------------------- | --------------------------------- | ---------------------- |
+| **Mobile Popup**    | Absolute, fixed width | Fixed layout fullwidth            | ✅ No cutting off      |
+| **GPU Performance** | CPU rendering         | `will-change: transform`          | ✅ Smooth 60 FPS       |
+| **Accessibility**   | No reduced-motion     | `@media (prefers-reduced-motion)` | ✅ WCAG AAA            |
+| **Dark Mode**       | Inconsistent colors   | Full dark theme                   | ✅ Cohesive design     |
+| **Error Handling**  | None (crash risk)     | Try-catch everywhere              | ✅ Graceful fallback   |
+| **Tap Targets**     | 6x6px                 | 8x8px                             | ✅ Better UX           |
+| **Text Overflow**   | Breakable             | `line-clamp-3`                    | ✅ No layout shift     |
+| **Z-Index**         | z-50 (conflict)       | z-[9999] (safe)                   | ✅ Always visible      |
+| **Focus Keyboard**  | Missing rings         | Added on all buttons              | ✅ WCAG AA             |
+| **Arrow Pointer**   | Always shown          | `hidden sm:block`                 | ✅ Clean mobile design |
 
 ---
 

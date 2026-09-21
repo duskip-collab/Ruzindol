@@ -13,7 +13,9 @@ export function KalendarScreen({ categoryFilter }: { categoryFilter?: string }) 
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <h1 className="text-lg font-semibold tracking-tight text-foreground">Obecný kalendár podujatí</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">
+            Obecný kalendár podujatí
+          </h1>
         </div>
       </div>
       <SharedCalendar categoryFilter={categoryFilter} />

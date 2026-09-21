@@ -1,7 +1,7 @@
 # 🧪 TESTOVACIA PRÍRUČKA - EDIT A DELETE PRÍSPEVKOV
 
 **Dátum:** 2026-09-10  
-**Status:** ✅ Hotovo na otestovanie  
+**Status:** ✅ Hotovo na otestovanie
 
 ---
 
@@ -120,12 +120,12 @@
 
 ## 🎯 VÝSLEDKY
 
-| Test | Scenár | Očakávaný Výsledok | Status |
-|------|--------|-------------------|--------|
-| 1 | Úradník upravuje | Príspevek sa aktualizuje | ⏳ Čaká |
-| 2 | Úradník maže | Príspevek sa odstráni | ⏳ Čaká |
-| 3 | Sused nevidí tlačidlá na cudejom príspevku | Tlačidlá sú SKRYTÉ | ⏳ Čaká |
-| 4 | Sused vidí tlačidlá na svojom príspevku | Tlačidlá sú VIDITEĽNÉ | ⏳ Čaká |
+| Test | Scenár                                     | Očakávaný Výsledok       | Status  |
+| ---- | ------------------------------------------ | ------------------------ | ------- |
+| 1    | Úradník upravuje                           | Príspevek sa aktualizuje | ⏳ Čaká |
+| 2    | Úradník maže                               | Príspevek sa odstráni    | ⏳ Čaká |
+| 3    | Sused nevidí tlačidlá na cudejom príspevku | Tlačidlá sú SKRYTÉ       | ⏳ Čaká |
+| 4    | Sused vidí tlačidlá na svojom príspevku    | Tlačidlá sú VIDITEĽNÉ    | ⏳ Čaká |
 
 ---
 
@@ -134,23 +134,27 @@
 ### V Developer Tools (DevTools)
 
 **1. Otvoriť Network tab**
+
 ```
 F12 → Network → Filter: "posts"
 ```
 
 **2. Kliknúť "Upraviť"**
+
 ```
 Mal by sa vidieť PATCH/PUT request na /posts
 Status: 200 OK
 ```
 
 **3. Kliknúť "Zmazať"**
+
 ```
 Mal by sa vidieť DELETE request na /posts
 Status: 200 OK
 ```
 
 **4. Skontrolovať Console na chyby**
+
 ```
 F12 → Console
 Nemali by tam byť žiadne červené chyby (error)
@@ -162,10 +166,10 @@ Nemali by tam byť žiadne červené chyby (error)
 
 ### Kde sa ukážu príspevky?
 
-| Sekcia | Typ | Kto môže vidieť | Kto môže upravovať |
-|--------|-----|-----------------|-------------------|
-| 📢 Obecný hlásnik | `hlasnik` | Všetci | Len autor (úradník) |
-| 🏘️ Susedský život | `susedsky_zivot` | Všetci | Len autor (sused) |
+| Sekcia            | Typ              | Kto môže vidieť | Kto môže upravovať  |
+| ----------------- | ---------------- | --------------- | ------------------- |
+| 📢 Obecný hlásnik | `hlasnik`        | Všetci          | Len autor (úradník) |
+| 🏘️ Susedský život | `susedsky_zivot` | Všetci          | Len autor (sused)   |
 
 ---
 
@@ -174,11 +178,13 @@ Nemali by tam byť žiadne červené chyby (error)
 ### Problém: Tlačidlá "Upraviť" a "Zmazať" sú SKRYTÉ
 
 **Príčiny:**
+
 1. ❌ Nie si autor príspevku
 2. ❌ Nemáš platný invite code (nie si active neighbor)
 3. ❌ Nie si prihlásený (auth.uid() je NULL)
 
 **Riešenie:**
+
 - Otvoriť príspevek vytvorený TEBOU (nie niekým iným)
 - Mať aktívne "active_neighbor" v profile
 - Byť prihlásený
@@ -186,11 +192,13 @@ Nemali by tam byť žiadne červené chyby (error)
 ### Problém: Po kliknutí na "Upraviť" sa nič nedialo
 
 **Príčiny:**
+
 1. ❌ Chyba v EditPostModal komponente
 2. ❌ Chyba pri UPDATE query v Supabase
 3. ❌ RLS politika zablokovala update
 
 **Riešenie:**
+
 - Otvoriť DevTools → Console
 - Skontrolovať chybové správy
 - Kliknúť na Network tab a pozrieť si response
@@ -198,10 +206,12 @@ Nemali by tam byť žiadne červené chyby (error)
 ### Problém: "Nepodarilo sa upraviť príspevek"
 
 **To znamená:**
+
 - Supabase RLS politika zablokovala zmenu
 - Príčina: Nie si autor príspevku ALEBO nemáš `is_active_neighbor=true`
 
 **Riešenie:**
+
 - Kliknúť len na svoj príspevek
 - Overovať, že máš invite code
 
@@ -226,12 +236,14 @@ Nemali by tam byť žiadne červené chyby (error)
 Ak test NEPREŠIEL, prosím:
 
 1. **Skríň képi obrazovky**
+
    ```
    Shift + Windows + S (Windows)
    Command + Shift + 4 (Mac)
    ```
 
 2. **Otvoriť DevTools** a skopírovať chybu:
+
    ```
    F12 → Console → Pravý klik na chybu → Copy message
    ```

@@ -11,6 +11,7 @@
 ### Admin Panel na Editáciu Návodu
 
 **Nový Systém:**
+
 - ✅ Dynamický HelpGuidePanel s DB načítavaním
 - ✅ HelpGuideEditPanel pre admina s full editovateľnosťou
 - ✅ Fallback na hardkódovaný obsah ak DB nie je dostupná
@@ -21,6 +22,7 @@
 ## 📁 Nové Súbory
 
 ### 1. **`src/components/HelpGuidePanelDynamic.tsx`** (413 líniek)
+
 ```typescript
 - Dynamický komponent HelpGuidePanel()
 - Načítava dáta z `help_guide_sections` tabuľky
@@ -29,12 +31,14 @@
 ```
 
 **Funkcionalita:**
+
 - `useIsAdmin()` - Detekcia admin statusu
 - `supabase.from('help_guide_sections').select()` - Načítanie sekcií
 - Fallback sections ak tabuľka neexistuje
 - Responsive design pre všetky zariadenia
 
 ### 2. **`src/components/HelpGuideEditPanel.tsx`** (380 líniek)
+
 ```typescript
 - Admin UI na editáciu jednotlivých sekcií
 - Render režim (čítanie) a edit režim
@@ -44,6 +48,7 @@
 ```
 
 **Adminské Features:**
+
 - ✏️ Kliknúť "Upraviť" → Režim editácie
 - 🖊️ Úprava emoji, nadpisu, úvodného popisu
 - 📝 Editácia jednotlivých položiek v sekcii
@@ -53,6 +58,7 @@
 ### 3. **`migrations/001_create_help_guide_sections.sql`** (180 líniek)
 
 **Tabuľka `help_guide_sections`:**
+
 ```sql
 - id UUID PRIMARY KEY
 - section_key TEXT UNIQUE (notifications, nastenka, aktuality...)
@@ -67,11 +73,13 @@
 ```
 
 **RLS Politiky:**
+
 - ✅ `Anyone can read` - Všetci môžu čítať active sekcie
 - 🔐 `Admins can update` - Len admini môžu editovať
 - 🔐 `Admins can insert` - Len admini môžu pridávať
 
 **Default Data:**
+
 - 7 sekcií naplnené s kompletným obsahom
 - Ponuky INSERT
 
@@ -80,33 +88,38 @@
 ## ⚙️ Technické Detaily
 
 ### State Management
+
 ```typescript
 // HelpGuideEditPanel
-const [sections, setSections] = useState<HelpSection[]>([])
-const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
-const [editValues, setEditValues] = useState<Partial<HelpSection>>({})
-const [loading, setLoading] = useState(false)
+const [sections, setSections] = useState<HelpSection[]>([]);
+const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+const [editValues, setEditValues] = useState<Partial<HelpSection>>({});
+const [loading, setLoading] = useState(false);
 ```
 
 ### Database Query
+
 ```typescript
 const { data, error } = await supabase
   .from("help_guide_sections")
   .select("*")
   .eq("is_active", true)
-  .order("section_order", { ascending: true })
+  .order("section_order", { ascending: true });
 ```
 
 ### Update Operation
+
 ```typescript
 await supabase
   .from("help_guide_sections")
   .update({
-    section_title, section_emoji, content,
+    section_title,
+    section_emoji,
+    content,
     updated_at: new Date().toISOString(),
     updated_by: user?.id,
   })
-  .eq("id", editingSectionId)
+  .eq("id", editingSectionId);
 ```
 
 ---
@@ -158,6 +171,7 @@ await supabase
 ## 🔐 Security
 
 ### RLS Politiky
+
 ```sql
 -- Admin check: Zmena tabuľky `user_roles`
 WHERE role = 'admin'::app_role
@@ -170,6 +184,7 @@ WITH CHECK (role = 'admin')
 ```
 
 ### Permissions
+
 - ✅ Normální user: Vidí iba `HelpGuidePanel` (read-only)
 - 🔐 Admin user: Vidí `HelpGuideEditPanel` (read + write)
 
@@ -178,6 +193,7 @@ WITH CHECK (role = 'admin')
 ## 🚀 Integrácia s Aplikáciou
 
 ### ProfilScreen.tsx
+
 ```typescript
 // Existujúci import
 import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
@@ -197,6 +213,7 @@ import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 ## ✅ Testing Checklist
 
 ### Funkčné Testy
+
 - [ ] Normal user vidí read-only HelpGuidePanel
 - [ ] Admin vidí HelpGuideEditPanel s gombmi
 - [ ] Klik "Upraviť" - Edit form sa otvorí
@@ -207,12 +224,14 @@ import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 - [ ] Klik "Zrušiť" - vrátenie bez zmien
 
 ### Database Tests
+
 - [ ] Tabuľka vytvorená OK
 - [ ] Default data naplnené
 - [ ] RLS politiky fungujú
 - [ ] Admin role check OK
 
 ### UI Tests
+
 - [ ] Edit form responsive
 - [ ] Validácia TextArea (long text)
 - [ ] Icons správne (emoji input)
@@ -224,6 +243,7 @@ import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 ## 📊 Zmeny v ProfilScreen.tsx
 
 **Line 34 (pridané):**
+
 ```typescript
 import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 ```
@@ -235,6 +255,7 @@ import { HelpGuidePanel } from "@/components/HelpGuidePanelDynamic";
 ## 🔄 Next Steps - Ako Spustiť
 
 ### 1. Vykonaj SQL Migration
+
 ```bash
 # Kopíruj obsah z migrations/001_create_help_guide_sections.sql
 # Spusti v Supabase SQL Editor
@@ -244,10 +265,12 @@ supabase migration up
 ```
 
 ### 2. Reloaduj aplikáciu
+
 - Admin: Automaticky vidí edit panel
 - User: Vidí dynamický obsah z DB (alebo fallback)
 
 ### 3. Testuj Editáciu
+
 - Admin → Profil → Návod
 - Klik Upraviť
 - Zmeny → Uložiť
@@ -263,22 +286,24 @@ supabase migration up
 ✅ **Audit Trail** - Kto a kedy editoval (`updated_by`, `updated_at`)  
 ✅ **RLS Zabezpečenie** - Len admini môžu zmeniť  
 ✅ **Responsive Design** - Funguje na všetkých zariadeniach  
-✅ **Type Safe** - TypeScript types pre všetko  
+✅ **Type Safe** - TypeScript types pre všetko
 
 ---
 
 ## 📝 Git Status
 
 **Modified:**
+
 - `src/screens/ProfilScreen.tsx` - Import added (+1 line)
 
 **Created:**
+
 - `src/components/HelpGuidePanelDynamic.tsx` - Main component
 - `src/components/HelpGuideEditPanel.tsx` - Admin edit panel
 - `migrations/001_create_help_guide_sections.sql` - DB schema
 
 **Build:** ✅ Success  
-**No Breaking Changes** - Existujúca funkcionalita nedotknutá  
+**No Breaking Changes** - Existujúca funkcionalita nedotknutá
 
 ---
 
@@ -307,12 +332,14 @@ No breaking changes"
 ## 📞 Support
 
 **If database tables don't exist:**
+
 - Component automatically uses fallback content
 - No errors in console
 - Admin panel won't show
 - User sees hardcoded 7 sections
 
 **How to set up DB:**
+
 1. Copy SQL from migrations file
 2. Run in Supabase SQL Editor
 3. Refresh application

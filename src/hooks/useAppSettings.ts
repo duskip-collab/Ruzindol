@@ -1,1 +1,1 @@
-export { useAppSettings } from '@/context/AppSettingsContext';
+export { useAppSettings } from "@/context/AppSettingsContext";

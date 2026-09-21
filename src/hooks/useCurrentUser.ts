@@ -34,10 +34,13 @@ export function useCurrentUser() {
           setLoading(true);
           setError(null);
         }
-        
+
         // 1. Najskôr skontrolovať či existuje relácia (bez chybových hlásení)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
         if (sessionError || !session) {
           if (mounted) {
             setUserId(null);
@@ -46,10 +49,13 @@ export function useCurrentUser() {
           }
           return;
         }
-        
+
         // 2. Ak relácia existuje, bezpečne zavoláme getUser()
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
         if (userError) {
           console.warn("[useCurrentUser] getUser chyba:", userError);
           if (mounted) {
@@ -59,7 +65,7 @@ export function useCurrentUser() {
           }
           return;
         }
-        
+
         if (!user) {
           if (mounted) {
             setUserId(null);
@@ -117,7 +123,9 @@ export function useCurrentUser() {
     fetchUserData();
 
     // Počúvanie na zmeny autentifikácie za chodu (login / logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         if (mounted) {
           setUserId(null);
@@ -150,18 +158,13 @@ export function useCurrentUser() {
         const { data: p, error: err } = await withTimeout(
           () =>
             retryAsync(
-              () =>
-                supabase
-                  .from("profiles")
-                  .select(SELECT)
-                  .eq("id", userId)
-                  .maybeSingle(),
+              () => supabase.from("profiles").select(SELECT).eq("id", userId).maybeSingle(),
               { retries: 1, delayMs: 250 },
             ),
           7000,
           "Obnova profilu trvala príliš dlho.",
         );
-        
+
         if (err) {
           console.error("[useCurrentUser.refresh] Chyba:", err);
           setError("Obnova profilu zlyhala");

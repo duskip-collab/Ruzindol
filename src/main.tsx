@@ -14,32 +14,31 @@ window.addEventListener("vite:preload-error", () => {
 // Kontrola aktualizácie aplikácie
 const checkVersion = async () => {
   try {
-    const response = await fetch('/version.json?t=' + Date.now());
+    const response = await fetch("/version.json?t=" + Date.now());
     const data = await response.json();
-    const currentVersion = localStorage.getItem('app-version');
+    const currentVersion = localStorage.getItem("app-version");
 
     if (currentVersion && currentVersion !== data.version) {
-      console.log('Nová verzia aplikácie, prenačítavam...');
-      localStorage.setItem('app-version', data.version);
-      
+      console.log("Nová verzia aplikácie, prenačítavam...");
+      localStorage.setItem("app-version", data.version);
+
       // Vyčistenie Service Workera pre istotu
-      if ('serviceWorker' in navigator) {
+      if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
         regs.forEach((reg) => reg.unregister());
       }
-      
+
       window.location.reload();
     } else if (!currentVersion) {
-      localStorage.setItem('app-version', data.version);
+      localStorage.setItem("app-version", data.version);
     }
   } catch (err) {
-    console.error('Chyba pri kontrole verzie:', err);
+    console.error("Chyba pri kontrole verzie:", err);
   }
 };
 
 // Spustiť kontrolu po načítaní
 checkVersion();
-
 
 import React from "react";
 import { createRoot } from "react-dom/client";

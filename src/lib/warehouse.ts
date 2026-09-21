@@ -26,7 +26,11 @@ export function getWarehouseLifetimeLabel(type: WarehouseItemType) {
   return days === 1 ? "24 hodín" : `${days} dní`;
 }
 
-export function formatWarehouseExpiry(type: WarehouseItemType, createdAt: string, expiresAt?: string | null) {
+export function formatWarehouseExpiry(
+  type: WarehouseItemType,
+  createdAt: string,
+  expiresAt?: string | null,
+) {
   return resolveWarehouseExpiry(type, createdAt, expiresAt).toLocaleString("sk-SK", {
     day: "2-digit",
     month: "2-digit",

@@ -10,7 +10,13 @@ type Props = {
   onChangeMany?: (images: CompressedImage[]) => void;
 };
 
-export function ImageInput({ value, onChange, label = "Fotka", multiple = false, onChangeMany }: Props) {
+export function ImageInput({
+  value,
+  onChange,
+  label = "Fotka",
+  multiple = false,
+  onChangeMany,
+}: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);

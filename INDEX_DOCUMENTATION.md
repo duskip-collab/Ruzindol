@@ -3,12 +3,15 @@
 ## 🚀 START HERE - Začnite týmto
 
 ### Ak chcete RÝCHLE vyčistenie (5 minút):
+
 👉 [QUICK_CHECKLIST.md](QUICK_CHECKLIST.md) - One-page checklist
 
 ### Ak chcete PODROBNÝ návod (krok-za-krokom):
+
 👉 [STEP_BY_STEP_CLEANUP.md](STEP_BY_STEP_CLEANUP.md) - 8200+ riadkov s príkladmi
 
 ### Ak chcete COPY-PASTE SQL príkazy:
+
 👉 [SQL_CLEANUP_COMMANDS.sql](SQL_CLEANUP_COMMANDS.sql) - Všetky SQL príkazy v jednom súbore
 
 ---
@@ -77,6 +80,7 @@
 ## 🎯 AKO SA ROZHODOVAŤ PODĽA VÁŠHO TYPU
 
 ### Typ: "Chcem to rýchlo" ⚡
+
 ```
 1. Prečítajte: QUICK_CHECKLIST.md (2 min)
 2. Skopírujte: SQL_CLEANUP_COMMANDS.sql (krok 1-5) (5 min)
@@ -86,6 +90,7 @@ TOTAL: 14 minút ✅
 ```
 
 ### Typ: "Chcem všetko vedieť" 📚
+
 ```
 1. Prečítajte: FINAL_SUMMARY_SK.md (10 min)
 2. Prečítajte: STEP_BY_STEP_CLEANUP.md (15 min)
@@ -95,6 +100,7 @@ TOTAL: 40 minút ✅
 ```
 
 ### Typ: "Programátor - chcem detaily" 👨‍💻
+
 ```
 1. Prečítajte: FINAL_STATUS_REPORT.md (5 min)
 2. Pozrite na kód: ElectionsScreen.tsx (5 min)
@@ -104,6 +110,7 @@ TOTAL: 18 minút ✅
 ```
 
 ### Typ: "Chcem len spustiť SQL" 🚀
+
 ```
 1. Otvoriť: SQL_CLEANUP_COMMANDS.sql
 2. Kopírovať: Krok 1-4
@@ -144,10 +151,11 @@ TOTAL: 18 minút ✅
 ## 📋 TECHNICKÉ DETAILY
 
 ### Zmeny v kóde ✅ HOTOVO
+
 ```typescript
 // File: src/screens/ElectionsScreen.tsx
 
-// ✅ Line 41: loadData() 
+// ✅ Line 41: loadData()
 .eq('is_active', true)
 
 // ✅ Line 72: handleEditElections() - NOVÝ FIX
@@ -161,6 +169,7 @@ TOTAL: 18 minút ✅
 ```
 
 ### Databáza ⏳ ČAKÁ
+
 ```sql
 -- Step 1: Diagnostika
 SELECT COUNT(*) WHERE is_active = false;
@@ -189,21 +198,25 @@ SELECT COUNT(*) WHERE is_active = false;
 ## 🎯 ROADMAP K DOKONČENIU
 
 ### Fáza 1: KÓD ✅ HOTOVO
+
 - [x] Filtre pridané
 - [x] Soft delete implementovaný
 - [x] Build úspešný
 
 ### Fáza 2: DATABÁZA ⏳ ČAKÁ (5 minút)
+
 - [ ] SQL DELETE query spustená
 - [ ] Verifikácia: remaining_inactive = 0
 - [ ] Aplikácia refreshnuta
 
 ### Fáza 3: TESTOVANIE ⏳ ČAKÁ (5 minút)
+
 - [ ] Mazanie kandidáta
 - [ ] Refresh - kandidát preč
 - [ ] Edit modal - bez starých záznamov
 
 ### Fáza 4: DEPLOYMENT ⏳ ČAKÁ (5 minút)
+
 - [ ] Final build check
 - [ ] Deploy to production
 - [ ] Monitoring
@@ -214,18 +227,19 @@ SELECT COUNT(*) WHERE is_active = false;
 
 ## 📞 RÝCHLY HELP
 
-| Otázka | Odpoveď | Súbor |
-|--------|---------|-------|
-| Ako spustiť SQL? | Supabase Dashboard → SQL Editor | STEP_BY_STEP_CLEANUP.md |
-| Čo keď sa zmýlim? | Máte BACKUP v log tabuľke | SQL_CLEANUP_COMMANDS.sql |
-| Ako vedieť že to funguje? | remaining_inactive = 0 | DATABASE_DIAGNOSTICS.sql |
-| Kde sú zmeny v kóde? | Line 41, 72, 255 v ElectionsScreen.tsx | FINAL_SUMMARY_SK.md |
+| Otázka                    | Odpoveď                                | Súbor                    |
+| ------------------------- | -------------------------------------- | ------------------------ |
+| Ako spustiť SQL?          | Supabase Dashboard → SQL Editor        | STEP_BY_STEP_CLEANUP.md  |
+| Čo keď sa zmýlim?         | Máte BACKUP v log tabuľke              | SQL_CLEANUP_COMMANDS.sql |
+| Ako vedieť že to funguje? | remaining_inactive = 0                 | DATABASE_DIAGNOSTICS.sql |
+| Kde sú zmeny v kóde?      | Line 41, 72, 255 v ElectionsScreen.tsx | FINAL_SUMMARY_SK.md      |
 
 ---
 
 ## 🎓 TEÓRIA (VOLITEĽNÉ ČÍTANIE)
 
 ### Soft vs Hard Delete
+
 ```
 Hard Delete (.delete()):
 - ❌ Úplne vymaže riadok
@@ -240,6 +254,7 @@ Soft Delete (.update({ is_active: false })):
 ```
 
 ### Prečo sme prešli na soft delete?
+
 ```
 Problem 1: Hard delete ostáva v DB ako is_active=false
 Solution 1: Zmeniť na soft delete (update)

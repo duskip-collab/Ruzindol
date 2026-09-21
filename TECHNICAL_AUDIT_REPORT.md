@@ -64,13 +64,13 @@ Theme je po poslednej uprave locknuta na light rezim, co znizuje riziko hydratio
 
 ### Route tabulka
 
-| Route | Subor | Stav | Poznamka |
-| --- | --- | --- | --- |
-| / | src/routes/_authenticated/index.tsx | Funkcne | Chranene guardom, taby su URL-driven cez search param `tab` |
-| /auth | src/routes/auth.tsx | Funkcne | Email + Google login flow |
-| /auth/callback | src/routes/auth/callback.tsx | Funkcne | OAuth code exchange cez Supabase |
-| /reset-password | src/routes/reset-password.tsx | Funkcne | Cleanup listenera je implementovany (unsubscribe) |
-| /_authenticated | src/routes/_authenticated/route.tsx | Funkcne | beforeLoad guard kontroluje session usera |
+| Route           | Subor                               | Stav    | Poznamka                                                    |
+| --------------- | ----------------------------------- | ------- | ----------------------------------------------------------- |
+| /               | src/routes/_authenticated/index.tsx | Funkcne | Chranene guardom, taby su URL-driven cez search param `tab` |
+| /auth           | src/routes/auth.tsx                 | Funkcne | Email + Google login flow                                   |
+| /auth/callback  | src/routes/auth/callback.tsx        | Funkcne | OAuth code exchange cez Supabase                            |
+| /reset-password | src/routes/reset-password.tsx       | Funkcne | Cleanup listenera je implementovany (unsubscribe)           |
+| /_authenticated | src/routes/_authenticated/route.tsx | Funkcne | beforeLoad guard kontroluje session usera                   |
 
 ### Navigacia a odkazy
 
@@ -150,23 +150,28 @@ Ziadny potvrdeny zombie modul v runtime vrstve nebol po poslednych refaktoroch i
 ### Priorita P1 (rychle a bezpecne)
 
 1. Opravit unsubscribe v reset-password route
+
 - DONE: cleanup cez unsubscribe je implementovany.
 
 2. Rozhodnut osud `auth-middleware.ts`
+
 - DONE: nepouzivany middleware bol odstraneny.
 
 3. Revidovat `client.server.ts`
+
 - DONE: nevyuzity subor bol odstraneny.
 
 ### Priorita P2 (konsolidacia architektury)
 
 1. Konsolidovat data-flow posts/items/chats
+
 - DONE pre Nastenka + RolePanels.
 - DONE: doplnene DB tabulky `post_likes` a `post_reports` + napojenie na NastenkaScreen.
 
 ### Priorita P3 (UX/arch)
 
 5. Presunut tab navigaciu na route-driven URL
+
 - napr. /app/nastenka, /app/aktuality, /app/sklad, /app/spravy, /app/profil.
 - ziskat deep-linking a konzistentny browser history flow.
 

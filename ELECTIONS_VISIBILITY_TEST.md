@@ -4,12 +4,12 @@
 
 ### 🔍 KOMPONENTY OVERENIA
 
-| Komponenta | Súbor | Status |
-|------------|-------|--------|
-| ElectionsScreen | src/screens/ElectionsScreen.tsx | ✅ Logika OK |
-| AdminElectionsToggle | src/components/admin/AdminElectionsToggle.tsx | ✅ Toggle OK |
-| AppSettingsContext | src/context/AppSettingsContext.tsx | ✅ Context OK |
-| Database (app_settings) | migrations/20260831120000 | ✅ Table OK |
+| Komponenta              | Súbor                                         | Status        |
+| ----------------------- | --------------------------------------------- | ------------- |
+| ElectionsScreen         | src/screens/ElectionsScreen.tsx               | ✅ Logika OK  |
+| AdminElectionsToggle    | src/components/admin/AdminElectionsToggle.tsx | ✅ Toggle OK  |
+| AppSettingsContext      | src/context/AppSettingsContext.tsx            | ✅ Context OK |
+| Database (app_settings) | migrations/20260831120000                     | ✅ Table OK   |
 
 ---
 
@@ -45,6 +45,7 @@ Prípad 2: electionsEnabled=FALSE
 ### Pre Admin/Starosta:
 
 #### KROK 1: Otvoriť Admin Panel
+
 ```
 1. Login ako Admin/Starosta
 2. Menu → Admin Panel (ak vidíte)
@@ -52,6 +53,7 @@ Prípad 2: electionsEnabled=FALSE
 ```
 
 #### KROK 2: Skontrolovať aktuálny stav
+
 ```
 1. Vidíte toggle?
    ✅ ANO: Voľby sú {"Aktívne v PWA" | "Skryté pre obyvateľov"}
@@ -59,6 +61,7 @@ Prípad 2: electionsEnabled=FALSE
 ```
 
 #### KROK 3: Zapnúť Voľby
+
 ```
 1. Kliknúť na toggle
 2. Vidíte "Aktívne v PWA" ✅
@@ -66,6 +69,7 @@ Prípad 2: electionsEnabled=FALSE
 ```
 
 #### KROK 4: Refresh a overenie
+
 ```
 1. F5 (Refresh stránku)
 2. Menu → Voľby
@@ -75,6 +79,7 @@ Prípad 2: electionsEnabled=FALSE
 ### Pre Sused:
 
 #### KROK 1: Kedy sú Voľby viditeľné?
+
 ```
 PRED (electionsEnabled=FALSE):
   Menu → Voľby
@@ -88,6 +93,7 @@ NEMA Edit tlačítka (iba si čita)
 ```
 
 #### KROK 2: Nie je viditeľný Edit
+
 ```
 Ako Sused v Voľby sekcii:
   ❌ Edit button by NEMAL byť viditeľný
@@ -123,6 +129,7 @@ ElectionsScreen: if (!electionsEnabled && !isOfficial)
 ## 📊 OČAKÁVANÉ VÝSLEDKY
 
 ### Test 1: Toggle v Admin Panel
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -136,6 +143,7 @@ Expected:
 ```
 
 ### Test 2: Zmena viditeľnosti Susa
+
 ```
 Status: ⏳ PENDING
 Precondition:
@@ -149,6 +157,7 @@ Expected:
 ```
 
 ### Test 3: Vypnutie viditeľnosti
+
 ```
 Status: ⏳ PENDING
 Precondition:
@@ -163,6 +172,7 @@ Expected:
 ```
 
 ### Test 4: Edit tlačítko viditeľnosť
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -175,6 +185,7 @@ Expected:
 ```
 
 ### Test 5: Admin vždy vidí Voľby
+
 ```
 Status: ⏳ PENDING
 Precondition:
@@ -193,6 +204,7 @@ Expected:
 ## 🐛 MOŽNÉ PROBLÉMY A RIEŠENIA
 
 ### Problem: Toggle sa nezobrazuje
+
 ```
 Príčina: Nie ste Admin/Starosta
 Riešenie: Login ako Admin alebo Starosta
@@ -200,6 +212,7 @@ Riešenie: Login ako Admin alebo Starosta
 ```
 
 ### Problem: Zmena viditeľnosti nefunguje realtime
+
 ```
 Príčina: Realtime subscription nie je aktívna
 Riešenie: Skontrolujte Supabase realtime settings
@@ -207,6 +220,7 @@ Riešenie: Skontrolujte Supabase realtime settings
 ```
 
 ### Problem: Sused stále vidí Voľby keď sú OFF
+
 ```
 Príčina: Cache v aplikácii
 Riešenie: Refresh (F5) alebo Ctrl+Shift+R
@@ -214,6 +228,7 @@ Riešenie: Refresh (F5) alebo Ctrl+Shift+R
 ```
 
 ### Problem: Edit button viditeľný pre Susa
+
 ```
 Príčina: Role check nie je správny
 Riešenie: Skontrolujte profile.role v DevTools
@@ -227,22 +242,26 @@ Riešenie: Skontrolujte profile.role v DevTools
 ### Ako skontrolovať aktuálne nastavenia:
 
 1. **Browser DevTools → Console:**
+
 ```javascript
 // Skontrolujte electionsEnabled
-console.log('Elections enabled state')
+console.log("Elections enabled state");
 ```
 
 2. **Browser DevTools → Application → Storage:**
+
 ```
 LocalStorage: Hľadajte 'elections_enabled'
 ```
 
 3. **Supabase Dashboard → SQL Editor:**
+
 ```sql
 SELECT * FROM app_settings WHERE key = 'elections_enabled';
 ```
 
 4. **Network tab:**
+
 ```
 Hľadajte requests na app_settings tabuľku
 Skontrolujte response value
@@ -281,6 +300,7 @@ TOTAL: ~10 MINÚT
 ## 📞 SUMMARY
 
 ### Co je Hotovo
+
 - ✅ Toggle je v Admin Panel
 - ✅ Logika je správna (if (!electionsEnabled && !isOfficial))
 - ✅ RLS policy je nastavená
@@ -288,6 +308,7 @@ TOTAL: ~10 MINÚT
 - ✅ Build: SUCCESS
 
 ### Co treba Testovať
+
 - ⏳ Toggle funguje
 - ⏳ Sused vidí/nevidí správne
 - ⏳ Realtime update
@@ -295,6 +316,7 @@ TOTAL: ~10 MINÚT
 - ⏳ Role check je správny
 
 ### Očakávané Výsledky
+
 ```
 electionsEnabled=TRUE:
   - Všetci vidíme Voľby

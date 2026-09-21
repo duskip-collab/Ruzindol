@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
-import { MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle, Lock, Globe, Building2, MapPin, User, Trash2, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { triggerHaptic } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import {
+  MessageSquare,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Lock,
+  Globe,
+  Building2,
+  MapPin,
+  User,
+  Trash2,
+  Loader2,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { triggerHaptic } from "@/lib/haptics";
+import { cn } from "@/lib/utils";
 
 export interface MayorInquiry {
   id: string;
   user_id: string;
-  category: 'odpad' | 'cesty_chodniky' | 'zelen' | 'osvetlenie' | 'urad_sluzby' | 'ine';
+  category: "odpad" | "cesty_chodniky" | "zelen" | "osvetlenie" | "urad_sluzby" | "ine";
   title: string;
   body: string;
   image_url?: string | null;
@@ -16,7 +29,7 @@ export interface MayorInquiry {
   is_anonymous_public?: boolean;
   latitude?: number | null;
   longitude?: number | null;
-  status: 'pending' | 'in_progress' | 'resolved' | 'rejected';
+  status: "pending" | "in_progress" | "resolved" | "rejected";
   answer?: string | null;
   answered_at?: string | null;
   answered_by?: string | null;
@@ -33,13 +46,13 @@ export interface InquiryCardProps {
   onDeleted?: () => void;
 }
 
-const CATEGORY_LABELS: Record<MayorInquiry['category'], string> = {
-  odpad: 'Odpad a čistota',
-  cesty_chodniky: 'Cesty a chodníky',
-  zelen: 'Zeleň a parky',
-  osvetlenie: 'Verejné osvetlenie',
-  urad_sluzby: 'Úrad a služby',
-  ine: 'Iné',
+const CATEGORY_LABELS: Record<MayorInquiry["category"], string> = {
+  odpad: "Odpad a čistota",
+  cesty_chodniky: "Cesty a chodníky",
+  zelen: "Zeleň a parky",
+  osvetlenie: "Verejné osvetlenie",
+  urad_sluzby: "Úrad a služby",
+  ine: "Iné",
 };
 
 export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, onDeleted }) => {
@@ -48,56 +61,52 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
   const isAuthor = userId === inquiry.user_id;
 
   const handleDelete = async () => {
-    if (!confirm('Naozaj chceš zmazať tento podnet? Túto akciu sa nedá vrátiť.')) return;
+    if (!confirm("Naozaj chceš zmazať tento podnet? Túto akciu sa nedá vrátiť.")) return;
 
     setIsDeleting(true);
     try {
-      triggerHaptic('success');
-      const { error } = await supabase
-        .from('mayor_inquiries')
-        .delete()
-        .eq('id', inquiry.id);
+      triggerHaptic("success");
+      const { error } = await supabase.from("mayor_inquiries").delete().eq("id", inquiry.id);
 
       if (error) {
-        triggerHaptic('error');
-        console.error('Chyba pri mazaní podnetu:', error);
-        alert('Nepodarilo sa zmazať podnet: ' + (error.message || 'Neznáma chyba'));
+        triggerHaptic("error");
+        console.error("Chyba pri mazaní podnetu:", error);
+        alert("Nepodarilo sa zmazať podnet: " + (error.message || "Neznáma chyba"));
       } else {
-        triggerHaptic('success');
+        triggerHaptic("success");
         onDeleted?.();
       }
     } catch (err) {
-      triggerHaptic('error');
-      console.error('Neočakávaná chyba:', err);
-      alert('Neočakávaná chyba pri mazaní');
+      triggerHaptic("error");
+      console.error("Neočakávaná chyba:", err);
+      alert("Neočakávaná chyba pri mazaní");
     } finally {
       setIsDeleting(false);
     }
   };
   const getStatusBadge = () => {
     switch (inquiry.status) {
-      case 'resolved':
+      case "resolved":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Vybavené
           </span>
         );
-      case 'in_progress':
+      case "in_progress":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/80 dark:text-blue-300">
-            <Clock className="h-3.5 w-3.5 animate-pulse" />
-            V riešení
+            <Clock className="h-3.5 w-3.5 animate-pulse" />V riešení
           </span>
         );
-      case 'rejected':
+      case "rejected":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">
             <XCircle className="h-3.5 w-3.5" />
             Zamietnuté
           </span>
         );
-      case 'pending':
+      case "pending":
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
@@ -110,10 +119,10 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString('sk-SK', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
+      return new Date(dateStr).toLocaleDateString("sk-SK", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
       });
     } catch {
       return dateStr;
@@ -123,8 +132,8 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900 dark:text-white',
-        className
+        "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900 dark:text-white",
+        className,
       )}
     >
       {/* Top Bar */}
@@ -136,7 +145,7 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
 
           <span
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"
-            title={inquiry.is_public ? 'Verejný podnet' : 'Súkromný podnet'}
+            title={inquiry.is_public ? "Verejný podnet" : "Súkromný podnet"}
           >
             {inquiry.is_public ? (
               <>
@@ -189,11 +198,7 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
       {/* Image if available */}
       {inquiry.image_url && (
         <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 max-h-60 bg-slate-50 dark:bg-slate-800">
-          <img
-            src={inquiry.image_url}
-            alt={inquiry.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={inquiry.image_url} alt={inquiry.title} className="w-full h-full object-cover" />
         </div>
       )}
 
@@ -227,7 +232,7 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
             <span>Autor: {inquiry.profiles.name || inquiry.profiles.full_name}</span>
           ) : null}
         </div>
-        
+
         {/* Delete button for author */}
         {isAuthor && (
           <button
@@ -240,7 +245,7 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
             ) : (
               <Trash2 className="h-3.5 w-3.5" />
             )}
-            {isDeleting ? 'Mazanie...' : 'Zmazať podnet'}
+            {isDeleting ? "Mazanie..." : "Zmazať podnet"}
           </button>
         )}
       </div>

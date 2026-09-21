@@ -15,6 +15,7 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ## 🔧 ZMENY (5 zmien)
 
 ### Zmena 1: Povoliť Vertikálne Rolovanie
+
 **Riadok 119 - Hlavný Container**
 
 ```typescript
@@ -26,6 +27,7 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ```
 
 **Čo sa zmenilo:**
+
 - ✅ `overflow-hidden` → `overflow-y-auto` - **Umožňuje rolovanie**
 - ✅ `justify-center` → `items-center` - **Lepšie rozloženie na mobile**
 - ✅ `py-12` → `py-8` - **Menší top padding**
@@ -34,6 +36,7 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ---
 
 ### Zmena 2: Glow Effect Nastaviť na Fixed Pozíciu
+
 **Riadok 121 - Dekoratívny Efekt**
 
 ```typescript
@@ -45,12 +48,14 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ```
 
 **Prečo:**
+
 - `fixed` - Efekt ostáva na mieste aj pri rolovании
 - `absolute` - Efekt by sa pohyboval s obsahom
 
 ---
 
 ### Zmena 3: Odstránená Fixná Výška Formulára
+
 **Riadok 161 - Auth Cards Container**
 
 ```typescript
@@ -62,6 +67,7 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ```
 
 **Prečo:**
+
 - `min-h-[340px]` - Fixná minimálna výška skrývala obsah
 - `w-full` - Kontainer je dynamický, prispôsobuje sa obsahu
 
@@ -70,6 +76,7 @@ Prihlasovacie/registračné formuláre sa nedali rolovať a spodné prvky (tlač
 ## ✨ VÝSLEDKY
 
 ### Pred Opravou ❌
+
 ```
 Prihlásiť sa / Zaregistrovať sa
 ├─ Badge: ✅ Viditeľný
@@ -84,6 +91,7 @@ Prihlásiť sa / Zaregistrovať sa
 ```
 
 ### Po Oprave ✅
+
 ```
 Prihlásiť sa / Zaregistrovať sa
 ├─ Badge: ✅ Viditeľný
@@ -102,6 +110,7 @@ Prihlásiť sa / Zaregistrovať sa
 ## 📱 Mobilné Scénáre
 
 ### Scenár 1: Malá Obrazovka (iPhone SE)
+
 ```
 Pred:
 - Formulár sa nevojdy na obrazovku
@@ -113,6 +122,7 @@ Po:
 ```
 
 ### Scenár 2: Otvená Klávesnica
+
 ```
 Pred:
 - Klávesnica ukrýva formulár
@@ -124,6 +134,7 @@ Po:
 ```
 
 ### Scenár 3: Tablet (iPad)
+
 ```
 Pred:
 - Obsah je vycentrovaný v priestranstve
@@ -140,14 +151,14 @@ Po:
 
 ### CSS Classes Zmeny
 
-| Trieda | Zmena | Dôvod |
-|--------|-------|-------|
-| `overflow-hidden` | → `overflow-y-auto` | Povoliť vertikálne rolovanie |
-| `justify-center` | → `items-center` | Lepšie zarovnanie na mobile |
-| `py-12` | → `py-8` | Znížiť top padding |
-| (nové) | → `pb-24` | Prídať dostatočný bottom padding |
-| `absolute` | → `fixed` | Glow efekt ostáva stabilný |
-| `min-h-[340px]` | → `w-full` | Dynamická výška |
+| Trieda            | Zmena               | Dôvod                            |
+| ----------------- | ------------------- | -------------------------------- |
+| `overflow-hidden` | → `overflow-y-auto` | Povoliť vertikálne rolovanie     |
+| `justify-center`  | → `items-center`    | Lepšie zarovnanie na mobile      |
+| `py-12`           | → `py-8`            | Znížiť top padding               |
+| (nové)            | → `pb-24`           | Prídať dostatočný bottom padding |
+| `absolute`        | → `fixed`           | Glow efekt ostáva stabilný       |
+| `min-h-[340px]`   | → `w-full`          | Dynamická výška                  |
 
 ---
 
@@ -170,6 +181,7 @@ Po:
 ## 🚀 Nasadenie
 
 Zmeny sú hotové a pripravené:
+
 ```bash
 git add src/routes/auth.tsx
 git commit -m "fix: auth page scrolling and layout on mobile devices"
@@ -189,6 +201,7 @@ git push
 ## 🎯 Výsledok
 
 **Prihlasovacie a registračné obrazovky sú teraz:**
+
 - ✅ Plne rolovateľné
 - ✅ Mobilne optimalizované
 - ✅ Kompatibilné s otvorenou klávesnicou

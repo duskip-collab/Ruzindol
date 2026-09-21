@@ -30,6 +30,7 @@
 **File:** `src/routes/auth.tsx`
 
 **Changes:**
+
 - Lines 188-209: Added consent checkbox at the top with warning message
 - Line 227: Added `disabled={!legalAccepted}` to Email button
 - Line 243: Added `disabled={busy || !legalAccepted}` to Google button
@@ -40,6 +41,7 @@
 ## Visual Flow
 
 ### BEFORE
+
 ```
 Badge
 Headings
@@ -49,6 +51,7 @@ VPP + GDPR Checkbox (at bottom)
 ```
 
 ### AFTER
+
 ```
 Badge
 Headings
@@ -90,6 +93,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ### 2. Email Button - Added Disabled State
 
 **Before:**
+
 ```typescript
 <button
   onClick={() => setViewMode("email")}
@@ -98,6 +102,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ```
 
 **After:**
+
 ```typescript
 <button
   onClick={() => setViewMode("email")}
@@ -109,6 +114,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ### 3. Google Button - Added Disabled State
 
 **Before:**
+
 ```typescript
 <button
   onClick={handleGoogle}
@@ -118,6 +124,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ```
 
 **After:**
+
 ```typescript
 <button
   onClick={handleGoogle}
@@ -129,6 +136,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ## User Experience
 
 ### Scenario 1: User Opens App (No Consent)
+
 1. Sees headline "Vitaj u susedov..."
 2. Sees VPP + GDPR checkbox unchecked
 3. Sees warning: "⚠️ Aby pokračovali, musíte odsúhlasiť VPP a GDPR"
@@ -136,6 +144,7 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 5. Google button is greyed out (50% opacity, not clickable)
 
 ### Scenario 2: User Checks Consent
+
 1. Clicks checkbox
 2. Warning message disappears
 3. Email button becomes active (100% opacity, clickable)
@@ -143,12 +152,14 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 5. User can now proceed with Email or Google
 
 ### Scenario 3: User Selects Email
+
 1. Form appears with email/password inputs
 2. No consent checkbox (already checked at top)
 3. User enters credentials
 4. Submits to login/signup
 
 ### Scenario 4: User Selects Google
+
 1. Google OAuth flow starts
 2. Redirects to Google login
 3. Returns to app after authentication
@@ -164,15 +175,18 @@ VPP + GDPR Checkbox (at TOP) ← MUST CHECK FIRST
 ## Technical Details
 
 ### State Management
+
 - `legalAccepted` - boolean state (starts as false)
 - Persisted in Supabase when user signs up: `legal_accepted_at` timestamp
 
 ### Validation
+
 - Email form: Already checks `if (!legalAccepted)` - will show error if unchecked
 - Google: Now can't be clicked until checked
 - Email: Now can't be clicked until checked
 
 ### CSS Classes
+
 - `disabled:opacity-50` - Visual indication buttons are disabled
 - `disabled:cursor-not-allowed` - Cursor changes to indicate non-clickable
 
@@ -237,6 +251,7 @@ Files: 1 file changed, 27 insertions(+), 21 deletions(-)
 ✅ **Status: Complete**
 
 All requirements met:
+
 1. ✅ VPP + GDPR moved to top
 2. ✅ Buttons disabled without consent
 3. ✅ Duplicate checkboxes removed

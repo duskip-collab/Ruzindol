@@ -19,7 +19,9 @@ function markSyncedToday() {
   localStorage.setItem(LAST_SYNC_KEY, getTodayLocalKey());
 }
 
-export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ synced: boolean; count: number }> {
+export async function syncMunicipalEventsIfNeeded(
+  force = false,
+): Promise<{ synced: boolean; count: number }> {
   try {
     if (!shouldSyncToday(force)) return { synced: false, count: 0 };
 
@@ -29,7 +31,9 @@ export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ sync
     let timeoutHandle: NodeJS.Timeout | null = null;
     const timeoutPromise = new Promise((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        reject(new Error('Edge Function timeout: Synchronizácia kalendára trvala príliš dlho (>30s)'));
+        reject(
+          new Error("Edge Function timeout: Synchronizácia kalendára trvala príliš dlho (>30s)"),
+        );
       }, 30000);
     });
 
@@ -37,8 +41,11 @@ export async function syncMunicipalEventsIfNeeded(force = false): Promise<{ sync
       body: { force },
     });
 
-    const result = await Promise.race([syncPromise, timeoutPromise]) as any;
-    
+    const result = (await Promise.race([syncPromise, timeoutPromise])) as {
+      data: { count?: number } | null;
+      error: { message?: string } | null;
+    };
+
     if (timeoutHandle) clearTimeout(timeoutHandle);
 
     const { data, error } = result;

@@ -8,11 +8,7 @@ export function useUnreadNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!userId) {
-      setHasUnread(false);
-      setUnreadCount(0);
-      return;
-    }
+    if (!userId) return;
 
     const checkUnread = async () => {
       try {
@@ -58,7 +54,7 @@ export function useUnreadNotifications() {
         },
         () => {
           void checkUnread();
-        }
+        },
       )
       .subscribe();
 
@@ -75,7 +71,7 @@ export function useUnreadNotifications() {
         },
         () => {
           void checkUnread();
-        }
+        },
       )
       .subscribe();
 
@@ -85,5 +81,10 @@ export function useUnreadNotifications() {
     };
   }, [userId]);
 
-  return { hasUnread, unreadCount };
+  // Pri odhlásenom používateľovi hlásime "bez neprečítaných" (odvodený stav,
+  // namiesto synchronného setState v efekte).
+  return {
+    hasUnread: userId ? hasUnread : false,
+    unreadCount: userId ? unreadCount : 0,
+  };
 }

@@ -7,6 +7,7 @@ Vymazaní kandidáti ostali v tabuľke s `is_active=false`, čo spôsobovalo, ž
 ## ✅ RIEŠENIE
 
 ### 1. **Kódové Zmeny** (HOTOVO)
+
 - `handleEditElections()`: Pridaný `.eq('is_active', true)` filter
 - `handleDeleteCandidate()`: Zmena z `.delete()` na `.update({ is_active: false })` (soft delete)
 - `loadData()`: Už mal filter `is_active=true` ✅
@@ -34,6 +35,7 @@ WHERE is_active = true;
 ## 🔄 WORKFLOW PO OPRAVE
 
 ### Pred:
+
 ```
 1. Admin maže kandidáta
 2. `delete()` odstraní úplne z DB ❌
@@ -42,6 +44,7 @@ WHERE is_active = true;
 ```
 
 ### Po:
+
 ```
 1. Admin maže kandidáta
 2. `update({ is_active: false })` len deaktivuje ✅
@@ -52,16 +55,17 @@ WHERE is_active = true;
 
 ## 📝 KRÁTKO
 
-| Čo | Pred | Po |
-|----|----|---|
-| Delete operácia | `.delete()` → Hard delete | `.update({ is_active: false })` → Soft delete |
-| Filter v loadData | `is_active=true` ✅ | `is_active=true` ✅ |
-| Filter v handleEditElections | ❌ Chýbajúci | `.eq('is_active', true)` ✅ |
-| Staré záznamy | Ostanú v DB | Deaktivované, neviditeľné |
+| Čo                           | Pred                      | Po                                            |
+| ---------------------------- | ------------------------- | --------------------------------------------- |
+| Delete operácia              | `.delete()` → Hard delete | `.update({ is_active: false })` → Soft delete |
+| Filter v loadData            | `is_active=true` ✅       | `is_active=true` ✅                           |
+| Filter v handleEditElections | ❌ Chýbajúci              | `.eq('is_active', true)` ✅                   |
+| Staré záznamy                | Ostanú v DB               | Deaktivované, neviditeľné                     |
 
 ## 🚀 KROKY K IMPLEMENTÁCII
 
 ### 1. **Spustenie v Supabase**
+
 ```
 1. Otvoriť: https://supabase.com/dashboard
 2. Prejsť na: SQL Editor
@@ -71,6 +75,7 @@ WHERE is_active = true;
 ```
 
 ### 2. **Overenie v Aplikácii**
+
 ```
 1. Refresh aplikáciu (F5)
 2. Prejsť na Voľby
@@ -80,6 +85,7 @@ WHERE is_active = true;
 ```
 
 ### 3. **Testovanie Mazania**
+
 ```
 1. Login ako admin
 2. Otvoriť kandidáta
@@ -105,6 +111,7 @@ election_candidates {
 ```
 
 ### Filtre v aplikácii:
+
 ```typescript
 // loadData()
 .eq('is_active', true) ✅
@@ -143,4 +150,3 @@ Aplikácia: ✅ HOTOVÁ
 
 **Status**: ⏳ Čaká na manuálne vyčistenie databázy
 **Akcia**: Spustiť SQL skript v Supabase SQL Editor
-

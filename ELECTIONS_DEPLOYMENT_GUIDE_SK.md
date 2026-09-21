@@ -32,6 +32,7 @@ Toto balík implementácie obsahuje:
 6. Čaká na úspešnosť (✅)
 
 **Alebo:**
+
 - Ak máš Supabase CLI, spusť: `supabase migration up`
 
 ### Krok 2: Nakonfigurovanie Storage Bucketu
@@ -48,6 +49,7 @@ Toto balík implementácie obsahuje:
 ### Krok 3: Nastavenie Storage Policies
 
 V SQL Editor spusť:
+
 ```sql
 -- Allow public read
 CREATE POLICY "Public read elections storage"
@@ -135,12 +137,12 @@ npm run dev
 
 ### Rola-Based Access (RBAC)
 
-| Funkcia | Admin | Starosta | Úradník | Sused |
-|---------|-------|----------|--------|-------|
-| Čítať voľby | ✅ | ✅ | ✅ | ✅ |
-| Editovať voľby | ✅ | ✅ | ✅ | ❌ |
-| Nahrať prílohy | ✅ | ✅ | ✅ | ❌ |
-| Vidieť draft voľby | ✅ | ✅ | ✅ | ❌ |
+| Funkcia            | Admin | Starosta | Úradník | Sused |
+| ------------------ | ----- | -------- | ------- | ----- |
+| Čítať voľby        | ✅    | ✅       | ✅      | ✅    |
+| Editovať voľby     | ✅    | ✅       | ✅      | ❌    |
+| Nahrať prílohy     | ✅    | ✅       | ✅      | ❌    |
+| Vidieť draft voľby | ✅    | ✅       | ✅      | ❌    |
 
 ### RLS Polícia
 
@@ -152,6 +154,7 @@ Susedia vidia iba voľby kde `is_active = true`.
 ## 💾 Databázová Schéma
 
 ### elections
+
 ```
 id (uuid) - Primárny kľúč
 name (text) - Názov volieb
@@ -165,6 +168,7 @@ updated_at (timestamptz)
 ```
 
 ### election_candidates (rozšírenie)
+
 ```
 -- Nové stĺpce:
 election_id (uuid) - FK na elections
@@ -172,6 +176,7 @@ sort_order (integer) - Poradie v liste
 ```
 
 ### elections_attachments
+
 ```
 id (uuid) - Primárny kľúč
 election_id (uuid) - FK na elections
@@ -205,6 +210,7 @@ created_at (timestamptz)
 ### Unit Tests (Opsionálne)
 
 Ak máš Jest testing framework:
+
 ```bash
 npm run test -- ElectionsEditModal.tsx
 npm run test -- ElectionsAttachmentUpload.tsx
@@ -215,24 +221,32 @@ npm run test -- ElectionsAttachmentUpload.tsx
 ## 🐛 Troubleshooting
 
 ### Problem: Build fail
-**Riešenie:** 
+
+**Riešenie:**
+
 ```bash
 npm install
 npm run build
 ```
 
 ### Problem: Storage upload fail
-**Riešenie:** 
+
+**Riešenie:**
+
 - Skontroluj, či je bucket "elections" vytvorený v Supabase Storage
 - Overpi CORS nastavenia v Supabase
 
 ### Problem: RLS policy error
-**Riešenie:** 
+
+**Riešenie:**
+
 - V SQL Editor spusť migráciu znova
 - Zkontroluj v Supabase Dashboard → Authentication → Policies
 
 ### Problem: Komponenty nie sú viditeľné
-**Riešenie:** 
+
+**Riešenie:**
+
 - Overpi, či si prihlásený ako Admin/Starosta/Úradník
 - Skontroluj či je `electionsEnabled = true` v app_settings
 
@@ -261,7 +275,7 @@ npm run build
 
 2. **Program Priorities**: Pole `program_priorities` je array textov. V budúcnosti by si mohol pridať UI na ich editáciu.
 
-3. **Voľby vs. Ankety**: 
+3. **Voľby vs. Ankety**:
    - **Voľby** = Hlasovanie na kandidátov (informačný zoznam)
    - **Ankety** = Prieskumy s možnosťami (interaktívne hlasovanie)
 
@@ -284,6 +298,7 @@ npm run build
 ## 📞 Support
 
 Ak máš otázky alebo problém:
+
 1. Skontroluj konzolu (F12 → Console)
 2. Pozri si logs v Supabase Dashboard
 3. Skontroluj RLS polícia

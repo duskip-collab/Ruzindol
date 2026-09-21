@@ -16,6 +16,7 @@ import type { CompressedImage } from "@/lib/compress-image";
 import { uploadCompressedImage } from "@/lib/upload-image";
 import { SafeChat } from "@/components/SafeChat";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   formatWarehouseExpiry,
@@ -65,7 +66,14 @@ const H = 60 * 60 * 1000;
 
 const SECTION_META: Record<
   Section,
-  { title: string; icon: React.ReactNode; bgClass: string; badgeClass: string; ring: string; canAdd: boolean }
+  {
+    title: string;
+    icon: React.ReactNode;
+    bgClass: string;
+    badgeClass: string;
+    ring: string;
+    canAdd: boolean;
+  }
 > = {
   trh: {
     title: "Susedský trh",
@@ -284,7 +292,9 @@ function useItems(type: ItemType) {
       setLoading(true);
       const { data } = await supabase
         .from("warehouse_items")
-        .select("id, user_id, type, title, description, price, image_url, image_path, image_url_2, image_path_2, image_url_3, image_path_3, image_url_4, image_path_4, created_at, expires_at, profiles(name, street, is_active_neighbor)")
+        .select(
+          "id, user_id, type, title, description, price, image_url, image_path, image_url_2, image_path_2, image_url_3, image_path_3, image_url_4, image_path_4, created_at, expires_at, profiles(name, street, is_active_neighbor)",
+        )
         .eq("type", type)
         .order("created_at", { ascending: false });
       if (!mounted) return;
@@ -388,14 +398,16 @@ function ListingList({ type }: { type: ItemType; meta: (typeof SECTION_META)[Sec
                 className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/90"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-bold leading-tight text-slate-900 dark:text-white">{item.title}</h3>
-                  <span
-                    className="shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700"
-                  >
+                  <h3 className="font-bold leading-tight text-slate-900 dark:text-white">
+                    {item.title}
+                  </h3>
+                  <span className="shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700">
                     {priceLabel(item.price)}
                   </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{item.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                  {item.description}
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                   <span className="chip-muted rounded-full px-2 py-1 font-medium">
                     Platnosť {validityLabel}
@@ -446,7 +458,12 @@ function ListingList({ type }: { type: ItemType; meta: (typeof SECTION_META)[Sec
                   )}
                 </div>
                 <div className="mt-2 border-t border-[color:var(--border-card)] pt-2 text-right text-[11px] text-muted-foreground">
-                  Expiruje {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
+                  Expiruje{" "}
+                  {formatWarehouseExpiry(
+                    item.type as WarehouseItemType,
+                    item.created_at,
+                    item.expires_at,
+                  )}
                 </div>
               </article>
             );
@@ -511,9 +528,7 @@ function ListingDetailModal({
             <p className="truncate text-sm font-semibold">{item.title}</p>
             <p className="text-xs text-muted-foreground">Detail inzerátu</p>
           </div>
-          <span
-            className="ml-auto shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700"
-          >
+          <span className="ml-auto shrink-0 rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm dark:bg-slate-700">
             {priceLabel}
           </span>
         </div>
@@ -525,8 +540,8 @@ function ListingDetailModal({
               item.image_url_2,
               item.image_url_3,
               item.image_url_4,
-            ].filter(Boolean);
-            
+            ].filter((url): url is string => Boolean(url));
+
             if (photos.length > 0) {
               return (
                 <div className="grid grid-cols-2 gap-2">
@@ -552,9 +567,7 @@ function ListingDetailModal({
           </div>
 
           <div className="app-surface-muted rounded-2xl p-3 text-xs">
-            <p className="font-semibold text-foreground">
-              {item.profiles?.name ?? "Sused"}
-            </p>
+            <p className="font-semibold text-foreground">{item.profiles?.name ?? "Sused"}</p>
             <p className="mt-0.5 text-muted-foreground">
               {item.profiles?.street ? `Ulica: ${item.profiles.street}` : "Ulica neuvedená"}
             </p>
@@ -562,7 +575,12 @@ function ListingDetailModal({
               Pridané: {new Date(item.created_at).toLocaleString("sk-SK")}
             </p>
             <p className="mt-0.5 text-muted-foreground">
-              Expiruje: {formatWarehouseExpiry(item.type as WarehouseItemType, item.created_at, item.expires_at)}
+              Expiruje:{" "}
+              {formatWarehouseExpiry(
+                item.type as WarehouseItemType,
+                item.created_at,
+                item.expires_at,
+              )}
             </p>
           </div>
         </div>
@@ -658,13 +676,17 @@ function DopytList() {
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm">
                 <Zap className="h-3 w-3" /> Urgentné
               </span>
-              <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Platí ešte {hoursLeft}h</span>
+              <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                Platí ešte {hoursLeft}h
+              </span>
             </div>
             <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">
               {d.title || bodyText}
             </p>
             {d.title && bodyText && (
-              <p className="mt-1 line-clamp-2 text-xs text-slate-700 dark:text-slate-300">{bodyText}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-slate-700 dark:text-slate-300">
+                {bodyText}
+              </p>
             )}
             <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <span>{d.profiles?.name ?? "Sused"}</span>
@@ -708,15 +730,23 @@ function PillarCard({
       className="group relative flex w-full items-center justify-between overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/90 active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-full shadow-md ${meta.bgClass}`}>
+        <div
+          className={`grid h-14 w-14 shrink-0 place-items-center rounded-full shadow-md ${meta.bgClass}`}
+        >
           {meta.icon}
         </div>
         <div className="min-w-0">
-          <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{meta.title}</h3>
-          <p className="mt-0.5 text-sm leading-snug text-slate-500 dark:text-slate-400">{descriptions[section]}</p>
+          <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+            {meta.title}
+          </h3>
+          <p className="mt-0.5 text-sm leading-snug text-slate-500 dark:text-slate-400">
+            {descriptions[section]}
+          </p>
         </div>
       </div>
-      <span className={`ml-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm ${meta.badgeClass}`}>
+      <span
+        className={`ml-3 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm ${meta.badgeClass}`}
+      >
         {loading ? "…" : count}
       </span>
     </button>
@@ -775,30 +805,26 @@ function AddListingModal({
         uploaded.push({ url: upload.imageUrl, path: upload.imagePath });
       }
 
-      const fields: Record<string, string | null | number> = {
+      const fields: Database["public"]["Tables"]["warehouse_items"]["Insert"] = {
         user_id: userId,
         type,
         title: title.trim(),
         description: description.trim(),
         price: isDarovanie ? 0 : Number(price) || 0,
         expires_at: getWarehouseExpiryIso(type as WarehouseItemType),
+        image_url: uploaded[0]?.url ?? null,
+        image_path: uploaded[0]?.path ?? null,
+        image_url_2: uploaded[1]?.url ?? null,
+        image_path_2: uploaded[1]?.path ?? null,
+        image_url_3: uploaded[2]?.url ?? null,
+        image_path_3: uploaded[2]?.path ?? null,
+        image_url_4: uploaded[3]?.url ?? null,
+        image_path_4: uploaded[3]?.path ?? null,
       };
-
-      uploaded.forEach((photo, index) => {
-        const suffix = index === 0 ? "" : `_${index + 1}`;
-        fields[`image_url${suffix}`] = photo.url;
-        fields[`image_path${suffix}`] = photo.path;
-      });
-
-      for (let index = uploaded.length; index < MAX_PHOTOS; index++) {
-        const suffix = index === 0 ? "" : `_${index + 1}`;
-        fields[`image_url${suffix}`] = null;
-        fields[`image_path${suffix}`] = null;
-      }
 
       const { error } = await supabase.from("warehouse_items").insert(fields);
       if (error) throw error;
-      
+
       photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
       onClose();
       window.location.reload();
@@ -830,9 +856,7 @@ function AddListingModal({
 
         <form onSubmit={submit} className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
           <div>
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Názov
-            </label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Názov</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -843,9 +867,7 @@ function AddListingModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Popis
-            </label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Popis</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -856,16 +878,24 @@ function AddListingModal({
           </div>
 
           <div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Fotografie ({photos.length}/{MAX_PHOTOS})</p>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Fotografie ({photos.length}/{MAX_PHOTOS})
+            </p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {photos.map((photo, index) => (
                 <div key={photo.previewUrl} className="relative">
-                  <img src={photo.previewUrl} alt="Nová fotka" className="h-28 w-full rounded-xl object-cover" />
+                  <img
+                    src={photo.previewUrl}
+                    alt="Nová fotka"
+                    className="h-28 w-full rounded-xl object-cover"
+                  />
                   <button
                     type="button"
                     onClick={() => {
                       URL.revokeObjectURL(photo.previewUrl);
-                      setPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index));
+                      setPhotos((current) =>
+                        current.filter((_, photoIndex) => photoIndex !== index),
+                      );
                     }}
                     aria-label="Odstrániť fotku"
                     className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"

@@ -3,18 +3,21 @@
 ## 🚀 QUICK START (5 MINÚT)
 
 ### 1. Build
+
 ```
 npm run build
 ✅ SUCCESS (0 errors)
 ```
 
 ### 2. Start App
+
 ```
 http://localhost:5176
 Menu → Voľby
 ```
 
 ### 3. Nahrať fotku
+
 ```
 1. Kliknúť Edit
 2. Kliknúť na Kandidáta (Starosta tab)
@@ -24,6 +27,7 @@ Menu → Voľby
 ```
 
 ### 4. Uložiť zmeny
+
 ```
 Kliknúť "Uložiť zmeny"
 Refresh (F5)
@@ -31,6 +35,7 @@ Refresh (F5)
 ```
 
 ### 5. Zobrazenie
+
 ```
 Menu → Voľby
 ✅ CandidateCard ukazuje fotku
@@ -39,6 +44,7 @@ Kliknúť → Detail
 ```
 
 ### 6. Remove fotka
+
 ```
 Edit → Kandidát → Kliknúť X na fotke
 Uložiť zmeny
@@ -50,6 +56,7 @@ Uložiť zmeny
 ## ✅ DETAIL TESTY
 
 ### Test 1: Upload fotky
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -66,6 +73,7 @@ Expected:
 ```
 
 ### Test 2: Zobrazenie fotky
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -78,6 +86,7 @@ Expected:
 ```
 
 ### Test 3: Remove fotka
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -91,6 +100,7 @@ Expected:
 ```
 
 ### Test 4: Delete kandidáta
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -104,6 +114,7 @@ Expected:
 ```
 
 ### Test 5: Refresh po uploade
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -115,6 +126,7 @@ Expected:
 ```
 
 ### Test 6: Validácia veľkosti
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -124,6 +136,7 @@ Expected:
 ```
 
 ### Test 7: Validácia typu
+
 ```
 Status: ⏳ PENDING
 Steps:
@@ -137,6 +150,7 @@ Expected:
 ## 🎯 MANUÁLNY TEST SCENÁR
 
 ### Scenár 1: Kompletný workflow
+
 ```
 [ ] 1. Otvorím Voľby → Edit
 [ ] 2. Expandnem kandidáta na starostu
@@ -166,15 +180,15 @@ Expected:
 
 ## 📊 EXPECTED RESULTS
 
-| Test | Expected | Status |
-|------|----------|--------|
-| Upload fotky | Fotka sa nahrá a zobrazí | ⏳ |
-| Zobrazenie | CandidateCard + Modal | ⏳ |
-| Remove fotka | photo_url=null | ⏳ |
-| Delete kandidáta | is_active=false | ⏳ |
-| Refresh | Fotka ostane | ⏳ |
-| Max size (5MB) | Error message | ⏳ |
-| Type validation | Error message | ⏳ |
+| Test             | Expected                 | Status |
+| ---------------- | ------------------------ | ------ |
+| Upload fotky     | Fotka sa nahrá a zobrazí | ⏳     |
+| Zobrazenie       | CandidateCard + Modal    | ⏳     |
+| Remove fotka     | photo_url=null           | ⏳     |
+| Delete kandidáta | is_active=false          | ⏳     |
+| Refresh          | Fotka ostane             | ⏳     |
+| Max size (5MB)   | Error message            | ⏳     |
+| Type validation  | Error message            | ⏳     |
 
 ---
 

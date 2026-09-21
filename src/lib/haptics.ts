@@ -1,4 +1,4 @@
-export type HapticType = 'light' | 'success' | 'error';
+export type HapticType = "light" | "success" | "error";
 
 /**
  * Haptic vibration patterns (durations in milliseconds).
@@ -20,7 +20,11 @@ const HAPTIC_PATTERNS: Record<HapticType, number | number[]> = {
  * @returns boolean - true if vibration was successfully requested, false otherwise
  */
 export function triggerHaptic(type: HapticType): boolean {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('vibrate' in navigator)) {
+  if (
+    typeof window === "undefined" ||
+    typeof navigator === "undefined" ||
+    !("vibrate" in navigator)
+  ) {
     return false;
   }
 
