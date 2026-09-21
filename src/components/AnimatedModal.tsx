@@ -114,8 +114,8 @@ export const AnimatedModal: React.FC<AnimatedModalProps> = ({
             exit={{ opacity: 0, scale: fullscreen ? 1 : 0.92, y: fullscreen ? 0 : 12 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 shrink-0 p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+            {/* Header - safe-area top ( fullscreen modal siaha až pod status bar na iPhone ) */}
+            <div className="flex items-start justify-between gap-4 shrink-0 px-4 pb-4 sm:px-6 sm:pb-6 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-[max(1.5rem,env(safe-area-inset-top))] border-b border-slate-100 dark:border-slate-800">
               {title && (
                 <h3
                   id="modal-title"

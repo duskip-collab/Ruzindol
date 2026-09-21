@@ -293,8 +293,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
           >
-            {/* HEADER - Fixed */}
-            <div className="shrink-0 flex items-center justify-between gap-4 p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            {/* HEADER - Fixed (rešpektuje safe-area top: Dynamic Island / notch na iPhone) */}
+            <div className="shrink-0 flex items-center justify-between gap-4 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <h3 id="inquiry-modal-title" className="text-lg font-semibold">
                 Podnet starostovi
               </h3>
@@ -302,7 +302,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({ isOpen, onClose, onS
                 type="button"
                 onClick={onClose}
                 disabled={submitting || uploading}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors focus:outline-none disabled:opacity-50"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors active:scale-95 focus:outline-none disabled:opacity-50"
                 aria-label="Zatvoriť"
               >
                 <X className="h-5 w-5" />

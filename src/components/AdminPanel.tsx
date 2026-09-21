@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { ProfileRole } from "@/hooks/useCurrentUser";
 import { Input } from "@/components/ui/input";
 import { AdminElectionsToggle } from "@/components/admin/AdminElectionsToggle";
+import { WasteScheduleImporter } from "@/components/admin/WasteScheduleImporter";
 
 type CodeRole = "Sused" | "Uradnik" | "Starosta" | "Farar";
 
@@ -66,6 +67,7 @@ export function AdminPanel({ adminId, isSuperAdmin }: { adminId: string; isSuper
 
       <div className="space-y-6">
         <AdminElectionsToggle />
+        <WasteScheduleImporter />
         <RoleAssigner />
         <InviteCodeManager />
         {isSuperAdmin && <MunicipalityManager />}

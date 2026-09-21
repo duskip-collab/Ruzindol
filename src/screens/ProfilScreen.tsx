@@ -39,7 +39,6 @@ import { BanBanner } from "@/components/BanBanner";
 import { ActiveNeighborBadge } from "@/components/ActiveNeighborBadge";
 import { LegalInfoPanel } from "@/components/LegalDocuments";
 import { AdminPanel } from "@/components/AdminPanel";
-import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { MayorInquiriesDashboard } from "@/components/mayor/MayorInquiriesDashboard";
 import { CodeActivationScreen } from "@/screens/onboarding/CodeActivationScreen";
 import { useTheme } from "@/context/ThemeContext";
@@ -310,8 +309,7 @@ export function ProfilScreen() {
     profile.role === "Starosta" ||
     (profile.role === "Sused" && profile.is_active_neighbor && Boolean(profile.invite_code));
   const inviteLimit = isAdmin || profile.role === "Starosta" ? 50 : 3;
-  const isWideAdminSection =
-    openSection === "admin" || openSection === "moderation" || openSection === "aktuality-admin";
+  const isWideAdminSection = openSection === "admin" || openSection === "moderation";
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-4 px-4 py-5 md:px-6">
@@ -437,23 +435,6 @@ export function ProfilScreen() {
                   <ModerationPanel currentUserId={profile.id} />
                 </Suspense>
               )}
-            </AccordionSection>
-          )}
-
-          {(isAdmin || profile.role === "Starosta") && (
-            <AccordionSection
-              value="aktuality-admin"
-              title="Administrácia aktualít sekcií"
-              description="Správa sekcií DHZ, OŠK, Dôchodcovia, Farnosť a Služby."
-              isActive={openSection === "aktuality-admin"}
-              onToggle={() =>
-                setOpenSection((prev) => (prev === "aktuality-admin" ? "" : "aktuality-admin"))
-              }
-              onClose={() => setOpenSection("")}
-              itemClassName={isWideAdminSection ? "xl:rounded-[2rem]" : undefined}
-              contentClassName={isWideAdminSection ? "px-3 py-3 md:px-4" : undefined}
-            >
-              {openSection === "aktuality-admin" && <AktualityGroupsPanel />}
             </AccordionSection>
           )}
 
