@@ -71,6 +71,13 @@ const DEFAULT_CATS: Record<NotifCategory, boolean> = {
   ostatne: true,
 };
 
+/**
+ * Stĺpce v tabuľke `user_settings` (SQL migrácia
+ * 20260921120000_user_settings_notify_categories.sql) majú DEFAULT true,
+ * takže chýbajúca hodnota alebo chýbajúci stĺpec = kategória je zapnutá
+ * (100 % spätná kompatibilita s pôvodným systémom zasielania).
+ */
+
 function getInitialMuted() {
   if (typeof window === "undefined") return false;
   try {
@@ -172,6 +179,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [hasOfficialUnread, setHasOfficialUnread] = useState(false);
   const [hasMessageUnread, setHasMessageUnread] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
   const [notifications, setNotifications] = useState<DbNotification[]>([]);
 
   const mutedRef = useRef(false);
@@ -190,6 +198,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     catsRef.current = categories;
   }, [categories]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   // Bezpečná deduplikovaná funkcia na synchronizáciu Push subskripcie
   const safeSyncPushSubscription = useCallback(async () => {
@@ -236,6 +248,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
+
+    // Voliteľná synchronizácia preferencie do DB (`user_settings.notify_*`),
+    // aby rovnaký filter aplikovala aj serverová strana (Edge Function send-push).
+    // Fire-and-forget: lokálne správanie ostáva funkčné aj pri chybe DB.
+    const userId = currentUserIdRef.current;
+    if (!userId) return;
+
+    const columnPatch =
+      key === "obecne"
+        ? { notify_obecne: on }
+        : key === "havarie"
+          ? { notify_havarie: on }
+          : key === "kulturne"
+            ? { notify_kulturne: on }
+            : key === "farske"
+              ? { notify_farske: on }
+              : { notify_ostatne: on };
+
+    void supabase
+      .from("user_settings")
+      .upsert({ user_id: userId, ...columnPatch }, { onConflict: "user_id" })
+      .then(({ error }) => {
+        if (error) {
+          console.error("[NotificationContext] Uloženie preferencie kategórie zlyhalo:", error);
+        }
+      });
   }, []);
 
   const dismiss = useCallback(() => setCurrent(null), []);
@@ -282,6 +320,49 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [safeSyncPushSubscription]);
+
+  // Načítanie notifikačných preferencií (filtra záujmov) z DB po prihlásení.
+  // DB hodnoty majú prednosť; ak tabuľka/stĺpce ešte neexistujú, nič sa nemení
+  // (lokálne localStorage hodnoty aj pôvodné správanie ostávajú nezmenené).
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    let mounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("notify_obecne, notify_havarie, notify_kulturne, notify_farske, notify_ostatne")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+
+      if (!mounted || !data) {
+        if (error) {
+          console.warn("[NotificationContext] Načítanie preferencií kategórií zlyhalo:", error);
+        }
+        return;
+      }
+
+      const dbCats: Record<NotifCategory, boolean> = {
+        obecne: data.notify_obecne !== false,
+        havarie: data.notify_havarie !== false,
+        kulturne: data.notify_kulturne !== false,
+        farske: data.notify_farske !== false,
+        ostatne: data.notify_ostatne !== false,
+      };
+
+      setCategories(dbCats);
+      catsRef.current = dbCats;
+      try {
+        window.localStorage.setItem(CATS_KEY, JSON.stringify(dbCats));
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentUserId]);
 
   useEffect(() => {
     const channel = supabase

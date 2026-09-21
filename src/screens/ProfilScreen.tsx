@@ -1162,6 +1162,10 @@ function NotificationSettings({ userId }: { userId: string }) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Kategórie
         </p>
+        <p className="mb-2 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+          Platí pre okamžité aj push notifikácie a ukladá sa do tvojho profilu. Kritické výstrahy
+          (havárie, núdzové situácie) sa odosielajú vždy.
+        </p>
         <ul className="space-y-2">
           {NOTIF_CATEGORIES.map((c) => (
             <li key={c.key} className="flex items-center justify-between gap-3">

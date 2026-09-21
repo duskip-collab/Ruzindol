@@ -1520,18 +1520,33 @@ export type Database = {
         Row: {
           created_at: string;
           notifications_enabled: boolean;
+          notify_farske: boolean;
+          notify_havarie: boolean;
+          notify_kulturne: boolean;
+          notify_obecne: boolean;
+          notify_ostatne: boolean;
           updated_at: string;
           user_id: string;
         };
         Insert: {
           created_at?: string;
           notifications_enabled?: boolean;
+          notify_farske?: boolean;
+          notify_havarie?: boolean;
+          notify_kulturne?: boolean;
+          notify_obecne?: boolean;
+          notify_ostatne?: boolean;
           updated_at?: string;
           user_id: string;
         };
         Update: {
           created_at?: string;
           notifications_enabled?: boolean;
+          notify_farske?: boolean;
+          notify_havarie?: boolean;
+          notify_kulturne?: boolean;
+          notify_obecne?: boolean;
+          notify_ostatne?: boolean;
           updated_at?: string;
           user_id?: string;
         };

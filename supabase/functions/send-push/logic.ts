@@ -1,3 +1,43 @@
+/**
+ * Voliteľné filtre záujmov – serverová klasifikácia notifikácií do kategórií.
+ * Je to presné zrkadlo klientskej funkcie `classify()` (NotificationContext),
+ * takže notifikácia, ktorú používateľ vidí v aplikácii, zodpovedá kategórii,
+ * ktorú si vypol / zapol v profile.
+ */
+export type NotifyCategoryKey = "obecne" | "havarie" | "kulturne" | "farske" | "ostatne";
+
+export const NOTIFY_CATEGORY_COLUMN: Record<NotifyCategoryKey, string> = {
+  obecne: "notify_obecne",
+  havarie: "notify_havarie",
+  kulturne: "notify_kulturne",
+  farske: "notify_farske",
+  ostatne: "notify_ostatne",
+};
+
+export function resolveNotifyCategory(record: Record<string, unknown>): NotifyCategoryKey {
+  const t = String(record.type ?? "").toLowerCase();
+  const c = String(record.category ?? "").toLowerCase();
+  const p = String(record.priority ?? "").toLowerCase();
+
+  if (
+    c.includes("havar") ||
+    c.includes("núdz") ||
+    c.includes("nudz") ||
+    c.includes("výstraha") ||
+    c.includes("vystraha") ||
+    c === "vysoka" ||
+    p === "vystraha" ||
+    p === "urgentne" ||
+    p === "urgent" ||
+    p === "high"
+  )
+    return "havarie";
+  if (c.includes("kult") || c.includes("podujat") || c.includes("udalost")) return "kulturne";
+  if (c.includes("farsk") || c.includes("kostol") || t === "farsky_oznam") return "farske";
+  if (t === "hlasnik" || t === "official_alert" || c.includes("obec")) return "obecne";
+  return "ostatne";
+}
+
 export type PushDecision = {
   userId: string | null;
   critical: boolean;

@@ -1,7 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { evaluatePushDecision, parseWebhookRecord } from "./logic.ts";
+import {
+  evaluatePushDecision,
+  parseWebhookRecord,
+  NOTIFY_CATEGORY_COLUMN,
+  resolveNotifyCategory,
+} from "./logic.ts";
 
 const PUBLIC_VAPID_KEY =
   Deno.env.get("VAPID_PUBLIC_KEY") ||
@@ -107,6 +112,41 @@ async function shouldSendOptionalNotification(
   return true;
 }
 
+/**
+ * Voliteľný filtr záujmov: skontroluje, či má používateľ danú kategóriu notifikácií
+ * povolenú v `user_settings.notify_*`.
+ *
+ * Spätná kompatibilita: ak tabuľka/stĺpec neexistuje (kód 42703/42P01), riadok nie je
+ * vytvorený, alebo hodnota nie je explicitne `false`, notifikácia prejde štandardne
+ * (presne ako doteraz). Zavolané je to VÝHRADNE pre nekritické notifikácie –
+ * kritické (výstraha/urgentné) sa odosielajú vždy, bez ohľadu na preferencie.
+ */
+async function isCategoryAllowed(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  record: Record<string, unknown>,
+): Promise<boolean> {
+  const category = resolveNotifyCategory(record);
+  const column = NOTIFY_CATEGORY_COLUMN[category];
+
+  const result = await supabase
+    .from("user_settings")
+    .select(column)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (result.error) {
+    if (!isMissingRelationOrColumnError(result.error)) {
+      console.error(`Chyba pri čítaní user_settings.${column}:`, result.error);
+    }
+    return true;
+  }
+
+  if (!result.data) return true;
+
+  return result.data[column] !== false;
+}
+
 serve(async (req) => {
   try {
     if (!PUBLIC_VAPID_KEY || !PRIVATE_VAPID_KEY || !VAPID_SUBJECT) {
@@ -164,6 +204,18 @@ serve(async (req) => {
           `[PUSH SKIPPED] Užívateľ ${userId} má vypnuté notifikácie (reason: ${optionalDecision.reason})`,
         );
         return json({ success: true, skipped: true, reason: optionalDecision.reason });
+      }
+    }
+
+    // Voliteľný filtr záujmov (nová funkcionalita, doplnok – nekritické notifikácie):
+    // pôvodná logika vyššie zostala bez zmien. Kritické notifikácie prechádzajú vždy.
+    if (!critical) {
+      const categoryAllowed = await isCategoryAllowed(supabase, userId, record);
+      if (!categoryAllowed) {
+        console.log(
+          `[PUSH SKIPPED] Užívateľ ${userId} má vypnutú kategóriu "${resolveNotifyCategory(record)}".`,
+        );
+        return json({ success: true, skipped: true, reason: "category_disabled" });
       }
     }
 
