@@ -311,12 +311,20 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
           </h3>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
-          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 font-medium text-blue-700 dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ffb26a]">
-            <Landmark className="h-3 w-3" /> Samosprava
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-gradient-to-r from-purple-100 to-amber-100 px-2 py-0.5 font-medium text-purple-700 dark:border-[color:rgba(148,163,184,0.18)] dark:bg-[rgba(30,34,43,0.96)] dark:text-[#f8fafc]">
-            <Church className="h-3 w-3" /> Kostol
-          </span>
+          {categoryFilter === "odpad" ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-0.5 font-medium text-green-700 dark:border-[color:rgba(34,197,94,0.24)] dark:bg-[rgba(34,197,94,0.12)] dark:text-[#4ade80]">
+              <Recycle className="h-3 w-3" /> Zber odpadu
+            </span>
+          ) : (
+            <>
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 font-medium text-blue-700 dark:border-[color:rgba(255,107,0,0.24)] dark:bg-[rgba(255,107,0,0.12)] dark:text-[#ffb26a]">
+                <Landmark className="h-3 w-3" /> Samosprava
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-gradient-to-r from-purple-100 to-amber-100 px-2 py-0.5 font-medium text-purple-700 dark:border-[color:rgba(148,163,184,0.18)] dark:bg-[rgba(30,34,43,0.96)] dark:text-[#f8fafc]">
+                <Church className="h-3 w-3" /> Kostol
+              </span>
+            </>
+          )}
           {canManage && (
             <button
               onClick={(e) => {
@@ -422,6 +430,8 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
       {showForm && canManage && userId && (
         <EventForm
           userId={userId}
+          initialType={categoryFilter === "odpad" ? "odpad" : undefined}
+          municipalityId={profile?.municipality_id ?? null}
           onClose={() => setShowForm(false)}
           onCreated={async () => {
             setShowForm(false);
@@ -451,6 +461,7 @@ export function SharedCalendar({ categoryFilter }: { categoryFilter?: string }) 
         <EventForm
           userId={userId}
           initialEvent={editingEvent}
+          municipalityId={profile?.municipality_id ?? null}
           onClose={() => setEditingEvent(null)}
           onCreated={async () => {
             setEditingEvent(null);
@@ -782,11 +793,16 @@ function EventDetailModal({
 function EventForm({
   userId,
   initialEvent,
+  initialType,
+  municipalityId,
   onClose,
   onCreated,
 }: {
   userId: string;
   initialEvent?: DbEvent;
+  /** Predvolená kategória, keď sa formulár otvára vo filtrovanom kalendári (napr. odpad). */
+  initialType?: EventCategory;
+  municipalityId?: string | null;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -794,7 +810,9 @@ function EventForm({
   const [title, setTitle] = useState(initialEvent?.title ?? "");
   const [description, setDescription] = useState(initialEvent?.description ?? "");
   const [location, setLocation] = useState(initialEvent?.location ?? "");
-  const [type, setType] = useState<EventCategory>(initialEvent?.type ?? "Samosprava");
+  const [type, setType] = useState<EventCategory>(
+    initialEvent?.type ?? initialType ?? "Samosprava",
+  );
   const [startsAt, setStartsAt] = useState(() => {
     if (initialEvent) return toLocalDatetimeInput(new Date(initialEvent.starts_at));
     const d = new Date();
@@ -812,7 +830,11 @@ function EventForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !description.trim() || !location.trim()) return;
+    // Zber odpadu (vývoz): povinný je len názov – popis/miesto sú pri vývoze odpadu
+    // bežne nezmyselné a databáza ich povoľuje prázdne (DEFAULT '').
+    if (!title.trim()) return;
+    const isWaste = type === "odpad";
+    if (!isWaste && (!description.trim() || !location.trim())) return;
 
     const startsIso = new Date(startsAt).toISOString();
     const endsIso = endsAt ? new Date(endsAt).toISOString() : null;
@@ -833,6 +855,7 @@ function EventForm({
 
       const eventPayload = {
         author_id: initialEvent?.author_id ?? userId,
+        municipality_id: municipalityId ?? null,
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
@@ -873,7 +896,9 @@ function EventForm({
         >
           <X className="h-5 w-5" />
         </button>
-        <h2 className="font-semibold">Nova udalost</h2>
+        <h2 className="font-semibold">
+          {type === "odpad" ? "Nova polozka zberu odpadu" : "Nova udalost"}
+        </h2>
       </div>
 
       <form
@@ -923,7 +948,7 @@ function EventForm({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            required
+            required={type !== "odpad"}
             rows={4}
             className="app-input mt-1 w-full resize-none rounded-xl px-3 py-2.5 text-sm outline-none"
           />
@@ -934,7 +959,7 @@ function EventForm({
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            required
+            required={type !== "odpad"}
             maxLength={200}
             className="app-input mt-1 w-full rounded-xl px-3 py-2.5 text-sm outline-none"
           />
