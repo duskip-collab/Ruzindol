@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCheck, Loader2, MessageSquare, Info, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { NotificationDetailModal } from "./NotificationDetailModal";
 
 type Notification = {
   id: string;
@@ -24,9 +24,10 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { userId } = useCurrentUser();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   // Jedno odčítanie času pri mounte (namiesto Date.now() pri každom renderi)
   const [renderedAt] = useState(() => Date.now());
+  // Vybraná notifikácia → detail na celú plochu (panel sa pritom nezatvára)
+  const [selected, setSelected] = useState<Notification | null>(null);
 
   // Načítanie notifikácií
   const { data: notifications = [], isLoading } = useQuery({
@@ -47,9 +48,11 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
     },
   });
 
-  // Zatvorenie pri kliknutí mimo okna
+  // Zatvorenie pri kliknutí mimo okna. Kým je otvorený detail na celej ploche,
+  // panel zámerne nezatvárame (po zatvorení detailu sa používateľ vráti do zoznamu).
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      if (selected) return;
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -58,9 +61,10 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, selected]);
 
-  if (!isOpen) return null;
+  // Detail sa zobrazuje aj vtedy, keď sa samotný panel medzitým zavrie.
+  if (!isOpen && !selected) return null;
 
   // Filtrovanie: prísny limit životnosti 2 dni (48 hodín) – nič staršie sa nezobrazuje
   const visibleNotifications = notifications.filter((notif) => {
@@ -71,18 +75,16 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const handleNotificationClick = async (notif: Notification) => {
-    if (!notif.is_read) {
-      await supabase.from("notifications").update({ is_read: true }).eq("id", notif.id);
-      queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
-    }
-    onClose();
-
-    if (notif.type === "inquiry") {
-      navigate({ to: "/podnety" });
-    } else if (notif.type === "post") {
-      navigate({ to: "/nastenka" });
-    }
+  /**
+   * Kliknutie na položku zoznamu otvorí jej detail na celej ploche.
+   *
+   * Zámerne sa pritom NEzatvára panel a NENAVIGUJE sa preč (predtým sa odchádzalo
+   * na neexistujúcu trasu `/podnety`, takže sa aplikácia hneď vrátila späť).
+   * Označenie ako prečítané rieši detail až po overení, že notifikácia existuje
+   * a nevypršala.
+   */
+  const handleNotificationClick = (notif: Notification) => {
+    setSelected(notif);
   };
 
   const handleMarkAllAsRead = async () => {
@@ -117,96 +119,113 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   };
 
   return (
-    <div
-      ref={dropdownRef}
-      className="fixed right-4 top-16 z-[9999] w-[calc(100vw-32px)] max-w-[400px] sm:absolute sm:right-0 sm:top-auto sm:mt-3 sm:w-96 sm:max-w-none rounded-2xl bg-card border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-    >
-      {/* Hlavička */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
-        <h3 className="font-semibold text-sm text-foreground">História upozornení</h3>
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              <CheckCheck className="h-3.5 w-3.5" /> Prečítať všetko
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Zoznam */}
-      <div className="max-h-80 overflow-y-auto divide-y divide-border">
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : visibleNotifications.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            Žiadne predchádzajúce upozornenia
-          </div>
-        ) : (
-          visibleNotifications.map((notif) => {
-            const { title, body } = getCleanNotificationContent(notif);
-            return (
-              <div
-                key={notif.id}
-                onClick={() => handleNotificationClick(notif)}
-                className={`p-3.5 transition-colors cursor-pointer flex gap-3 items-start ${
-                  notif.is_read ? "bg-card opacity-75" : "bg-emerald-50/50 dark:bg-emerald-950/20"
-                } hover:bg-muted/50`}
-              >
-                <div
-                  className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
-                    notif.is_read
-                      ? "bg-muted text-muted-foreground"
-                      : "bg-emerald-100 text-emerald-700"
-                  }`}
+    <>
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="fixed right-4 top-16 z-[9999] w-[calc(100vw-32px)] max-w-[400px] sm:absolute sm:right-0 sm:top-auto sm:mt-3 sm:w-96 sm:max-w-none rounded-2xl bg-card border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        >
+          {/* Hlavička */}
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
+            <h3 className="font-semibold text-sm text-foreground">História upozornení</h3>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
                 >
-                  {notif.type === "inquiry" ? (
-                    <MessageSquare className="h-4 w-4" />
-                  ) : (
-                    <Info className="h-4 w-4" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {title && (
-                    <p
-                      className={`text-xs font-semibold truncate ${
-                        notif.is_read ? "text-foreground" : "text-emerald-900 dark:text-emerald-300"
+                  <CheckCheck className="h-3.5 w-3.5" /> Prečítať všetko
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Zoznam */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-border">
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : visibleNotifications.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Žiadne predchádzajúce upozornenia
+              </div>
+            ) : (
+              visibleNotifications.map((notif) => {
+                const { title, body } = getCleanNotificationContent(notif);
+                return (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-3.5 transition-colors cursor-pointer flex gap-3 items-start ${
+                      notif.is_read
+                        ? "bg-card opacity-75"
+                        : "bg-emerald-50/50 dark:bg-emerald-950/20"
+                    } hover:bg-muted/50`}
+                  >
+                    <div
+                      className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
+                        notif.is_read
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-emerald-100 text-emerald-700"
                       }`}
                     >
-                      {title}
-                    </p>
-                  )}
-                  {body && (
-                    <p
-                      className={`text-xs text-muted-foreground mt-0.5 line-clamp-2 ${!title ? "font-semibold text-foreground" : ""}`}
-                    >
-                      {body}
-                    </p>
-                  )}
-                  <span className="text-[10px] text-muted-foreground/70 mt-1 block">
-                    {new Date(notif.created_at).toLocaleDateString("sk-SK", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
+                      {notif.type === "inquiry" ? (
+                        <MessageSquare className="h-4 w-4" />
+                      ) : (
+                        <Info className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {title && (
+                        <p
+                          className={`text-xs font-semibold truncate ${
+                            notif.is_read
+                              ? "text-foreground"
+                              : "text-emerald-900 dark:text-emerald-300"
+                          }`}
+                        >
+                          {title}
+                        </p>
+                      )}
+                      {body && (
+                        <p
+                          className={`text-xs text-muted-foreground mt-0.5 line-clamp-2 ${!title ? "font-semibold text-foreground" : ""}`}
+                        >
+                          {body}
+                        </p>
+                      )}
+                      <span className="text-[10px] text-muted-foreground/70 mt-1 block">
+                        {new Date(notif.created_at).toLocaleDateString("sk-SK", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      <NotificationDetailModal
+        notification={selected}
+        userId={userId}
+        onClose={() => setSelected(null)}
+        onMarkedRead={() => {
+          void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+        }}
+      />
+    </>
   );
 }

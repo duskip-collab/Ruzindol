@@ -3,6 +3,7 @@ import { Loader2, MessageCircle, Search, Trash2, Bell, Info } from "lucide-react
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SafeChat } from "@/components/SafeChat";
+import { NotificationDetailModal } from "@/components/NotificationDetailModal";
 import { retryAsync, withTimeout } from "@/lib/async-guard";
 import { resolveWarehouseExpiry } from "@/lib/warehouse";
 import type { RealtimeChannel, RealtimePostgresInsertPayload } from "@supabase/supabase-js";
@@ -72,6 +73,8 @@ export function MojeSpravyScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Vybraná notifikácia → detail na celú plochu (namiesto odchodu z aplikácie)
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"chats" | "notifications">("chats");
 
@@ -229,7 +232,11 @@ export function MojeSpravyScreen() {
     try {
       // Automatické mazanie starších ako 2 dni (len vlastné riadky, requires DELETE policy).
       // Fire-and-forget – načítanie to neblokuje; rovnaké mazanie beží aj ako pg_cron na serveri.
-      void supabase.from("notifications").delete().eq("user_id", userId).lt("created_at", cutoffIso);
+      void supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", userId)
+        .lt("created_at", cutoffIso);
 
       const { data, error } = await supabase
         .from("notifications")
@@ -491,6 +498,18 @@ export function MojeSpravyScreen() {
         />
       )}
 
+      {/* Detail notifikácie na celú plochu (overí existenciu a platnosť 2 dni) */}
+      <NotificationDetailModal
+        notification={selectedNotification}
+        userId={userId}
+        onClose={() => setSelectedNotification(null)}
+        onMarkedRead={(id) =>
+          setNotifications((prev) =>
+            prev.map((item) => (item.id === id ? { ...item, is_read: true } : item)),
+          )
+        }
+      />
+
       {/* Notifikácie - záložka */}
       {activeTab === "notifications" && (
         <div className="flex-1 overflow-y-auto">
@@ -513,17 +532,7 @@ export function MojeSpravyScreen() {
                   <button
                     type="button"
                     className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[color:var(--bg-surface-hover)] active:bg-[color:var(--bg-surface)]"
-                    onClick={() => {
-                      supabase
-                        .from("notifications")
-                        .update({ is_read: true })
-                        .eq("id", n.id)
-                        .then(() => {
-                          if (n.url) {
-                            window.location.href = n.url;
-                          }
-                        });
-                    }}
+                    onClick={() => setSelectedNotification(n)}
                   >
                     <div
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -534,11 +543,11 @@ export function MojeSpravyScreen() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {n.title}
-                        </p>
+                        <p className="truncate text-sm font-semibold text-foreground">{n.title}</p>
                         {!n.is_read && (
-                          <span className="shrink-0 text-[10px] text-blue-600 font-medium">Nove</span>
+                          <span className="shrink-0 text-[10px] text-blue-600 font-medium">
+                            Nove
+                          </span>
                         )}
                       </div>
                       <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
