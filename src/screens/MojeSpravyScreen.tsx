@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, MessageCircle, Search, Trash2 } from "lucide-react";
+import { Loader2, MessageCircle, Search, Trash2, Bell, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SafeChat } from "@/components/SafeChat";
@@ -26,6 +26,17 @@ type ItemRow = {
 type ProfileRow = { id: string; name: string | null };
 type LastMessage = { chat_id: string; text: string; created_at: string; sender_id: string };
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  ref_id: string | null;
+  url: string | null;
+  is_read: boolean;
+  created_at: string;
+};
+
 type Conversation = {
   id: string;
   itemId: string;
@@ -35,6 +46,12 @@ type Conversation = {
   lastText: string | null;
   lastAt: string;
   unread: boolean;
+};
+
+type TabItem = {
+  id: "chats" | "notifications";
+  label: string;
+  icon: "MessageCircle" | "Bell";
 };
 
 function timeAgo(iso: string) {
@@ -48,12 +65,19 @@ function timeAgo(iso: string) {
 export function MojeSpravyScreen() {
   const { userId, profile, loading: authLoading } = useCurrentUser();
   const [convos, setConvos] = useState<Conversation[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"chats" | "notifications">("chats");
 
-  const load = useCallback(async () => {
+  const tabs: TabItem[] = [
+    { id: "chats", label: "Chaty", icon: "MessageCircle" },
+    { id: "notifications", label: "Notifikácie", icon: "Bell" },
+  ];
+
+  const loadConversations = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setLoadError(null);
@@ -187,12 +211,32 @@ export function MojeSpravyScreen() {
     }
   }, [userId]);
 
+  const loadNotifications = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setNotifications((data ?? []) as NotificationItem[]);
+    } catch (e) {
+      console.error("Failed to load notifications", e);
+      setNotifications([]);
+    }
+  }, [userId]);
+
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      void load();
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [load]);
+    void loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
 
   // Realtime: new chats / new messages → refresh list.
   useEffect(() => {
@@ -218,11 +262,11 @@ export function MojeSpravyScreen() {
             (payload: RealtimePostgresInsertPayload<ChatRow>) => {
               if (!isMounted) return;
               const row = payload.new;
-              if (row.buyer_id === userId || row.seller_id === userId) void load();
+              if (row.buyer_id === userId || row.seller_id === userId) void loadConversations();
             },
           )
           .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
-            if (isMounted) void load();
+            if (isMounted) void loadConversations();
           });
 
         await channel.subscribe((status: string) => {
@@ -244,7 +288,7 @@ export function MojeSpravyScreen() {
         void supabase.removeChannel(channel);
       }
     };
-  }, [userId, load]);
+  }, [userId, loadConversations]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -292,11 +336,30 @@ export function MojeSpravyScreen() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="app-toolbar border-b px-5 py-3 backdrop-blur-xl">
-        <h2 className="text-base font-semibold tracking-tight">💬 Moje správy</h2>
-        <p className="text-[11px] text-muted-foreground">
-          Konverzácie k tvojim inzerátom a inzerátom susedov.
-        </p>
+      <div className="flex items-center gap-2 border-b border-[color:var(--border-card)] px-4 pb-2 bg-[color:var(--bg-app)]">
+        {tabs.map((tab) => {
+          const Icon = tab.icon === "MessageCircle" ? MessageCircle : Bell;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
+                isActive
+                  ? "bg-[color:var(--bg-surface)] text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search bar (only for chats) */}
+      {activeTab === "chats" && (
         <div className="relative mt-2">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -306,7 +369,7 @@ export function MojeSpravyScreen() {
             className="app-input w-full rounded-full py-1.5 pl-8 pr-3 text-xs outline-none"
           />
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {loadError && (
@@ -399,9 +462,79 @@ export function MojeSpravyScreen() {
           canSendMessages={profile?.is_active_neighbor ?? false}
           onClose={() => {
             setSelectedId(null);
-            void load();
+            void loadConversations();
           }}
         />
+      )}
+
+      {/* Notifikácie - záložka */}
+      {activeTab === "notifications" && (
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
+              <Bell className="h-8 w-8 text-neutral-300" />
+              <p className="text-sm font-medium text-neutral-700">Žiadne notifikácie</p>
+              <p className="max-w-[260px] text-xs text-neutral-500">
+                Tu uvidíš odpovede na tvoje podnety a ďalšie správy.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-[color:var(--border-card)]">
+              {notifications.map((n) => (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[color:var(--bg-surface-hover)] active:bg-[color:var(--bg-surface)]"
+                    onClick={() => {
+                      supabase
+                        .from("notifications")
+                        .update({ is_read: true })
+                        .eq("id", n.id)
+                        .then(() => {
+                          if (n.url) {
+                            window.location.href = n.url;
+                          }
+                        });
+                    }}
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        n.is_read ? "bg-neutral-100 text-neutral-500" : "bg-blue-500 text-white"
+                      }`}
+                    >
+                      <Info className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {n.title}
+                        </p>
+                        {!n.is_read && (
+                          <span className="shrink-0 text-[10px] text-blue-600 font-medium">Nove</span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                        {new Date(n.created_at).toLocaleDateString("sk-SK", {
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-[color:var(--text-secondary)]">
+                        {n.body}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

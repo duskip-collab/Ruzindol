@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { X, Heart, Flag, MessageCircle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Post } from "@/types";
+import { PhotoLightbox } from "@/components/elections/PhotoLightbox";
 
 type PostReply = {
   id: string;
@@ -54,6 +56,7 @@ export function PostLightbox({
 }) {
   const list = replies ?? [];
   const locked = !!isReadonly;
+  const [showFullPhoto, setShowFullPhoto] = useState(false);
 
   return (
     <AnimatePresence>
@@ -106,7 +109,14 @@ export function PostLightbox({
               </p>
 
               {post.imageUrl && (
-                <img src={post.imageUrl} alt="" className="mt-4 w-full rounded-2xl object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setShowFullPhoto(true)}
+                  className="mt-4 block w-full cursor-zoom-in overflow-hidden rounded-2xl"
+                  aria-label="Zobraziť fotografiu na celú obrazovku"
+                >
+                  <img src={post.imageUrl} alt="" className="w-full rounded-2xl object-cover" />
+                </button>
               )}
 
               {locked && (
@@ -224,6 +234,16 @@ export function PostLightbox({
               </div>
             )}
           </motion.article>
+
+          {/* Fullscreen photo viewer (safe-area close button on iOS) */}
+          {post && (
+            <PhotoLightbox
+              photoUrl={post.imageUrl}
+              candidateName={post.title || post.userName || "Príspevok"}
+              isOpen={showFullPhoto}
+              onClose={() => setShowFullPhoto(false)}
+            />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

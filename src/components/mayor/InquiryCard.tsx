@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { PhotoLightbox } from "@/components/elections/PhotoLightbox";
 
 export interface MayorInquiry {
   id: string;
@@ -58,6 +59,7 @@ const CATEGORY_LABELS: Record<MayorInquiry["category"], string> = {
 export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, onDeleted }) => {
   const { userId } = useCurrentUser();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const isAuthor = userId === inquiry.user_id;
 
   const handleDelete = async () => {
@@ -195,12 +197,25 @@ export const InquiryCard: React.FC<InquiryCardProps> = ({ inquiry, className, on
         </div>
       )}
 
-      {/* Image if available */}
+      {/* Image if available - opens in fullscreen lightbox on tap */}
       {inquiry.image_url && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 max-h-60 bg-slate-50 dark:bg-slate-800">
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          className="mb-4 block w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 max-h-60 bg-slate-50 dark:bg-slate-800"
+          aria-label="Zobraziť fotografiu na celú obrazovku"
+        >
           <img src={inquiry.image_url} alt={inquiry.title} className="w-full h-full object-cover" />
-        </div>
+        </button>
       )}
+
+      {/* Fullscreen photo viewer */}
+      <PhotoLightbox
+        photoUrl={inquiry.image_url}
+        candidateName={inquiry.title}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
 
       {/* Official Answer Section */}
       {inquiry.answer && (

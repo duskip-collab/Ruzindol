@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { triggerHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { PhotoLightbox } from "@/components/elections/PhotoLightbox";
 
 export interface MayorInquiry {
   id: string;
@@ -84,6 +85,8 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selectedInquiries, setSelectedInquiries] = useState<Set<string>>(new Set());
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxTitle, setLightboxTitle] = useState<string>("");
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -426,11 +429,21 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                     {/* Image & Location */}
                     <div className="ml-7 flex gap-2 mb-2 flex-wrap">
                       {inq.image_url && (
-                        <img
-                          src={inq.image_url}
-                          alt="Fotka podnetu"
-                          className="h-12 w-12 rounded object-cover border border-slate-200 dark:border-slate-700"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLightboxUrl(inq.image_url ?? null);
+                            setLightboxTitle(inq.title);
+                          }}
+                          className="inline-flex items-center"
+                          aria-label="Zobraziť fotografiu podnetu na celú obrazovku"
+                        >
+                          <img
+                            src={inq.image_url}
+                            alt="Fotka podnetu"
+                            className="h-12 w-12 rounded object-cover border border-slate-200 dark:border-slate-700"
+                          />
+                        </button>
                       )}
                       {inq.latitude && inq.longitude && (
                         <a
@@ -512,6 +525,14 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
               </button>
             </div>
           </motion.div>
+
+          {/* Fullscreen photo viewer for inquiry attachments */}
+          <PhotoLightbox
+            photoUrl={lightboxUrl}
+            candidateName={lightboxTitle}
+            isOpen={!!lightboxUrl}
+            onClose={() => setLightboxUrl(null)}
+          />
         </>
       )}
     </AnimatePresence>
