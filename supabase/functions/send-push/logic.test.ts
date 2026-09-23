@@ -1,4 +1,9 @@
-import { evaluatePushDecision, isCriticalNotification, parseWebhookRecord } from "./logic.ts";
+import {
+  evaluatePushDecision,
+  isCriticalNotification,
+  parseWebhookRecord,
+  resolveNotifyCategory,
+} from "./logic.ts";
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 Deno.test("parseWebhookRecord reads payload.record", () => {
@@ -52,4 +57,29 @@ Deno.test("missing user_id is handled gracefully", () => {
 
   assertEquals(decision.shouldSend, false);
   assertEquals(decision.reason, "missing_user_id");
+});
+
+Deno.test("resolveNotifyCategory keeps hlásnik items in 'obecne'", () => {
+  assertEquals(resolveNotifyCategory({ type: "hlasnik" }), "obecne");
+  assertEquals(resolveNotifyCategory({ type: "official_alert" }), "obecne");
+});
+
+Deno.test("resolveNotifyCategory maps new hlásnik item types to 'obecne'", () => {
+  // Nové položky hlásnika (RSS aktualita + termín v kalendári) z migrácie
+  // 20260923130000_hlasnik_new_items_push_notifications.sql
+  assertEquals(resolveNotifyCategory({ type: "rss_announcement" }), "obecne");
+  assertEquals(resolveNotifyCategory({ type: "calendar_event" }), "obecne");
+  assertEquals(resolveNotifyCategory({ type: "RSS_ANNOUNCEMENT" }), "obecne");
+  assertEquals(resolveNotifyCategory({ type: "calendar_event", url: "/kalendar" }), "obecne");
+});
+
+Deno.test("resolveNotifyCategory still prioritises urgent categories", () => {
+  assertEquals(resolveNotifyCategory({ type: "calendar_event", priority: "high" }), "havarie");
+  assertEquals(resolveNotifyCategory({ type: "rss_announcement", priority: "vystraha" }), "havarie");
+});
+
+Deno.test("resolveNotifyCategory keeps other types unchanged", () => {
+  assertEquals(resolveNotifyCategory({ type: "neighbor_post" }), "ostatne");
+  assertEquals(resolveNotifyCategory({ type: "farsky_oznam" }), "farske");
+  assertEquals(resolveNotifyCategory({ type: "announcement", category: "kultúrne podujatie" }), "kulturne");
 });

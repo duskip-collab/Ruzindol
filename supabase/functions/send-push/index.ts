@@ -47,6 +47,12 @@ function resolveTargetUrl(record: Record<string, unknown>, critical: boolean): s
   if (type === "official_alert" || type === "hlasnik" || type === "neighbor_post")
     return "/nastenka";
   if (type === "announcement" || type === "group_announcement") return "/aktuality";
+  // Nové položky obecného hlásnika (triggre v migrácii
+  // 20260923130000_hlasnik_new_items_push_notifications.sql):
+  //  - rss_announcement → RSS aktualita (podsekcia RSS v Aktualitách)
+  //  - calendar_event   → termín v kalendári (odpad má vlastnú kategóriu)
+  if (type === "rss_announcement") return "/aktuality?tile=oznamy&sub=rss";
+  if (type === "calendar_event") return "/kalendar";
   if (critical) return "/aktuality";
   return "/";
 }
@@ -58,7 +64,10 @@ function isCommunityBroadcastNotification(record: Record<string, unknown>) {
     type === "official_alert" ||
     type === "hlasnik" ||
     type === "group_announcement" ||
-    type === "neighbor_post"
+    type === "neighbor_post" ||
+    // Nové položky obecného hlásnika – broadcast rovnako ako ostatný hlásnik.
+    type === "rss_announcement" ||
+    type === "calendar_event"
   );
 }
 

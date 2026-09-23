@@ -1,8 +1,56 @@
-import { defineConfig } from "vite";
+import { createHash } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+/**
+ * Zapíše do buildu `version.json` s jednoznačným identifikátorom nasadenia.
+ *
+ * Klient (`src/main.tsx`) podľa neho overuje, či beží na najnovšej verzii zo
+ * servera – bez toho by statické `public/version.json` („1.0.0“) nikdy
+ * nezmenilo hodnotu a kontrola verzie by bola nefunkčná (najmä na iOS, kde
+ * Safari drží starý kód v cache).
+ *
+ * Súbor sa zapisuje v `closeBundle`, teda až PO skopírovaní `public/`, takže
+ * statické `public/version.json` ostáva len ako pomôcka pre `vite dev`.
+ */
+function pwaVersionFile(): Plugin {
+  let outDir = "dist";
+  let version = "";
+  let buildId = "";
+  let builtAt = "";
+
+  return {
+    name: "pwa-version-file",
+    apply: "build",
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    generateBundle(_options, bundle) {
+      const entry = Object.values(bundle).find((item) => item.type === "chunk" && item.isEntry);
+      buildId = entry?.fileName ? (entry.fileName.split("/").pop() ?? "") : "";
+
+      // Odtlačok všetkých emitovaných assetov – zmení sa pri akejkoľvek zmene
+      // kódu (aj keď sa hash vstupného chunk-u nezmení).
+      const fingerprint = createHash("sha256")
+        .update(Object.keys(bundle).sort().join("|"))
+        .digest("hex")
+        .slice(0, 12);
+
+      version = `${buildId || "app"}-${fingerprint}`;
+      builtAt = new Date().toISOString();
+    },
+    closeBundle() {
+      if (!version) return;
+      const target = resolve(process.cwd(), outDir, "version.json");
+      writeFileSync(target, `${JSON.stringify({ version, buildId, builtAt }, null, 2)}\n`, "utf8");
+    },
+  };
+}
 
 export default defineConfig({
   resolve: {
@@ -15,6 +63,7 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     react(),
+    pwaVersionFile(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["**/*.{png,jpg,jpeg,svg,ico,webp}"],

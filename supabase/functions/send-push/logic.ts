@@ -34,7 +34,17 @@ export function resolveNotifyCategory(record: Record<string, unknown>): NotifyCa
     return "havarie";
   if (c.includes("kult") || c.includes("podujat") || c.includes("udalost")) return "kulturne";
   if (c.includes("farsk") || c.includes("kostol") || t === "farsky_oznam") return "farske";
-  if (t === "hlasnik" || t === "official_alert" || c.includes("obec")) return "obecne";
+  // Nové položky obecného hlásnika (RSS aktualita / termín v kalendári) patria do
+  // rovnakej kategórie ako existujúci hlásnik, aby sa filter záujmov správal
+  // konzistentne s doterajšími notifikáciami typu "hlasnik"/"official_alert".
+  if (
+    t === "hlasnik" ||
+    t === "official_alert" ||
+    t === "rss_announcement" ||
+    t === "calendar_event" ||
+    c.includes("obec")
+  )
+    return "obecne";
   return "ostatne";
 }
 
