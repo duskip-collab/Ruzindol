@@ -15,6 +15,8 @@ export function Header({
   canInstall = false,
   installBusy = false,
   onInstallClick,
+  installLabel = "Pridať na plochu",
+  installHint = "Nainštalovať aplikáciu",
   className,
   subtitle = "Komunitná aplikácia",
 }: {
@@ -24,6 +26,8 @@ export function Header({
   canInstall?: boolean;
   installBusy?: boolean;
   onInstallClick?: () => void;
+  installLabel?: string;
+  installHint?: string;
   className?: string;
   subtitle?: string;
 }) {
@@ -78,11 +82,11 @@ export function Header({
             onClick={onInstallClick}
             disabled={installBusy}
             className="btn-primary-glow inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold shadow-sm disabled:opacity-60 active:scale-95"
-            aria-label="Nainštalovať aplikáciu"
-            title="Nainštalovať aplikáciu"
+            aria-label={installHint}
+            title={installHint}
           >
             {installBusy ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
-            <span className="hidden sm:inline">Pridať na plochu</span>
+            <span className="hidden sm:inline">{installLabel}</span>
           </button>
         )}
 

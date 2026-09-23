@@ -99,9 +99,18 @@ export function getPwaInstallVersion() {
   return version;
 }
 
-export async function promptPwaInstall() {
+/**
+ * Výsledok pokusu o natívnu inštaláciu:
+ * - "accepted"    – používateľ prijal systémový inštalačný prompt
+ * - "dismissed"   – používateľ prompt zavrhol
+ * - "unavailable" – beforeinstallprompt nie je k dispozícii (starší Android /
+ *                   Samsung Internet / starší Chrome) alebo prompt zlyhal
+ */
+export type PwaInstallPromptResult = "accepted" | "dismissed" | "unavailable";
+
+export async function promptPwaInstall(): Promise<PwaInstallPromptResult> {
   const deferred = deferredPrompt;
-  if (!deferred) return false;
+  if (!deferred) return "unavailable";
 
   try {
     state.isPrompting = true;
@@ -115,12 +124,14 @@ export async function promptPwaInstall() {
     if (choice.outcome === "accepted") {
       window.localStorage.removeItem(DISMISS_UNTIL_KEY);
       setInstalled(true);
-      return true;
+      return "accepted";
     }
 
-    return false;
+    return "dismissed";
   } catch {
-    return false;
+    // Prompt sa nepodarilo vyvolať (blokované prehliadačom / chyba) –
+    // volajúci môže zobraziť manuálny návod.
+    return "unavailable";
   } finally {
     state.isPrompting = false;
     emit();

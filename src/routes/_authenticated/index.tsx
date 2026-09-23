@@ -17,6 +17,7 @@ import { FullscreenAlert } from "@/components/FullscreenAlert";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { AndroidInstallGuideModal } from "@/components/AndroidInstallGuideModal";
 import { useNotifications } from "@/context/NotificationContext";
 import { runStartupContentSync } from "@/lib/startup-sync";
 import { triggerHaptic } from "@/lib/haptics";
@@ -70,6 +71,9 @@ export function AuthenticatedShell() {
   const {
     canInstall,
     canShowIosHint,
+    canOfferAndroidGuide,
+    showAndroidInstallGuide,
+    dismissAndroidInstallGuide,
     isInstalled,
     isPrompting,
     promptInstall,
@@ -110,6 +114,9 @@ export function AuthenticatedShell() {
       changeTab("nastenka");
     }
   }
+
+  // Android bez beforeinstallprompt: tlačidlo zostáva viditeľné s jasnejším textom
+  const androidGuideLabel = canOfferAndroidGuide && !canInstall;
 
   function handleInstallClick() {
     void promptInstall();
@@ -159,9 +166,11 @@ export function AuthenticatedShell() {
                 profile={profile}
                 hasNotificationDot={hasBellDot}
                 onBellClick={handleBellClick}
-                canInstall={canInstall || canShowIosHint}
+                canInstall={canInstall || canShowIosHint || canOfferAndroidGuide}
                 installBusy={isPrompting}
                 onInstallClick={handleInstallClick}
+                installLabel={androidGuideLabel ? "Ako nainštalovať" : undefined}
+                installHint={androidGuideLabel ? "Ako nainštalovať na Android" : undefined}
                 subtitle="Komunitné centrum"
                 className="mx-3 mt-2 md:mx-4 md:mt-3 xl:mx-5 xl:mt-5"
               />
@@ -188,7 +197,7 @@ export function AuthenticatedShell() {
                         vždy po ruke.
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {canInstall && (
+                        {(canInstall || canOfferAndroidGuide) && (
                           <button
                             type="button"
                             onClick={handleInstallClick}
@@ -196,7 +205,11 @@ export function AuthenticatedShell() {
                             className="btn-primary-glow inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                           >
                             <Download size={15} />
-                            {isPrompting ? "Spúšťam inštaláciu..." : "Inštalovať"}
+                            {isPrompting
+                              ? "Spúšťam inštaláciu..."
+                              : canInstall
+                                ? "Inštalovať"
+                                : "Ako nainštalovať na Android"}
                           </button>
                         )}
                         {canShowIosHint && (
@@ -204,7 +217,7 @@ export function AuthenticatedShell() {
                             <Share2 size={14} /> Zdieľať → Pridať na plochu
                           </span>
                         )}
-                        {!canInstall && !canShowIosHint && (
+                        {!canInstall && !canShowIosHint && !canOfferAndroidGuide && (
                           <span className="rounded-full bg-[color:var(--bg-muted)] px-3 py-2 text-[12px] font-medium text-muted-foreground">
                             Tlačidlo sa zobrazí, keď ho prehliadač sprístupní.
                           </span>
@@ -222,6 +235,11 @@ export function AuthenticatedShell() {
                 </div>
               </div>
             )}
+            {/* Android: manuálny návod, keď beforeinstallprompt nie je dostupný */}
+            <AndroidInstallGuideModal
+              isOpen={showAndroidInstallGuide}
+              onClose={dismissAndroidInstallGuide}
+            />
             {canShowIosHint && !showFirstInstallBanner && (
               <div className="mx-3 mt-2 md:mx-4 xl:mx-5">
                 <div className="airy-panel relative overflow-hidden rounded-[1.75rem] px-4 py-3 text-sm text-foreground">

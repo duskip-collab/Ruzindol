@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, BellOff, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { enableNotifications } from "@/lib/push";
 
@@ -35,6 +35,21 @@ const PULSE_ANIMATION = `
     }
   }
 
+  /* Jemné zatrasenie preškrtnutého zvončeka (notifikácie nie sú zapnuté) */
+  @keyframes bell-shake {
+    0%, 62%, 100% {
+      transform: rotate(0deg);
+    }
+    64% { transform: rotate(-14deg); }
+    66% { transform: rotate(12deg); }
+    68% { transform: rotate(-10deg); }
+    70% { transform: rotate(8deg); }
+    72% { transform: rotate(-6deg); }
+    74% { transform: rotate(4deg); }
+    76% { transform: rotate(-2deg); }
+    78% { transform: rotate(0deg); }
+  }
+
   /* Respect prefers-reduced-motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     * {
@@ -63,8 +78,35 @@ export function NotificationBellTip({
   });
   const [isMounted, setIsMounted] = useState(() => typeof window !== "undefined");
 
+  // Kontrola stavu notifikácií pri štarte aplikácie (lazy init pri prvom renderi)
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") return "unsupported";
+    return Notification.permission;
+  });
+  const [tipManuallyOpened, setTipManuallyOpened] = useState(false);
+  const notificationsEnabled = permission === "granted";
+
+  function refreshPermission() {
+    setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+  }
+
+  // Opätovná kontrola pri návrate do aplikácie (prepínanie okna / návrat z pozadia)
+  useEffect(() => {
+    const sync = () => {
+      if (document.visibilityState === "visible") refreshPermission();
+    };
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleDismiss() {
     setShowTip(false);
+    setTipManuallyOpened(false);
     // Safe localStorage write
     try {
       localStorage.setItem(STORAGE_KEY, "true");
@@ -73,9 +115,11 @@ export function NotificationBellTip({
     }
   }
 
-  async function handleBellClick() {
+  // CTA v nápovede: vždy sa pokúsi zapnúť notifikácie (pôvodná logika)
+  async function handleEnableFromTip() {
     // Close tip immediately for better UX
     setShowTip(false);
+    setTipManuallyOpened(false);
 
     // Save to localStorage
     try {
@@ -91,8 +135,23 @@ export function NotificationBellTip({
       console.error("Chyba pri registrácii push notifikácií:", error);
     }
 
+    // Aktualizuj stav oprávnenia po pokuse o zapnutie
+    refreshPermission();
+
     // Call parent callback
     onBellClick();
+  }
+
+  function handleBellClick() {
+    // Notifikácie NIE SÚ zapnuté (default / denied) → otvor existujúcu nápovedu,
+    // aby používateľ presne vedel, ako ich zapnúť (žiadne tiché zlyhanie).
+    if (!notificationsEnabled) {
+      setTipManuallyOpened(true);
+      return;
+    }
+
+    // Notifikácie sú zapnuté → pôvodné správanie (história + tichá re-synchr. push)
+    void handleEnableFromTip();
   }
 
   if (!isMounted) return null;
@@ -123,9 +182,18 @@ export function NotificationBellTip({
           "header-action-button relative grid h-10 w-10 place-items-center rounded-full shadow-sm transition-all active:scale-95",
           "hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-400/50",
           "dark:hover:scale-105 dark:focus:ring-emerald-500/40",
+          // Zelený krúžok = notifikácie sú aktívne (granted)
+          notificationsEnabled && "ring-2 ring-emerald-500/70",
           className,
         )}
-        aria-label="Notifikácie"
+        aria-label={
+          notificationsEnabled ? "Notifikácie" : "Notifikácie nie sú zapnuté – zobraziť návod"
+        }
+        title={
+          notificationsEnabled
+            ? "Notifikácie sú zapnuté"
+            : "Notifikácie sú vypnuté – ťuknite pre návod"
+        }
         style={
           showTip && !hasNotificationDot
             ? {
@@ -135,7 +203,21 @@ export function NotificationBellTip({
             : undefined
         }
       >
-        <Bell size={17} strokeWidth={2} className="text-foreground dark:text-foreground" />
+        {notificationsEnabled ? (
+          <Bell size={17} strokeWidth={2} className="text-foreground dark:text-foreground" />
+        ) : (
+          // Preškrtnutý zvonček + jemné zatrasenie = notifikácie nie sú zapnuté
+          <span
+            className="inline-flex"
+            style={{
+              animation: "bell-shake 3s ease-in-out infinite",
+              willChange: "transform",
+            }}
+            aria-hidden
+          >
+            <BellOff size={17} strokeWidth={2} className="text-amber-500 dark:text-amber-400" />
+          </span>
+        )}
 
         {/* Červená bodka - signalizuje neprečítané správy */}
         {hasNotificationDot && (
@@ -144,7 +226,7 @@ export function NotificationBellTip({
       </button>
 
       {/* Informačná bublina - vysúva sa smerom NADOL s edge protection */}
-      {showTip && !hasNotificationDot && (
+      {(tipManuallyOpened || (showTip && !hasNotificationDot)) && (
         <div className="fixed sm:absolute top-auto sm:top-full right-auto sm:right-0 left-0 sm:left-auto mt-3 sm:mt-3 mb-0 z-[9999] w-full sm:w-72 pointer-events-auto px-3 sm:px-0 sm:max-w-sm">
           <div className="relative">
             <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-2xl border border-emerald-200/60 dark:from-slate-900 dark:to-slate-800 dark:border-emerald-700/40 dark:shadow-xl dark:shadow-emerald-950/30">

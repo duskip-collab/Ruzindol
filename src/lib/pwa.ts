@@ -10,6 +10,12 @@ export function isIosDevice() {
   return /iPad|iPhone|iPod/i.test(userAgent) || (/Mac/i.test(platform) && touchPoints > 1);
 }
 
+export function isAndroidDevice() {
+  if (typeof window === "undefined") return false;
+
+  return /Android/i.test(window.navigator.userAgent);
+}
+
 export function isStandaloneMode() {
   if (typeof window === "undefined") return false;
 

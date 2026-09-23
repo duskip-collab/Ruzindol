@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { isIosDevice, isStandaloneMode } from "@/lib/pwa";
+import { isAndroidDevice, isIosDevice, isStandaloneMode } from "@/lib/pwa";
 const IOS_HINT_DISMISS_UNTIL_KEY = "komunita.pwa.install.iosHintDismissUntil.v1";
 
 import {
@@ -26,10 +26,32 @@ export function usePwaInstall() {
   useSyncExternalStore(subscribePwaInstall, getPwaInstallVersion, getPwaInstallVersion);
   const { canInstall, isInstalled, isPrompting } = getPwaInstallSnapshot();
   const [canShowIosHint, setCanShowIosHint] = useState(false);
+  // Android: manuálny návod, keď beforeinstallprompt nie je k dispozícii
+  const [showAndroidInstallGuide, setShowAndroidInstallGuide] = useState(false);
 
   const dismissIosInstallHint = useCallback(() => {
     postponeIosHint(24);
     setCanShowIosHint(false);
+  }, []);
+
+  const dismissAndroidInstallGuide = useCallback(() => {
+    setShowAndroidInstallGuide(false);
+  }, []);
+
+  /**
+   * Inteligentná inštalácia:
+   * 1) Ak existuje deferredPrompt → okamžite vyvolá systémový prompt.
+   * 2) Ak prompt nie je k dispozícii alebo zlyhal NA ANDROIDE → automaticky
+   *    sa otvorí vizuálny manuálny návod (žiadne tiché zlyhanie).
+   */
+  const promptInstall = useCallback(async () => {
+    const result = await promptPwaInstall();
+
+    if (result === "unavailable" && isAndroidDevice() && !isStandaloneMode()) {
+      setShowAndroidInstallGuide(true);
+    }
+
+    return result;
   }, []);
 
   useEffect(() => {
@@ -61,13 +83,21 @@ export function usePwaInstall() {
     };
   }, []);
 
+  const androidDevice = isAndroidDevice();
+
   return {
     canInstall: canInstall && !isInstalled,
     canShowIosHint,
     isInstalled,
     isIosDevice: isIosDevice(),
+    isAndroidDevice: androidDevice,
+    // Android bez beforeinstallprompt (Samsung Internet, starší Chrome, atď.) –
+    // tlačidlo sa má zobraziť s jasnejším textom a po kliknutí otvorí návod.
+    canOfferAndroidGuide: androidDevice && !isInstalled && !canInstall,
+    showAndroidInstallGuide,
+    dismissAndroidInstallGuide,
     isPrompting,
     dismissIosInstallHint,
-    promptInstall: useCallback(() => promptPwaInstall(), []),
+    promptInstall,
   };
 }
