@@ -31,12 +31,12 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       aria-modal="true"
       aria-label={`Fotka kandidáta ${candidateName}`}
     >
-      <div className="relative max-w-4xl max-h-[90vh] w-full mx-auto px-4">
+      <div className="relative max-w-4xl max-h-[90vh] w-full mx-auto px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute top-0 right-4 z-10 pt-[max(1rem,env(safe-area-inset-top))] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           aria-label="Zavrieť"
         >
           <X className="h-6 w-6" />

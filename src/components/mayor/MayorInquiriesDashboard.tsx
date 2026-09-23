@@ -248,7 +248,7 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
             exit={{ opacity: 0, y: "100%" }}
           >
             {/* HEADER */}
-            <div className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+            <div className="shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <h2 className="text-lg font-bold">Podnety od občanov</h2>

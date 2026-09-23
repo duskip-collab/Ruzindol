@@ -139,7 +139,7 @@ export function WarehouseItemEditForm({
   return (
     <div className="fixed inset-0 z-[180] flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-background text-foreground md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-border md:shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3 pt-[max(1rem,env(safe-area-inset-top))]">
           <h2 className="font-semibold">Upraviť inzerát</h2>
           <button
             type="button"

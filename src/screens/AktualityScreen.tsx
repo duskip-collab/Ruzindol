@@ -928,7 +928,7 @@ function AdminForm({
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/30 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="app-modal-surface flex h-full w-full flex-col pt-safe md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3 pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={onClose}
             className={`h-9 w-9 items-center justify-center rounded-full hover:bg-[color:var(--bg-surface-hover)] ${useIosBackNav ? "hidden md:flex" : "flex"}`}

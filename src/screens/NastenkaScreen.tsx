@@ -882,10 +882,10 @@ function PostLightboxModal({
   return (
     <>
       {/* Hlavné celooknové okno detailu príspevku */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-sm pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex h-full max-h-[96vh] w-full max-w-3xl flex-col rounded-3xl bg-[color:var(--bg-surface)] shadow-2xl border border-[color:var(--border-card)] overflow-hidden">
           {/* Header s tlačidlom X */}
-          <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-5 py-4 bg-card/50">
+          <div className="flex items-center justify-between border-b border-[color:var(--border-card)] px-5 py-4 bg-card/50 pt-[max(1rem,env(safe-area-inset-top))]">
             <div className="flex items-center gap-3">
               <div className="chip-muted flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold">
                 {post.userName.charAt(0)}
@@ -1010,10 +1010,10 @@ function PostLightboxModal({
 
       {/* Samostatné zobrazenie fotografie na celú plochu (Lightbox pre obrázok, z-index vyšší, obsahuje tlačidlo X) */}
       {fullImageOpen && post.imageUrl && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={() => setFullImageOpen(false)}
-            className="absolute top-4 right-4 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition flex items-center gap-1.5 text-sm font-semibold"
+            className="absolute top-0 right-4 pt-[max(1rem,env(safe-area-inset-top))] rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition flex items-center gap-1.5 text-sm font-semibold"
             title="Zavrieť obrázok"
           >
             <X className="h-6 w-6" />
@@ -1093,7 +1093,7 @@ function CreatePostModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl bg-[color:var(--bg-surface)] p-6 shadow-2xl border border-[color:var(--border-card)]">
-        <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border-card)]">
+        <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border-card)] pt-[max(1rem,env(safe-area-inset-top))]">
           <h3 className="text-base font-semibold text-foreground">
             {isOfficial ? "📢 Pridať úradný oznam" : "✍️ Nový susedský príspevok"}
           </h3>

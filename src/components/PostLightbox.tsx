@@ -73,12 +73,12 @@ export function PostLightbox({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 24, stiffness: 260 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative flex max-h-[85%] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-neutral-900 md:max-w-xl lg:max-w-2xl"
+            className="relative flex max-h-[85%] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-neutral-900 md:max-w-xl lg:max-w-2xl pt-[max(1rem,env(safe-area-inset-top))]"
           >
             <button
               onClick={onClose}
               aria-label="Zavrieť"
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+              className="absolute right-3 top-0 z-10 pt-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
             >
               <X className="h-4 w-4" />
             </button>

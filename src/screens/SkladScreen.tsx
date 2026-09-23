@@ -516,7 +516,7 @@ function ListingDetailModal({
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="app-modal-surface flex h-full w-full flex-col md:h-auto md:max-h-[92%] md:max-w-3xl md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3 pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[color:var(--bg-surface-hover)]"
@@ -838,7 +838,7 @@ function AddListingModal({
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 md:h-auto md:max-h-[92%] md:max-w-2xl md:rounded-3xl md:border md:border-slate-200 md:shadow-2xl dark:md:border-slate-800">
-        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800 pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -997,7 +997,7 @@ function QuickDopytModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="flex h-full w-full flex-col bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 md:h-auto md:max-h-[92%] md:max-w-xl md:rounded-3xl md:border md:border-slate-200 md:shadow-2xl dark:md:border-slate-800">
-        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800 pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"

@@ -136,7 +136,7 @@ export function SafeChat({
   return (
     <div className="absolute inset-0 z-50 flex items-end bg-black/25 p-0 backdrop-blur-sm md:items-center md:justify-center md:p-5">
       <div className="app-modal-surface flex h-full w-full flex-col md:h-[min(92vh,760px)] md:max-w-3xl md:overflow-hidden md:rounded-3xl md:border md:border-[color:var(--border-card)] md:shadow-2xl">
-        <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3 backdrop-blur-xl">
+        <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3 backdrop-blur-xl pt-[max(1rem,env(safe-area-inset-top))]">
           <button
             onClick={onClose}
             className="header-action-button flex h-9 w-9 items-center justify-center rounded-full"

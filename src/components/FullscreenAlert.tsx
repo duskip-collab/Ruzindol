@@ -132,7 +132,7 @@ export function FullscreenAlert() {
 
   return (
     <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="relative mx-4 max-h-[85%] w-full max-w-sm overflow-hidden rounded-3xl border-4 border-red-600 bg-white shadow-2xl">
+      <div className="relative mx-4 max-h-[85%] w-full max-w-sm overflow-hidden rounded-3xl border-4 border-red-600 bg-white shadow-2xl pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2 bg-red-600 px-4 py-3 text-white">
           <AlertTriangle className="h-5 w-5 animate-pulse" />
           <span className="text-sm font-bold uppercase tracking-wider">Kritická výstraha</span>

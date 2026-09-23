@@ -736,7 +736,7 @@ function GroupPostDetailModal({
   return (
     <div className="fixed inset-0 z-[180] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-[color:var(--bg-app)]/95 pt-safe backdrop-blur-xl md:bg-black/30 md:p-6">
       <div className="app-modal-surface flex min-h-0 flex-1 flex-col overflow-hidden md:mx-auto md:w-full md:max-w-4xl md:rounded-3xl md:shadow-2xl">
-        <div className="flex items-center justify-between gap-3 border-b border-[color:var(--border-card)] px-4 py-3 md:px-5">
+        <div className="flex items-center justify-between gap-3 border-b border-[color:var(--border-card)] px-4 py-3 md:px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-foreground md:text-base">
               {post.title}
@@ -917,7 +917,7 @@ function GroupPostForm({
 
   return (
     <div className="fixed inset-0 z-[140] flex h-[100dvh] w-screen flex-col overflow-hidden bg-[color:var(--bg-app)] pt-safe">
-      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3">
+      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           onClick={onClose}
           className={`header-action-button h-9 w-9 items-center justify-center rounded-full ${useIosBackNav ? "hidden md:flex" : "flex"}`}
@@ -1207,7 +1207,7 @@ function GroupAdminModal({
 
   return (
     <div className="fixed inset-0 z-[300] flex h-[100dvh] w-screen max-w-none flex-col overflow-hidden bg-[color:var(--bg-app)] pt-safe">
-      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3">
+      <div className="app-toolbar flex items-center gap-3 border-b px-4 py-3 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           onClick={onClose}
           className={`header-action-button h-9 w-9 items-center justify-center rounded-full ${useIosBackNav ? "hidden md:flex" : "flex"}`}
