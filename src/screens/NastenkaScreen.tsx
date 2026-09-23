@@ -19,8 +19,12 @@ import {
   Volume2,
   Trash2,
   Maximize2,
+  RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isIosDevice } from "@/lib/pwa";
 
 import { ImageInput } from "@/components/ImageInput";
 import { BanBanner } from "@/components/BanBanner";
@@ -74,6 +78,9 @@ function isAnnouncementExpired(item: Announcement) {
 }
 
 type ModalMode = null | { kind: "official" } | { kind: "neighbor" };
+
+/** Identifikácia úradného oznamu otvoreného na celú obrazovku (obe cesty vloženia). */
+type NoticeDetailTarget = { kind: "post"; id: string } | { kind: "announcement"; id: string };
 
 type PostProfileRow = { name: string | null; role: string | null };
 type PostRow = {
@@ -139,6 +146,8 @@ export function NastenkaScreen() {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalMode>(null);
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
+  // Detail úradného oznamu na celú obrazovku (overí sa proti DB až po otvorení).
+  const [noticeDetail, setNoticeDetail] = useState<NoticeDetailTarget | null>(null);
 
   const canCreateOfficialNotice = profile?.role === "Starosta" || profile?.role === "Uradnik";
   const canWrite = profile?.is_active_neighbor ?? false;
@@ -337,6 +346,8 @@ export function NastenkaScreen() {
       return next;
     });
     if (lightboxPost?.id === postId) setLightboxPost(null);
+    // Zatvorí aj fullscreen detail úradného oznamu, ak sa práve zobrazuje.
+    setNoticeDetail((prev) => (prev?.kind === "post" && prev.id === postId ? null : prev));
   }
 
   const q = search.trim().toLowerCase();
@@ -458,7 +469,8 @@ export function NastenkaScreen() {
                     post={notice.post}
                     onOpen={() => {
                       setModal(null);
-                      setLightboxPost(notice.post);
+                      setLightboxPost(null);
+                      setNoticeDetail({ kind: "post", id: notice.id });
                     }}
                     onReport={() => {
                       void reportPost(notice.post!.id);
@@ -467,7 +479,15 @@ export function NastenkaScreen() {
                     locked={!canWrite}
                   />
                 ) : notice.type === "announcement" && notice.announcement ? (
-                  <AnnouncementNoticeCard key={notice.id} announcement={notice.announcement} />
+                  <AnnouncementNoticeCard
+                    key={notice.id}
+                    announcement={notice.announcement}
+                    onOpen={() => {
+                      setModal(null);
+                      setLightboxPost(null);
+                      setNoticeDetail({ kind: "announcement", id: notice.id });
+                    }}
+                  />
                 ) : null,
               )}
             </div>
@@ -556,6 +576,16 @@ export function NastenkaScreen() {
           liked={!!likesByPost[lightboxViewPost.id]}
         />
       )}
+
+      {/* Detail úradného oznamu na celú obrazovku (príspevok hlásnika aj interný oznam) */}
+      {noticeDetail && (
+        <OfficialNoticeDetailModal
+          target={noticeDetail}
+          userId={userId}
+          onClose={() => setNoticeDetail(null)}
+          onDelete={noticeDetail.kind === "post" ? () => deletePost(noticeDetail.id) : undefined}
+        />
+      )}
     </div>
   );
 }
@@ -625,7 +655,13 @@ function OfficialCard({
   );
 }
 
-function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }) {
+function AnnouncementNoticeCard({
+  announcement,
+  onOpen,
+}: {
+  announcement: Announcement;
+  onOpen: () => void;
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -677,7 +713,10 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
   };
 
   return (
-    <article className="flex h-full w-64 shrink-0 flex-col rounded-xl border border-border bg-card p-2.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink">
+    <article
+      onClick={onOpen}
+      className="flex h-full w-64 shrink-0 cursor-pointer flex-col rounded-xl border border-border bg-card p-2.5 shadow-sm transition hover:shadow-md md:w-auto md:shrink"
+    >
       <div className="mb-1.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <div
@@ -729,6 +768,7 @@ function AnnouncementNoticeCard({ announcement }: { announcement: Announcement }
           )}
           <Link
             to="/aktuality"
+            onClick={(e) => e.stopPropagation()}
             className="font-semibold text-primary hover:underline flex items-center gap-0.5"
           >
             Archív →
@@ -1181,3 +1221,415 @@ function CreatePostModal({
     </div>
   );
 }
+
+/**
+ * Detail úradného oznamu na CELÚ obrazovku – otvára sa kliknutím na kartu
+ * v sekcii „📢 Úradné oznamy“ na nástenke (oba vstupy: príspevok hlásnika
+ * aj interný oznam / digitálny rozhlas).
+ *
+ * Pred zobrazením sa riadok VŽDY overí proti databáze:
+ *  - riadok neexistuje (vymazaný / iný typ) → zrozumiteľná hláška,
+ *  - vypršala platnosť                       → hláška o neaktuálnosti,
+ *  - chyba siete                             → hláška s „Skúsiť znova“.
+ * Nikdy tiché zlyhanie ani pád aplikácie.
+ */
+function OfficialNoticeDetailModal({
+  target,
+  userId,
+  onClose,
+  onDelete,
+}: {
+  target: NoticeDetailTarget;
+  userId: string | null;
+  onClose: () => void;
+  onDelete?: () => void;
+}) {
+  const useIosBackNav = isIosDevice();
+  // Počet pokusov („Skúsiť znova“) – zmena vytvorí čerstvý mount cez key.
+  const [attempt, setAttempt] = useState(0);
+  const handleRetry = () => setAttempt((prev) => prev + 1);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return createPortal(
+    <OfficialNoticeDetailBody
+      key={`${target.kind}:${target.id}:${attempt}`}
+      target={target}
+      userId={userId}
+      onClose={onClose}
+      onDelete={onDelete}
+      onRetry={handleRetry}
+      useIosBackNav={useIosBackNav}
+    />,
+    document.body,
+  );
+}
+
+type NoticeDetailStatus = "loading" | "ready" | "missing" | "expired" | "error";
+
+type NoticeDetailData = {
+  title: string;
+  content: string;
+  authorName: string;
+  createdAt: string;
+  imageUrl: string | null;
+  audioUrl: string | null;
+  priority: string | null;
+  /** Autor záznamu (ak sa zhoduje s prihláseným používateľom, môže mazať). */
+  authorId: string | null;
+};
+
+const NOTICE_MISSING_MESSAGE = "⚠️ Tento oznam už neexistuje alebo bol vymazaný.";
+
+function OfficialNoticeDetailBody({
+  target,
+  userId,
+  onClose,
+  onDelete,
+  onRetry,
+  useIosBackNav,
+}: {
+  target: NoticeDetailTarget;
+  userId: string | null;
+  onClose: () => void;
+  onDelete?: () => void;
+  onRetry: () => void;
+  useIosBackNav: boolean;
+}) {
+  const [status, setStatus] = useState<NoticeDetailStatus>("loading");
+  const [record, setRecord] = useState<NoticeDetailData | null>(null);
+  const [fullImageOpen, setFullImageOpen] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifyAndLoad = async () => {
+      setStatus("loading");
+      try {
+        if (target.kind === "post") {
+          // Overenie proti DB: len úradné príspevky (hlásnik / official_alert).
+          const { data, error } = await supabase
+            .from("posts")
+            .select(
+              "id, user_id, type, category, title, content, image_url, created_at, expires_at, profiles!user_id(name, role)",
+            )
+            .eq("id", target.id)
+            .in("type", ["hlasnik", "official_alert"])
+            .maybeSingle();
+
+          if (error) throw error;
+          if (!isMounted) return;
+
+          // Vymazaný alebo neexistujúci záznam → jasná hláška namiesto pádu.
+          if (!data) {
+            setRecord(null);
+            setStatus("missing");
+            return;
+          }
+
+          const row = data as unknown as PostRow;
+          const mapped: Post = {
+            id: row.id,
+            userId: row.user_id,
+            userName: row.profiles?.name || "Obecný úrad",
+            type: row.type,
+            category: row.category ?? "Hlasnik",
+            title: row.title,
+            content: row.content,
+            imageUrl: row.image_url ?? undefined,
+            createdAt: row.created_at,
+            expiresAt: row.expires_at ?? undefined,
+            likes: [],
+            isReported: false,
+          };
+
+          if (isPostExpired(mapped)) {
+            setRecord(null);
+            setStatus("expired");
+            return;
+          }
+
+          setRecord({
+            title: mapped.title.trim() || "Úradný oznam",
+            content: mapped.content,
+            authorName: mapped.userName,
+            createdAt: mapped.createdAt,
+            imageUrl: mapped.imageUrl ?? null,
+            audioUrl: null,
+            priority: null,
+            authorId: row.user_id,
+          });
+          setStatus("ready");
+          return;
+        }
+
+        // Interný oznam (digitálny rozhlas) zadaný cez Aktuality / Nástenku.
+        const { data, error } = await supabase
+          .from("announcements")
+          .select("*")
+          .eq("id", target.id)
+          .eq("source", "internal")
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!isMounted) return;
+
+        if (!data) {
+          setRecord(null);
+          setStatus("missing");
+          return;
+        }
+
+        const row = data as Announcement;
+        if (isAnnouncementExpired(row)) {
+          setRecord(null);
+          setStatus("expired");
+          return;
+        }
+
+        setRecord({
+          title: row.title.trim() || "Úradný oznam",
+          content: row.content,
+          authorName: "Obecný rozhlas",
+          createdAt: row.published_at,
+          imageUrl: null,
+          audioUrl: row.audio_url,
+          priority: row.priority,
+          authorId: row.author_id,
+        });
+        setStatus("ready");
+      } catch (err) {
+        console.error("Overenie úradného oznamu zlyhalo:", err);
+        if (isMounted) setStatus("error");
+      }
+    };
+
+    void verifyAndLoad();
+    return () => {
+      isMounted = false;
+    };
+  }, [target]);
+
+  const canDelete = Boolean(onDelete && userId && record?.authorId === userId);
+
+  const closeAndDelete = () => {
+    onDelete?.();
+    onClose();
+  };
+
+  const statusCard = (icon: React.ReactNode, message: string, extra?: React.ReactNode) => (
+    <div className="mx-auto mt-10 max-w-md rounded-2xl border border-[color:var(--border-card)] bg-[color:var(--bg-surface)] p-5 text-center shadow-sm">
+      <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10">
+        {icon}
+      </div>
+      <p className="text-sm font-semibold text-foreground">{message}</p>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        {extra}
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full bg-muted px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted/80"
+        >
+          Zavrieť
+        </button>
+      </div>
+    </div>
+  );
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detail úradného oznamu"
+      className="fixed inset-0 z-[170] flex h-[100dvh] w-full min-h-[100dvh] flex-col overflow-hidden bg-[color:var(--bg-app)] pt-safe"
+    >
+      {/* Header */}
+      <div className="app-toolbar flex items-center gap-3 border-b border-[color:var(--border-card)] px-4 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className={`header-action-button h-9 w-9 items-center justify-center rounded-full ${
+            useIosBackNav ? "hidden md:flex" : "flex"
+          }`}
+          aria-label="Zavrieť detail oznamu"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">📢 Úradný oznam</p>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {status === "ready" && record
+              ? `${record.authorName} · ${formatNoticeDate(record.createdAt)}`
+              : "Detail na čítanie"}
+          </p>
+        </div>
+        {canDelete && (
+          <button
+            type="button"
+            onClick={closeAndDelete}
+            className="header-action-button flex h-9 w-9 items-center justify-center rounded-full text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+            aria-label="Vymazať oznam"
+            title="Vymazať oznam"
+          >
+            <Trash2 className="h-4.5 w-4.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Obsah (rolovateľný na celú plochu) */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-safe">
+        {status === "loading" && (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {status === "missing" &&
+          statusCard(<AlertTriangle className="h-6 w-6" />, NOTICE_MISSING_MESSAGE)}
+
+        {status === "expired" &&
+          statusCard(<AlertTriangle className="h-6 w-6" />, NOTICE_EXPIRED_MESSAGE)}
+
+        {status === "error" &&
+          statusCard(
+            <AlertTriangle className="h-6 w-6" />,
+            "Nepodarilo sa overiť tento oznam.",
+            <button
+              type="button"
+              onClick={onRetry}
+              className="flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Skúsiť znova
+            </button>,
+          )}
+
+        {status === "ready" && record && (
+          <article className="mx-auto w-full max-w-2xl">
+            {/* Stavové badge */}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+                <Megaphone className="h-3.5 w-3.5" /> Úradný oznam
+              </span>
+              {record.priority && <NoticePriorityBadge priority={record.priority} />}
+            </div>
+
+            <h1 className="text-xl font-bold leading-snug text-foreground">{record.title}</h1>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {record.authorName} · {formatNoticeDate(record.createdAt)}
+            </p>
+
+            {/* Plný text oznamu – bez skracovania, pohodlné čítanie */}
+            <div className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">
+              {record.content.trim() || (
+                <span className="italic text-muted-foreground">Bez ďalšieho textu.</span>
+              )}
+            </div>
+
+            {/* Fotografia (so zväčšením na celú plochu) */}
+            {record.imageUrl && (
+              <div
+                className="group relative mt-4 cursor-pointer overflow-hidden rounded-2xl border border-border bg-black/5"
+                onClick={() => setFullImageOpen(true)}
+              >
+                <img
+                  src={record.imageUrl}
+                  alt=""
+                  className="mx-auto max-h-[60vh] w-full object-contain"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 text-white opacity-0 transition group-hover:opacity-100">
+                  <span className="flex items-center gap-2 text-xs font-semibold">
+                    <Maximize2 className="h-5 w-5" /> Zväčšiť fotografiu
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Audio – digitálny rozhlas */}
+            {record.audioUrl && (
+              <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 p-3 dark:border-orange-500/30 dark:bg-orange-500/10">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-orange-700 dark:text-orange-300">
+                  <Volume2 className="h-4 w-4" /> Zvuková verzia oznamu
+                </p>
+                <audio controls preload="none" src={record.audioUrl} className="w-full">
+                  Váš prehliadač nepodporuje prehrávanie audia.
+                </audio>
+              </div>
+            )}
+          </article>
+        )}
+      </div>
+
+      {/* Fullscreen fotografia */}
+      {fullImageOpen && record?.imageUrl && (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setFullImageOpen(false)}
+            className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm font-semibold text-white hover:bg-white/20"
+          >
+            <X className="h-5 w-5" /> Zavrieť
+          </button>
+          <img
+            src={record.imageUrl}
+            alt=""
+            className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain"
+          />
+        </div>
+      )}
+
+      {/* iOS: spodné tlačidlo Späť (vrchné X je skryté) */}
+      {useIosBackNav && (
+        <div className="border-t border-[color:var(--border-card)] bg-[color:var(--bg-surface)]/95 px-4 py-3 pb-safe md:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-primary-glow flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold"
+          >
+            <ArrowLeft className="h-4 w-4" /> Späť
+          </button>
+        </div>
+      )}
+    </div>,
+    document.body,
+  );
+}
+
+/** Formát dátumu a času pre hlavičku a meta riadok detailu. */
+function formatNoticeDate(iso: string) {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString("sk-SK", { dateStyle: "medium", timeStyle: "short" });
+}
+
+/** Farebný badge priority interného oznamu (výstraha / urgentné / …). */
+function NoticePriorityBadge({ priority }: { priority: string }) {
+  const meta: Record<string, { label: string; className: string }> = {
+    vystraha: { label: "🔴 Výstraha", className: "bg-red-500/10 text-red-700 dark:text-red-300" },
+    urgentne: {
+      label: "🟠 Urgentné",
+      className: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+    },
+    prioritne: {
+      label: "🟡 Prioritné",
+      className: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
+    },
+    oznam: { label: "⚪ Oznam", className: "bg-muted text-muted-foreground" },
+  };
+  const m = meta[priority];
+  if (!m) return null;
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${m.className}`}
+    >
+      {m.label}
+    </span>
+  );
+}
+
+const NOTICE_EXPIRED_MESSAGE = "⚠️ Tento oznam už nie je aktuálny (vypršala jeho platnosť).";
