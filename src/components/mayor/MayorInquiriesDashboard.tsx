@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   X,
   Loader2,
@@ -11,6 +11,7 @@ import {
   AlertCircle,
   XCircle,
   Send,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -221,6 +222,32 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
     }
   };
 
+  const handleDeleteInquiry = async (inquiryId: string) => {
+    if (!confirm("Naozaj chcete permanentne zmazať tento podnet?")) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Deleting the inquiry will trigger the notification via the database trigger
+      const { error } = await supabase
+        .from("mayor_inquiries")
+        .delete()
+        .eq("id", inquiryId);
+
+      if (error) throw error;
+
+      triggerHaptic("success");
+      await loadInquiries();
+    } catch (err) {
+      console.error("Error deleting inquiry:", err);
+      triggerHaptic("error");
+      alert("Chyba pri mazaní. Skúste neskôr.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -378,6 +405,17 @@ export const MayorInquiriesDashboard: React.FC<DashboardProps> = ({ isOpen, onCl
                         </p>
                       </div>
                       <div className="flex gap-1">{getStatusBadge(inq.status)}</div>
+                      {/* Delete Button - viditeÄľnĂ© priamo vedÄľa podnetu */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteInquiry(inq.id)}
+                        disabled={submitting}
+                        className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30 transition-colors disabled:opacity-50"
+                        title="ZmazaĹĄ podnet ihneÄŹ"
+                        aria-label="ZmazaĹĄ podnet"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
 
                     {/* Body */}
