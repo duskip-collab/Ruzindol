@@ -26,10 +26,10 @@ BEGIN
   SELECT
     p.id,
     'waste_collection_reminder',
-    'Zajtra je zber odpadu',
-    format('%s: %s', to_char(e.starts_at AT TIME ZONE 'Europe/Bratislava', 'DD.MM.YYYY'), e.title),
+    'Nezabudnite! Zajtra je zber komunálneho odpadu',
+    format('Podľa kalendára: %s', e.title),
     e.id,
-    '/aktuality',
+    '/kalendar',
     'oznam',
     false
   FROM public.events e

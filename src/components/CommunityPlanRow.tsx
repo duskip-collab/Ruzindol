@@ -32,7 +32,10 @@ function parseLocalDate(dateStr: string) {
 }
 
 export function CommunityPlanRow() {
-  const today = new Date().toISOString().split("T")[0];
+  // Referenčný deň sa posunie o 1 deň dopredu – zobrazujeme zber odpadu už z dňa pred SAC samotným zberom.
+  const today = new Date();
+  today.setDate(today.getDate() + 1);
+  const targetDate = today.toISOString().split("T")[0];
 
   // Načítanie nadchádzajúcich akcií z kalendára Supabase
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
@@ -41,7 +44,7 @@ export function CommunityPlanRow() {
       const { data, error } = await supabase
         .from("calendar")
         .select("*")
-        .gte("start_date", today)
+        .gte("start_date", targetDate)
         .order("start_date", { ascending: true })
         .limit(5);
 
@@ -61,7 +64,7 @@ export function CommunityPlanRow() {
         .from("events")
         .select("id, starts_at, title")
         .eq("type", "odpad")
-        .gte("starts_at", today)
+        .gte("starts_at", targetDate)
         .order("starts_at", { ascending: true })
         .limit(1)
         .maybeSingle();

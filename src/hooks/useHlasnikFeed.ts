@@ -7,11 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
  *
  * Zdrojové tabuľky (zámerne len oficiálne zdroje):
  *  - `announcements` (`source = 'rss'`)  → RSS aktuality, maximálne 5 dní od publikovania
- *  - `events` (typ ≠ `odpad`, iba DNES)  → udalosti z kalendára konajúce sa dnešným dňom
- *  - `events` (typ = `odpad`, iba DNES)  → zberový kalendár / vývoz odpadu, len dnešný termín
+ *  - `events` (typ ≠ `odpad`, iba ZAJTRA)  → udalosti z kalendára konajúce sa zajtra
+ *  - `events` (typ = `odpad`, iba ZAJTRA)  → zberový kalendár / vývoz odpadu, len zájtra termín
  *
  * Pre kalendár aj zber odpadu platí prísne pravidlo: zobrazujú sa VÝHRADNE udalosti
- * pripadajúce na dnešný deň (porovnanie dátumu, bez ohľadu na čas) – žiadne včerajšie,
+ * pripadajúce na zajtra (deň pred samotnou udalosťou) – žiadne dnes, včerajšie,
  * staršie ani budúce.
  *
  * Susedské príspevky (`posts`), susedské dopyty/ponuky zo skladu (`warehouse_items`)
@@ -136,16 +136,19 @@ function mapWasteEvents(rows: EventFeedRow[] | null): FeedItem[] {
 }
 
 async function loadHlasnikFeed(): Promise<FeedItem[]> {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const todayIso = startOfToday.toISOString();
+  // Posunieme referenčný deň o 1 deň dopredu – zobrazujeme udalosti a zber odpadu
+  // už z DÉN PREVDY (tomorrow instead of today).
+  const startOfTargetDay = new Date();
+  startOfTargetDay.setDate(startOfTargetDay.getDate() + 1);
+  startOfTargetDay.setHours(0, 0, 0, 0);
+  const targetDayIso = startOfTargetDay.toISOString();
 
-  // Koniec dnešného dňa (exkluzívna hranica) – spolu s `todayIso` tak vyberieme
-  // VÝHRADNE udalosti pripadajúce na dnešný deň (žiadne včerajšie, staršie ani budúce).
-  const endOfToday = new Date();
-  endOfToday.setHours(0, 0, 0, 0);
-  endOfToday.setDate(endOfToday.getDate() + 1);
-  const endOfTodayIso = endOfToday.toISOString();
+  // Koniec cieľového dňa (exkluzívna hranica) – spolu s `targetDayIso` tak vyberieme
+  // VÝHRADNE udalosti pripadajúce na cieľový deň (deň pred samotnou udalosťou).
+  const endOfTargetDay = new Date();
+  endOfTargetDay.setDate(endOfTargetDay.getDate() + 2);
+  endOfTargetDay.setHours(0, 0, 0, 0);
+  const endOfTargetDayIso = endOfTargetDay.toISOString();
 
   const [announcementsRes, eventsRes, wasteRes] = await Promise.all([
     supabase
@@ -154,21 +157,21 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
       .eq("source", "rss")
       .order("published_at", { ascending: false })
       .limit(NEWS_LIMIT * 2),
-    // Udalosti kalendára – len tie, ktoré sa konajú DNES (všetky, bez limitu počtu).
+    // Udalosti kalendára – len tie, ktoré sa konajú ZAJTRA (všetky, bez limitu počtu).
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .neq("type", "odpad")
-      .gte("starts_at", todayIso)
-      .lt("starts_at", endOfTodayIso)
+      .gte("starts_at", targetDayIso)
+      .lt("starts_at", endOfTargetDayIso)
       .order("starts_at", { ascending: false }),
-    // Zberový kalendár (vývoz odpadu) – len termíny pripadajúce na DNES (všetky).
+    // Zberový kalendár (vývoz odpadu) – len termíny pripadajúce na ZAJTRA (všetky).
     supabase
       .from("events")
       .select("id, title, description, location, starts_at, type")
       .eq("type", "odpad")
-      .gte("starts_at", todayIso)
-      .lt("starts_at", endOfTodayIso)
+      .gte("starts_at", targetDayIso)
+      .lt("starts_at", endOfTargetDayIso)
       .order("starts_at", { ascending: true }),
   ]);
 
