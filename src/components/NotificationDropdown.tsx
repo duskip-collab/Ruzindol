@@ -37,6 +37,8 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
         .from("notifications")
         .select("*")
         .eq("user_id", userId!)
+        // Životnosť 48 h – notifikácie staršie ako 2 dni sa neposielajú ani nezobrazujú
+        .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(30); // Zvýšime limit, aby sme mali dostatok dát na filtrovanie
 
@@ -60,12 +62,11 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
 
   if (!isOpen) return null;
 
-  // Filtrovanie: Neprečítané ukazujeme vždy, prečítané iba ak sú mladšie ako 7 dní (skryjeme staré mesačné histórie)
+  // Filtrovanie: prísny limit životnosti 2 dni (48 hodín) – nič staršie sa nezobrazuje
   const visibleNotifications = notifications.filter((notif) => {
-    if (!notif.is_read) return true; // Neprečítané sa nestratia
-    const createdTime = new Date(notif.created_at).getTime();
-    const sevenDaysAgo = renderedAt - 7 * 24 * 60 * 60 * 1000;
-    return createdTime > sevenDaysAgo; // Prečítané staršie ako 7 dní nezobrazíme
+    const createdTime = Date.parse(notif.created_at);
+    if (Number.isNaN(createdTime)) return false;
+    return createdTime > renderedAt - 48 * 60 * 60 * 1000;
   });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;

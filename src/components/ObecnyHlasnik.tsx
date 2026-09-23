@@ -9,7 +9,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { useHlasnikFeed, type FeedItem, type FeedSource } from "@/hooks/useHlasnikFeed";
+import {
+  useHlasnikFeed,
+  parseDateSafe,
+  type FeedItem,
+  type FeedSource,
+} from "@/hooks/useHlasnikFeed";
 import { triggerHaptic } from "@/lib/haptics";
 
 type SourceMeta = {
@@ -47,7 +52,8 @@ const SOURCE_META: Record<FeedSource, SourceMeta> = {
  * (pri inom roku doplnený o rok), aby zaberal minimum miesta.
  */
 function cardDate(iso: string) {
-  const ts = new Date(iso).getTime();
+  // Timezone-safe parsovanie (iOS/Safari fix) – dátumy bez času sa berú ako lokálne.
+  const ts = parseDateSafe(iso)?.getTime() ?? Number.NaN;
   if (!Number.isFinite(ts)) return "";
 
   const now = new Date();

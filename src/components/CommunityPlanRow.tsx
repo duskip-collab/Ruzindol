@@ -26,14 +26,38 @@ function parseLocalDate(dateStr: string) {
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
     const d = parseInt(parts[2], 10);
-    return new Date(y, m, d);
+    const local = new Date(y, m, d);
+    if (Number.isFinite(local.getTime())) return local;
   }
-  return new Date(dateStr);
+  // Fallback pre nestandardné tvary – nikdy nevracaj NaN (starý iOS/Safari).
+  const fallback = new Date(dateStr);
+  return Number.isFinite(fallback.getTime()) ? fallback : new Date();
+}
+
+/** Lokálny dátum v YYYY-MM-DD (NIE cez toISOString – to je UTC a na iOS skoro ráno by vynechalo dnešok). */
+function formatLocalDateKey(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Bezpečné vytiahnutie HH:MM z dátumového reťazca – nespolieha sa na new Date(string). */
+function formatLocalTime(value: string): string {
+  const match = /(\d{2}):(\d{2})/.exec(value);
+  if (match) return `${match[1]}:${match[2]}`;
+  const parsed = parseLocalDate(value);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  return parsed.toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" });
 }
 
 export function CommunityPlanRow() {
-  // Počiatočný deň pre načítanie – od dnes (zahŕňa aj zajtra ako deň vopred).
-  const today = new Date().toISOString().split("T")[0];
+  // Počiatočný deň pre načítanie – od dnes v LOKÁLNEJ časovej zóne
+  // (zahŕňa aj zajtra ako deň vopred). String kľúč pre DATE stĺpec start_date.
+  const today = formatLocalDateKey(new Date());
+
+  // Lokálna polnoc dnes ako ISO inštancia – pre porovnanie s TIMESTAMPTZ stĺpcom starts_at.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTodayIso = startOfToday.toISOString();
 
   // Načítanie nadchádzajúcich akcií z kalendára Supabase
   const { data: events = [], isLoading: isLoadingEvents } = useQuery({
@@ -62,7 +86,7 @@ export function CommunityPlanRow() {
         .from("events")
         .select("id, starts_at, title")
         .eq("type", "odpad")
-        .gte("starts_at", today)
+        .gte("starts_at", startOfTodayIso)
         .order("starts_at", { ascending: true })
         .limit(1)
         .maybeSingle();

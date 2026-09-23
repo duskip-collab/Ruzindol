@@ -68,10 +68,68 @@ function normalizeText(value: string | null | undefined): string {
   return (value ?? "").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Bezpečné parsovanie dátumu/času – timezone-safe (iOS/Safari fix).
+ *
+ * Reťazce `YYYY-MM-DD` a dátumy bez časového pásma sa parsujú V LOKÁLNEJ
+ * časovej zóne cez `new Date(y, m-1, d, ...)`, NIE v UTC ako pri
+ * `new Date("YYYY-MM-DD")` (na starších verziách iOS/Safari vracia NaN
+ * a položky sa potom stratili z hlásnika). Plné ISO s offsetom/Z
+ * (TIMESTAMPTZ z DB) parsuje natívne – je to spoľahlivé na všetkých platformách.
+ */
+export function parseDateSafe(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+
+  // Dátum bez času: YYYY-MM-DD → lokálna polnoc
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  }
+
+  // Dátum + čas bez časového pásma: YYYY-MM-DDTHH:mm[:ss] → lokálne
+  const localDateTime = /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/.exec(trimmed);
+  if (localDateTime) {
+    return new Date(
+      Number(localDateTime[1]),
+      Number(localDateTime[2]) - 1,
+      Number(localDateTime[3]),
+      Number(localDateTime[4]),
+      Number(localDateTime[5]),
+      Number(localDateTime[6] ?? "0"),
+    );
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+/** Lokálna polnoc dňa posunutého o `dayOffset` dní (0 = dnes) ako ISO inštancia. */
+function startOfLocalDay(dayOffset: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Rozdiel v LOKÁLNYCH kalendárnych dňoch oproti dnešku (0 = dnes, 1 = zajtra). */
+function localDayDiffFromNow(ts: number): number {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const target = new Date(ts);
+  const startOfTarget = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+  ).getTime();
+  return Math.round((startOfTarget - startOfToday) / 86_400_000);
+}
+
 function isExpiredIso(iso: string | null | undefined): boolean {
   if (!iso) return false;
-  const ts = new Date(iso).getTime();
-  return Number.isFinite(ts) && ts <= Date.now();
+  const ts = parseDateSafe(iso)?.getTime();
+  return ts !== undefined && ts <= Date.now();
 }
 
 function buildMeta(...values: Array<string | null | undefined>): string | undefined {
@@ -135,17 +193,14 @@ function mapWasteEvents(rows: EventFeedRow[] | null): FeedItem[] {
 }
 
 async function loadHlasnikFeed(): Promise<FeedItem[]> {
-  // Dnes (štandard) + zajtra (deň vopred ako predčasné upozornenie)
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const todayIso = startOfToday.toISOString();
+  // Dnes (štandard) + zajtra (deň vopred ako predčasné upozornenie).
+  // Hranice sa počítajú z LOKÁLNEJ polnoci (Date + setHours), nie z UTC –
+  // timezone-safe na iOS/Safari aj na Androide.
+  const todayIso = startOfLocalDay(0).toISOString();
 
   // Koniec druhého dňa (exkluzívna hranica) – spolu s `todayIso` tak vyberieme
   // VÝSREDNE udalosti pripadajúce na DNES aj ZAJTRA (deň vopred ako predčasné upozornenie).
-  const endOfDayAfterTomorrow = new Date();
-  endOfDayAfterTomorrow.setDate(endOfDayAfterTomorrow.getDate() + 2);
-  endOfDayAfterTomorrow.setHours(0, 0, 0, 0);
-  const endOfRangeIso = endOfDayAfterTomorrow.toISOString();
+  const endOfRangeIso = startOfLocalDay(2).toISOString();
 
   const [announcementsRes, eventsRes, wasteRes] = await Promise.all([
     supabase
@@ -190,9 +245,20 @@ async function loadHlasnikFeed(): Promise<FeedItem[]> {
 
   // Zoradenie zostupne podľa dátumu; počty položiek sa neobmedzujú – RSS prichádza
   // už limitované na 2, kalendár/odpad obsahujú všetky položky platné pre daný deň.
+  //
+  // Bezpečné parsovanie (timezone-safe) + konzistentné porovnanie lokálnych dní:
+  // kalendár a odpad sa nechávajú len pre DNES alebo ZAJTRA (deň vopred) podľa
+  // LOKÁLNEHO kalendárneho dňa používateľa – identické správanie na iOS aj Android.
   return items
-    .filter((item) => Number.isFinite(new Date(item.date).getTime()))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .map((item) => ({ item, ts: parseDateSafe(item.date)?.getTime() ?? Number.NaN }))
+    .filter((entry): entry is { item: FeedItem; ts: number } => {
+      if (!Number.isFinite(entry.ts)) return false;
+      if (entry.item.source === "aktuality") return true;
+      const dayDiff = localDayDiffFromNow(entry.ts);
+      return dayDiff === 0 || dayDiff === 1;
+    })
+    .sort((a, b) => b.ts - a.ts)
+    .map((entry) => entry.item);
 }
 
 /**

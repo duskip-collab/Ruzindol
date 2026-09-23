@@ -37,6 +37,9 @@ type NotificationItem = {
   created_at: string;
 };
 
+// Životnosť notifikácií: staršie ako 2 dni (48 hodín) sa nezobrazujú a automaticky mažú.
+const NOTIFICATION_RETENTION_MS = 48 * 60 * 60 * 1000;
+
 type Conversation = {
   id: string;
   itemId: string;
@@ -214,16 +217,37 @@ export function MojeSpravyScreen() {
   const loadNotifications = useCallback(async () => {
     if (!userId) return;
 
+    // Párovanie správ:
+    //  - RLS politika `notifications_select_own` (auth.uid() = user_id) + .eq("user_id", userId)
+    //    zaručujú, že používateľ vidí VÝHRADNE svoje vlastné riadky (cudzie osobné správy nikdy).
+    //  - Globálne správy od starostu/úradu (oznámenia, hlásnik) sa do tabuľky notifications
+    //    doručujú triggermi (enqueue_notifications_for_announcements / hlasnik_posts) ako
+    //    riadky s user_id tohto používateľa – preto sa zobrazia spolu s jeho osobnými správami.
+    //  - Životnosť: nič staršie ako 48 hodín sa nenačíta a staré vlastné riadky sa hneď mažú.
+    const cutoffIso = new Date(Date.now() - NOTIFICATION_RETENTION_MS).toISOString();
+
     try {
+      // Automatické mazanie starších ako 2 dni (len vlastné riadky, requires DELETE policy).
+      // Fire-and-forget – načítanie to neblokuje; rovnaké mazanie beží aj ako pg_cron na serveri.
+      void supabase.from("notifications").delete().eq("user_id", userId).lt("created_at", cutoffIso);
+
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", userId)
+        .gte("created_at", cutoffIso)
         .order("created_at", { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setNotifications((data ?? []) as NotificationItem[]);
+
+      // Bezpečný client-side filter (Date.parse na TIMESTAMPTZ ISO je spoľahlivý na iOS/Safari)
+      const now = Date.now();
+      const fresh = ((data ?? []) as NotificationItem[]).filter((notif) => {
+        const created = Date.parse(notif.created_at);
+        return !Number.isNaN(created) && created >= now - NOTIFICATION_RETENTION_MS;
+      });
+      setNotifications(fresh);
     } catch (e) {
       console.error("Failed to load notifications", e);
       setNotifications([]);

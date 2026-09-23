@@ -508,6 +508,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         .from("notifications")
         .select("id, user_id, created_at, type, title, body, is_read")
         .eq("user_id", currentUserId)
+        // Životnosť 48 h – staršie ako 2 dni sa nenačítajú ani nezapočítajú do počtu
+        .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
