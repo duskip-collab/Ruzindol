@@ -11,15 +11,31 @@ window.addEventListener("vite:preload-error", () => {
   }
   window.location.reload();
 });
-// Kontrola aktualizácie aplikácie
+// Guard pre viacnásobné reloady (version check + SW update + controllerchange)
+let appReloading = false;
+const safeReload = (reason: string) => {
+  if (appReloading) return;
+  appReloading = true;
+  console.log(`Nová verzia aplikácie (${reason}), prenačítavam...`);
+  window.location.reload();
+};
+
+// Kontrola aktualizácie aplikácie (version.json je vždy servnuty bez cache)
+let lastVersionCheckAt = 0;
+let versionCheckInFlight = false;
 const checkVersion = async () => {
+  if (appReloading || versionCheckInFlight) return;
+  const now = Date.now();
+  // Minimálny odstup medzi kontrolami, aby sa netrepotalo na sekundovej báze
+  if (lastVersionCheckAt && now - lastVersionCheckAt < 30_000) return;
+  versionCheckInFlight = true;
+  lastVersionCheckAt = now;
   try {
     const response = await fetch("/version.json?t=" + Date.now());
     const data = await response.json();
     const currentVersion = localStorage.getItem("app-version");
 
     if (currentVersion && currentVersion !== data.version) {
-      console.log("Nová verzia aplikácie, prenačítavam...");
       localStorage.setItem("app-version", data.version);
 
       // Vyčistenie Service Workera pre istotu
@@ -28,17 +44,38 @@ const checkVersion = async () => {
         regs.forEach((reg) => reg.unregister());
       }
 
-      window.location.reload();
+      safeReload("version.json");
     } else if (!currentVersion) {
       localStorage.setItem("app-version", data.version);
     }
   } catch (err) {
     console.error("Chyba pri kontrole verzie:", err);
+  } finally {
+    versionCheckInFlight = false;
   }
 };
 
 // Spustiť kontrolu po načítaní
 checkVersion();
+
+// Pri návrate do aplikácie (prepnutie tabu / PWA z pozadia) vždy over najnovšiu verziu
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  void checkVersion();
+  if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistration()
+      .then((reg) => reg?.update())
+      .catch(() => {});
+  }
+});
+
+// Pravidelná kontrola počas behu aplikácie (napr. otvorený tab cez noc po redeployi)
+if (import.meta.env.PROD) {
+  setInterval(() => {
+    void checkVersion();
+  }, 60 * 1000);
+}
 
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -115,7 +152,7 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
             if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              window.location.reload();
+              safeReload("SW updatefound");
             }
           });
         }
@@ -123,11 +160,8 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
     })
     .catch((err) => console.error("Chyba registrácie Service Workera:", err));
 
-  let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
+    safeReload("SW controllerchange");
   });
 }
 
