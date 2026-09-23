@@ -84,7 +84,10 @@ export function NotificationBellTip({
     return Notification.permission;
   });
   const [tipManuallyOpened, setTipManuallyOpened] = useState(false);
+  const [requestingPermission, setRequestingPermission] = useState(false);
   const notificationsEnabled = permission === "granted";
+  // Oprávnenie zablokované / nepodporované – prehliadač už programovo nevyskočí
+  const permissionBlocked = permission === "denied" || permission === "unsupported";
 
   function refreshPermission() {
     setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
@@ -115,31 +118,68 @@ export function NotificationBellTip({
     }
   }
 
-  // CTA v nápovede: vždy sa pokúsi zapnúť notifikácie (pôvodná logika)
+  // CTA v nápovede: priamo vyžiada systémové oprávnenie a zapne push odber
   async function handleEnableFromTip() {
-    // Close tip immediately for better UX
-    setShowTip(false);
-    setTipManuallyOpened(false);
-
-    // Save to localStorage
-    try {
-      localStorage.setItem(STORAGE_KEY, "true");
-    } catch (error) {
-      console.warn("Nepodarilo sa uložiť stav nápovedy:", error);
+    // Zablokované / nepodporované – prehliadač už nevyskočí, ukáž návod (žiadne tiché zlyhanie)
+    if (permissionBlocked) {
+      setShowTip(true);
+      setTipManuallyOpened(true);
+      return;
     }
 
-    // Enable notifications
+    if (requestingPermission) return;
+    setRequestingPermission(true);
+
     try {
-      await enableNotifications();
+      // 1. Priame asynchrónne vyžiadanie systémového oprávnenia – volá sa VŽDY ako prvé,
+      //    ešte pred push registráciou (push podmienky ako VAPID/PushManager nesmú
+      //    zabrániť zobrazeniu systémového dialógu).
+      let result: NotificationPermission =
+        typeof Notification === "undefined" ? "denied" : Notification.permission;
+
+      if (result === "default" && typeof Notification !== "undefined") {
+        result = await Notification.requestPermission();
+      }
+
+      // 2. Okamžitá aktualizácia stavu v UI (zvonček sa prepne na zelený krúžok)
+      refreshPermission();
+
+      if (result === "granted") {
+        // Zatvor nápovedu
+        setShowTip(false);
+        setTipManuallyOpened(false);
+        try {
+          localStorage.setItem(STORAGE_KEY, "true");
+        } catch (error) {
+          console.warn("Nepodarilo sa uložiť stav nápovedy:", error);
+        }
+
+        // 3. Registrácia push odberu (best effort – oprávnenie je už udelené)
+        try {
+          await enableNotifications();
+        } catch (error) {
+          console.error("Chyba pri registrácii push notifikácií:", error);
+        }
+
+        refreshPermission();
+
+        // Call parent callback
+        onBellClick();
+        return;
+      }
+
+      // Používateľ dialóg odmietol ("default") alebo "denied" → zostaň v nápovede
+      // a ukáž inštruktáž, ako povoliť notifikácie manuálne v nastaveniach.
+      setShowTip(true);
+      setTipManuallyOpened(true);
     } catch (error) {
-      console.error("Chyba pri registrácii push notifikácií:", error);
+      console.error("Chyba pri žiadosti o oprávnenie notifikácií:", error);
+      refreshPermission();
+      setShowTip(true);
+      setTipManuallyOpened(true);
+    } finally {
+      setRequestingPermission(false);
     }
-
-    // Aktualizuj stav oprávnenia po pokuse o zapnutie
-    refreshPermission();
-
-    // Call parent callback
-    onBellClick();
   }
 
   function handleBellClick() {
@@ -245,18 +285,38 @@ export function NotificationBellTip({
                   🔔 Povolte notifikácie
                 </p>
                 <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed line-clamp-3">
-                  Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky od susedov
-                  priamo do svojho zariadenia.
+                  {permissionBlocked
+                    ? "Notifikácie nie sú povolené v prehliadači. Postupujte podľa návodu nižšie."
+                    : "Kliknutím na zvonček povolíte notifikácie a budete dostávať príspevky od susedov priamo do svojho zariadenia."}
                 </p>
               </div>
 
-              {/* CTA Tlačidlo - s dark mode variantou */}
-              <button
-                onClick={handleBellClick}
-                className="mt-3 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 px-3 py-2 text-xs font-semibold text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 dark:shadow-lg dark:shadow-emerald-900/40 dark:hover:shadow-emerald-900/60 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-              >
-                Kliknúť a povoliť 📲
-              </button>
+              {permissionBlocked ? (
+                /* Oprávnenie je zablokované – prehliadač už programovo nevyskočí,
+                   preto ukážeme manuálny návod pre používateľa */
+                <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-700/60 dark:bg-amber-950/40">
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                    {permission === "denied"
+                      ? "⛔ Notifikácie sú zablokované"
+                      : "⚠️ Notifikácie nie sú podporované"}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300/90">
+                    {permission === "denied"
+                      ? "Prehliadač už znova nevyskočí. Povoľte ich manuálne: kliknite na 🔒 alebo ⋮ pri adrese → Nastavenia stránky → Notifikácie → Povoliť."
+                      : "Tento prehliadač nepodporuje systémové notifikácie. Skúste Chrome alebo iný moderný prehliadač."}
+                  </p>
+                </div>
+              ) : (
+                /* CTA Tlačidlo - s dark mode variantou */
+                <button
+                  type="button"
+                  onClick={() => void handleEnableFromTip()}
+                  disabled={requestingPermission}
+                  className="mt-3 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 px-3 py-2 text-xs font-semibold text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 dark:shadow-lg dark:shadow-emerald-900/40 dark:hover:shadow-emerald-900/60 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-60 disabled:hover:scale-100"
+                >
+                  {requestingPermission ? "Povoľujem…" : "Kliknúť a povoliť 📲"}
+                </button>
+              )}
 
               {/* Šípka ukazujúca nahor na zvonček - hidden on mobile */}
               <div
