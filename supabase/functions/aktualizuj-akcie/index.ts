@@ -23,8 +23,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const TABLE = "okolite_akcie";
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+// Model možno prepísať cez secret GEMINI_MODEL. Ak daný model pre API kľúč
+// neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí. Google pre
+// nové projekty obmedzil staršie 2.5 modely, preto sú prvé aktuálne Flash modely.
+const GEMINI_MODELS = [
+  Deno.env.get("GEMINI_MODEL"),
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+].filter((m): m is string => Boolean(m && m.trim()));
+
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const KATEGORIE = ["trhy", "kultura", "sport", "hodove", "gastronomia"] as const;
 type Kategoria = (typeof KATEGORIE)[number];
@@ -103,6 +116,54 @@ const RESPONSE_SCHEMA = {
   },
   required: ["akcie"],
 };
+
+/**
+ * Ak model nepodporí responseSchema (napr. niektoré novšie modely), schému
+ * pošleme v prompte ako text – výstup aj tak vynútime cez responseMimeType json.
+ */
+function schemaHint(): string {
+  return `\n\nSchéma JSON (vráť presne túto štruktúru): {"akcie":[{"nazov":string,"popis":string,"obec":string,"vzdialenost_km":number,"kategoria":"trhy"|"kultura"|"sport"|"hodove"|"gastronomia","datum_cas":string,"miesto":string}]}`;
+}
+
+type GeminiAttempt = { ok: boolean; status: number; text?: string; details?: string };
+
+/** Jedno volanie Gemini generateContent pre konkrétny model. */
+async function geminiGenerate(
+  model: string,
+  apiKey: string,
+  includeSchema: boolean,
+): Promise<GeminiAttempt> {
+  const generationConfig: Record<string, unknown> = {
+    temperature: 0.4,
+    responseMimeType: "application/json",
+  };
+  if (includeSchema) generationConfig.responseSchema = RESPONSE_SCHEMA;
+
+  const userPrompt = buildUserPrompt() + (includeSchema ? "" : schemaHint());
+
+  const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig,
+    }),
+  });
+
+  if (!res.ok) {
+    const details = await res.text();
+    return { ok: false, status: res.status, details };
+  }
+
+  const payload = await res.json();
+  const text: string =
+    payload?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p?.text ?? "")
+      .join("") ?? "";
+
+  return { ok: true, status: res.status, text: text.trim() };
+}
 
 function buildUserPrompt(): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -206,42 +267,37 @@ serve(async (req) => {
     });
 
     // --- 1) Zavolanie AI agenta Gemini (structured JSON output) --------------
-    const geminiRes = await fetch(GEMINI_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: "user", parts: [{ text: buildUserPrompt() }] }],
-        generationConfig: {
-          temperature: 0.4,
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      }),
-    });
+    // Modely skúšame po poradí; pri 404 (model pre kľúč neexistuje) prejdeme na
+    // ďalší, pri 400 (nepodporí responseSchema) skúsime to isté bez schémy.
+    let plainText = "";
+    let usedModel = "";
+    const attempts: string[] = [];
 
-    if (!geminiRes.ok) {
-      const details = await geminiRes.text();
-      console.error("Gemini request zlyhal", { status: geminiRes.status, details });
-      return json(
-        { success: false, error: "gemini_request_failed", status: geminiRes.status },
-        502,
-      );
+    for (const model of GEMINI_MODELS) {
+      let text = "";
+
+      const withSchema = await geminiGenerate(model, geminiKey, true);
+      attempts.push(`${model} -> ${withSchema.status}`);
+
+      if (withSchema.ok && withSchema.text) {
+        text = withSchema.text;
+      } else if (withSchema.status === 400) {
+        // Model existuje, ale nepodporil responseSchema -> skús bez schémy.
+        const noSchema = await geminiGenerate(model, geminiKey, false);
+        attempts.push(`${model} (bez schémy) -> ${noSchema.status}`);
+        if (noSchema.ok && noSchema.text) text = noSchema.text;
+      }
+
+      if (text) {
+        plainText = text;
+        usedModel = model;
+        break;
+      }
     }
 
-    const payload = await geminiRes.json();
-    const aiText: string =
-      payload?.candidates?.[0]?.content?.parts
-        ?.map((p: { text?: string }) => p?.text ?? "")
-        .join("") ?? "";
-    const plainText = aiText.trim();
-
     if (!plainText) {
-      console.error("Gemini vrátil prázdnu odpoveď.", payload?.candidates?.[0]?.finishReason);
-      return json({ success: false, error: "empty_ai_response" }, 502);
+      console.error("Gemini zlyhal pre všetky modely:", attempts);
+      return json({ success: false, error: "gemini_request_failed", attempts }, 502);
     }
 
     // --- 2) Parsovanie + validácia výstupu ----------------------------------
@@ -287,7 +343,7 @@ serve(async (req) => {
       return json({ success: false, error: upsertError.message }, 500);
     }
 
-    return json({ success: true, model: GEMINI_MODEL, inserted: rows.length, skipped });
+    return json({ success: true, model: usedModel, inserted: rows.length, skipped });
   } catch (error) {
     console.error("aktualizuj-akcie zlyhal:", error);
     const message = error instanceof Error ? error.message : "unknown_error";
