@@ -1008,6 +1008,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      okolite_akcie: {
+        Row: {
+          created_at: string;
+          datum_cas: string;
+          id: string;
+          kategoria: string;
+          miesto: string;
+          nazov: string;
+          obec: string;
+          popis: string | null;
+          vzdialenost_km: number;
+        };
+        Insert: {
+          created_at?: string;
+          datum_cas: string;
+          id?: string;
+          kategoria: string;
+          miesto: string;
+          nazov: string;
+          obec: string;
+          popis?: string | null;
+          vzdialenost_km: number;
+        };
+        Update: {
+          created_at?: string;
+          datum_cas?: string;
+          id?: string;
+          kategoria?: string;
+          miesto?: string;
+          nazov?: string;
+          obec?: string;
+          popis?: string | null;
+          vzdialenost_km?: number;
+        };
+        Relationships: [];
+      };
       podnety_odpovede: {
         Row: {
           author_id: string;

@@ -37,6 +37,7 @@ import { ElectionsScreen } from "@/screens/ElectionsScreen";
 import { InquiriesScreen } from "@/screens/InquiriesScreen";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
+import { OkoliteAkcieWidget } from "@/components/OkoliteAkcieWidget";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
@@ -446,6 +447,9 @@ export function AktualityScreen() {
                 </button>
               ))}
             </div>
+
+            {/* Nový izolovaný blok: "Akcie v okolí" (Tip na víkend) */}
+            <OkoliteAkcieWidget />
           </div>
         ) : (
           <div className="flex flex-1 flex-col gap-4 animate-in fade-in duration-200">
