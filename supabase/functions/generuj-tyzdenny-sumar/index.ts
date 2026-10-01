@@ -8,12 +8,11 @@
 //         okolite_akcie (tipy) – čítané priamo z DB cez service_role.
 //      2. INTERNET – len overené zdroje: priamy fetch RSS z povolených domén
 //         (ruzindol.sk, trnava.sk, trnavareport.com); berú sa len položky
-//         za posledných RSS_MAX_AGE_MS. Žiadne iné stránky.
+//         publikované v sumarizovanom kalendárnom týždni.
 //      3. ŽIVÉ VYHĽADÁVANIE – Google Search grounding v Gemini (iba ak kvóta
 //         plánu dovolí; inak sa preskočí a ostane bod 1 + 2).
-//  • ANTI-FABRIKÁCIA: odpoveď sa pred uložením overí voči podkladom – odkaz
-//    mimo povolených domén = zamietnuté; článok musí odkazovať na poskytnutý
-//    podklad (inak sa pokus zopakuje a napokon sa NIČ neuloží).
+//  • ANTI-FABRIKÁCIA: dátumy aj obdobie sú obmedzené na posledný ukončený
+//    pondelok–nedeľa týždeň; odkazy sa overujú voči načítaným zdrojom.
 //  • STARÉ VYDANIA: pri každom úspešnom behu sa vymažú vydania staršie ako
 //    RETENTION_DAYS (7 dní) – archív sa tak každý týždeň sám aktualizuje.
 //    Ručné čistenie: POST {"action":"cleanup"} (voliteľne {"days":0} = všetko).
@@ -47,6 +46,7 @@ const GEMINI_MODELS = [
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const TIME_ZONE = "Europe/Bratislava";
 
 // --- Overené internetové zdroje (jediné povolené domény v článku) -----------
 const FEEDS = [
@@ -67,7 +67,6 @@ const FEEDS = [
   },
 ];
 const ALLOWED_HOSTS = FEEDS.map((f) => f.host);
-const RSS_MAX_AGE_MS = 8 * 86_400_000; // články staršie ako 8 dní sa nepoužijú
 const RSS_MAX_ITEMS = 8; // max položiek z jedného feedu
 const FETCH_TIMEOUT_MS = 9000;
 
@@ -80,9 +79,8 @@ const RETENTION_MS = RETENTION_DAYS * 86_400_000 - 3_600_000;
 // Pevne daný systémový prompt – AI vystupuje ako lokálny novinár viazaný podkladmi.
 const SYSTEM_PROMPT = `
 Si redaktor týždenníka "Ružindolské noviny" obce Ružindol (okres Trnava).
-Zostavíš pútavý, vecný a ľudsky písaný týždenný súhrn diania – VÝHRADNE
-z podkladov, ktoré ti doručí používateľský prompt (dáta z aplikácie a výpis
-z overených RSS zdrojov, prípadne výsledky živého vyhľadávania).
+Zostavíš krátky, vecný súhrn za presne určený ukončený kalendárny týždeň.
+Použi VÝHRADNE fakty z podkladov doručených v používateľskom prompte.
 
 ZAKÁZANÉ (okamžite diskvalifikuje odpoveď):
 - vymýšľať udalosti, dátumy, časy, miesta, mená, citáty, výsledky zápasov,
@@ -97,17 +95,16 @@ ZAKÁZANÉ (okamžite diskvalifikuje odpoveď):
 AKO PÍSAŤ:
 1. Každá konkrétnejšia informácia musí byť prevzatá z podkladov; uveď k nej
    dátum (deň. mesiac) tak, ako je uvedený v podkladoch.
-2. Oddel časť UPYNULÝ TÝŽDEŇ (už sa stalo – len udalosti s dátumom v minulosti
-   z podkladov) od časti PRICHÁDZA (budúce podujatia – jasne označ ako
-   pripravované, s dátumom). Termíny zberu odpadu uveď stručne ako
+2. Zahrň iba udalosti, ktoré spadajú do určeného týždňa. Neuvádzaj budúce
+   udalosti mimo tohto obdobia. Termíny zberu odpadu uveď stručne ako
    "Kalendár odpadu".
 3. Na konci článku pridaj sekciu "Zdroje:" – každý zdroj na samostatnom riadku
    v tvare "Zdroj: <názov> – <úplná URL>", najviac 5 zdrojov, IBA z podkladov.
-4. Ak podklady neobsahujú nič použiteľné, napíš to priamo v prvom odseku:
-   konkrétne udalosti uplynulého týždňa sa nepodarilo overiť, uverejňuje sa
-   len všeobecný prehľad. Nikdy si nevymýšľaj "tento týždeň sa stalo".
-5. Štýl: slovensky, slušne, pútavo, 3–6 krátkych odsekov, žiadne emoji.
-6. Vráť IBA čistý JSON podľa schémy, žiadny text navyše.
+4. Ak podklady neobsahujú nič použiteľné, napíš iba stručne, že sa za daný
+   týždeň nepodarilo overiť konkrétne udalosti. Nevytváraj všeobecný prehľad.
+5. Štýl: slovensky, slušne, stručne, 2–4 krátke odseky, žiadne emoji.
+6. Vráť IBA čistý JSON podľa schémy, žiadny text navyše. Pole "obdobie"
+   musí presne zodpovedať určenému týždňu.
 `.trim();
 
 // Schéma výstupu – presne podľa tabuľky public.tyzdenne_sumare.
@@ -207,6 +204,71 @@ const fmtDateTime = (ts: number | string): string =>
     timeZone: "Europe/Bratislava",
   });
 
+type WeekRange = {
+  startKey: string;
+  endKey: string;
+  startIso: string;
+  endExclusiveIso: string;
+  label: string;
+};
+
+function dateKeyInTimeZone(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function addDaysToKey(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function localMidnightIso(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const utcGuess = Date.UTC(year, month - 1, day);
+  const offset = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    timeZoneName: "longOffset",
+  })
+    .formatToParts(new Date(utcGuess))
+    .find((part) => part.type === "timeZoneName")?.value;
+  const match = offset?.match(/GMT([+-])(\d{2}):(\d{2})/);
+  if (!match) throw new Error(`Nepodarilo sa určiť časové pásmo pre ${dateKey}.`);
+  const sign = match[1] === "+" ? 1 : -1;
+  const minutes = sign * (Number(match[2]) * 60 + Number(match[3]));
+  return new Date(utcGuess - minutes * 60_000).toISOString();
+}
+
+function lastCompletedWeek(now = new Date()): WeekRange {
+  const todayKey = dateKeyInTimeZone(now);
+  const todayUtc = new Date(`${todayKey}T00:00:00.000Z`);
+  const daysSinceMonday = (todayUtc.getUTCDay() + 6) % 7;
+  const currentWeekStart = addDaysToKey(todayKey, -daysSinceMonday);
+  const startKey = addDaysToKey(currentWeekStart, -7);
+  const endKey = addDaysToKey(currentWeekStart, -1);
+  const format = (key: string) =>
+    new Date(`${key}T00:00:00.000Z`).toLocaleDateString("sk-SK", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+
+  return {
+    startKey,
+    endKey,
+    startIso: localMidnightIso(startKey),
+    endExclusiveIso: localMidnightIso(currentWeekStart),
+    label: `Týždeň ${format(startKey)} – ${format(endKey)}`,
+  };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -243,6 +305,7 @@ type TipRow = {
   nazov: string;
   obec: string;
   datum_cas: string;
+  konanie_dna: string | null;
   kategoria: string;
   miesto: string;
   popis: string | null;
@@ -252,12 +315,11 @@ type FeedItem = { source: string; title: string; link: string; ts: number; summa
 
 /**
  * Načíta dáta, ktoré aplikácia už má (kalendár obce, oznamy, tipy na víkend).
- * Chyba jednej tabuľky nikdy nezruší celý beh – len sa tá časť podkladov vynechá.
+ * Chyby sa vrátia volajúcemu; pri neúplných podkladoch sa článok negeneruje.
  */
 type DbLoad = { bundle: DbBundle; errors: string[] };
 
-async function loadDbBundle(db: Db): Promise<DbLoad> {
-  const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+async function loadDbBundle(db: Db, week: WeekRange): Promise<DbLoad> {
   const errors: string[] = [];
 
   // Jeden dopyt môže zlyhať predočasným JWT (clock skew) – vždy skúsime dvakrát.
@@ -289,8 +351,8 @@ async function loadDbBundle(db: Db): Promise<DbLoad> {
       db
         .from("events")
         .select("title, starts_at, type, location, description")
-        .gte("starts_at", iso(-8))
-        .lte("starts_at", iso(21))
+        .gte("starts_at", week.startIso)
+        .lt("starts_at", week.endExclusiveIso)
         .order("starts_at", { ascending: true })
         .limit(50),
     ),
@@ -298,14 +360,17 @@ async function loadDbBundle(db: Db): Promise<DbLoad> {
       db
         .from("announcements")
         .select("title, content, link, published_at, priority")
-        .gte("published_at", iso(-10))
+        .gte("published_at", week.startIso)
+        .lt("published_at", week.endExclusiveIso)
         .order("published_at", { ascending: false })
         .limit(20),
     ),
     run<TipRow[]>("okolite_akcie", () =>
       db
         .from("okolite_akcie")
-        .select("nazov, obec, datum_cas, kategoria, miesto, popis")
+        .select("nazov, obec, datum_cas, konanie_dna, kategoria, miesto, popis")
+        .gte("konanie_dna", week.startKey)
+        .lte("konanie_dna", week.endKey)
         .order("vzdialenost_km", { ascending: true })
         .limit(15),
     ),
@@ -318,11 +383,12 @@ async function loadDbBundle(db: Db): Promise<DbLoad> {
 //  2. PODKLAD 2 – overené RSS zdroje z internetu (povolené domény)
 // =============================================================================
 
-/** Prevedie jednu RSS/Atom položku; staršie ako RSS_MAX_AGE_MS sa vynechajú. */
-function parseFeed(xml: string, feedLabel: string): FeedItem[] {
+/** Prevedie iba položky publikované v týždni, ktorý sa sumarizuje. */
+function parseFeed(xml: string, feedLabel: string, week: WeekRange): FeedItem[] {
   const doc = new DOMParser().parseFromString(xml, "text/xml");
-  const cutoff = Date.now() - RSS_MAX_AGE_MS;
   const items: FeedItem[] = [];
+  const from = Date.parse(week.startIso);
+  const until = Date.parse(week.endExclusiveIso);
 
   for (const node of Array.from(doc.querySelectorAll("item, entry"))) {
     const title = stripHtml(node.querySelector("title")?.textContent ?? "");
@@ -335,8 +401,7 @@ function parseFeed(xml: string, feedLabel: string): FeedItem[] {
       "";
     const ts = Date.parse(dateRaw);
 
-    // Bez overiteľného dátumu alebo príliš staré → do novín nepatria.
-    if (!title || Number.isNaN(ts) || ts < cutoff) continue;
+    if (!title || Number.isNaN(ts) || ts < from || ts >= until || !isAllowedUrl(link)) continue;
 
     const summary = stripHtml(
       node.querySelector("description")?.textContent ??
@@ -354,7 +419,7 @@ type FeedStatus = { label: string; url: string; count: number; error: string | n
 type FeedLoad = { items: FeedItem[]; statuses: FeedStatus[] };
 
 /** Stiahne jeden feed; akýkoľvek problém sa zaznamená a feed sa vynechá. */
-async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<FeedLoad> {
+async function fetchFeed(feed: (typeof FEEDS)[number], week: WeekRange): Promise<FeedLoad> {
   const status = (count: number, error: string | null): FeedLoad => ({
     items: [],
     statuses: [{ label: feed.label, url: feed.url, count, error }],
@@ -369,7 +434,7 @@ async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<FeedLoad> {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return status(0, `HTTP ${res.status}`);
-    const items = parseFeed(await res.text(), feed.label);
+    const items = parseFeed(await res.text(), feed.label, week);
     return {
       items,
       statuses: [{ label: feed.label, url: feed.url, count: items.length, error: null }],
@@ -379,8 +444,8 @@ async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<FeedLoad> {
   }
 }
 
-async function fetchFeeds(): Promise<FeedLoad> {
-  const results = await Promise.all(FEEDS.map(fetchFeed));
+async function fetchFeeds(week: WeekRange): Promise<FeedLoad> {
+  const results = await Promise.all(FEEDS.map((feed) => fetchFeed(feed, week)));
   return {
     items: results.flatMap((r) => r.items).sort((a, b) => b.ts - a.ts),
     statuses: results.flatMap((r) => r.statuses),
@@ -461,7 +526,7 @@ function formatDbText(db: DbBundle): string {
 }
 
 function formatFeedsText(items: FeedItem[]): string {
-  if (!items.length) return "(žiadne nové články z RSS zdrojov za posledných 8 dní)";
+  if (!items.length) return "(žiadne články z RSS zdrojov v sledovanom týždni)";
   return items
     .map(
       (i) =>
@@ -471,16 +536,18 @@ function formatFeedsText(items: FeedItem[]): string {
     .join("\n");
 }
 
-function buildUserPrompt(dbText: string, feedText: string, searchEnabled: boolean): string {
-  const fmt = (d: Date) => `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
-  const today = new Date();
-  const from = new Date(Date.now() - 6 * 86_400_000);
-
+function buildUserPrompt(
+  dbText: string,
+  feedText: string,
+  searchEnabled: boolean,
+  week: WeekRange,
+): string {
   const parts = [
-    `Dnešný dátum: ${fmt(today)}. Sledované obdobie (uplynulý týždeň): ${fmt(from)} – ${fmt(today)}.`,
+    `Dnešný dátum: ${fmtDate(Date.now())}. Sledované obdobie: ${week.label} ` +
+      `(${week.startKey} až ${week.endKey}, vrátane).`,
     `Čerpaj V PRVOM RADE z PODKLADU 1 (dáta, ktoré aplikácia už má) a až potom z PODKLADU 2 (overené RSS články z internetu).`,
     `=== PODKLAD 1: DÁTA Z APLIKÁCIE ===\n${dbText}`,
-    `=== PODKLAD 2: OVERENÉ RSS ČLÁNKY Z INTERNETU (len povolené zdroje, posledné dni) ===\n${feedText}`,
+    `=== PODKLAD 2: OVERENÉ RSS ČLÁNKY Z INTERNETU (len povolené zdroje, sledovaný týždeň) ===\n${feedText}`,
   ];
 
   if (searchEnabled) {
@@ -498,7 +565,8 @@ function buildUserPrompt(dbText: string, feedText: string, searchEnabled: boolea
   }
 
   parts.push(
-    `Pole "obdobie" vyplň ako rozsah uplynulého týždňa, napr. "Týždeň 29.9. – 5.10.2026".`,
+    `Pole "obdobie" vyplň presne takto: "${week.label}". ` +
+      `Neuvádzaj udalosti pred ${week.startKey} ani po ${week.endKey}.`,
   );
   return parts.join("\n\n");
 }
@@ -508,6 +576,19 @@ function buildUserPrompt(dbText: string, feedText: string, searchEnabled: boolea
 // =============================================================================
 
 const extractUrls = (text: string): string[] => text.match(/https?:\/\/[^\s)\]">]+/g) ?? [];
+
+function normalizeSourceUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) {
+      return null;
+    }
+    url.hash = "";
+    return url.href;
+  } catch {
+    return null;
+  }
+}
 
 function isAllowedUrl(raw: string): boolean {
   try {
@@ -535,31 +616,86 @@ function sourceKeywords(db: DbBundle, feeds: FeedItem[]): string[] {
   return [...words];
 }
 
+function containsOnlyWeekDates(text: string, week: WeekRange): boolean {
+  const years = [...new Set([week.startKey.slice(0, 4), week.endKey.slice(0, 4)])].map(Number);
+  const datePattern = /\b(\d{1,2})\.\s*(\d{1,2})\.(?:\s*(\d{4}))?\b/g;
+  for (const match of text.matchAll(datePattern)) {
+    const candidateYears = match[3] ? [Number(match[3])] : years;
+    const inWeek = candidateYears.some((year) => {
+      const key = `${year}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+      const timestamp = Date.parse(`${key}T00:00:00.000Z`);
+      return (
+        Number.isFinite(timestamp) &&
+        new Date(timestamp).toISOString().slice(0, 10) === key &&
+        key >= week.startKey &&
+        key <= week.endKey
+      );
+    });
+    if (!inWeek) return false;
+  }
+  return true;
+}
+
 type Verdict = { ok: boolean; reason?: string };
 
 /**
  * Overí článok voči podkladom:
- *  – bez živého vyhľadávania smie obsahovať len odkazy z povolených domén,
- *  – článok musí byť naviazaný na poskytnuté podklady (odkaz alebo kľúčové
- *    slovo z ich názvov), inak ide o potenciálne vymyslený obsah,
+ *  – odkazy musia pochádzať z databázy, RSS alebo grounding metadata,
+ *  – text musí byť naviazaný na načítané podklady a týždenné obdobie,
  *  – poctivé "nepodarilo sa overiť" prejde aj bez väzby.
  */
-function verifyArticle(obsah: string, db: DbBundle, feeds: FeedItem[], grounded: boolean): Verdict {
+function verifyArticle(
+  titulok: string,
+  obsah: string,
+  db: DbBundle,
+  feeds: FeedItem[],
+  groundingUrls: string[],
+  week: WeekRange,
+): Verdict {
   const urls = extractUrls(obsah);
-
-  if (!grounded) {
-    const bad = urls.find((u) => !isAllowedUrl(u));
-    if (bad) return { ok: false, reason: `odkaz mimo povolených zdrojov: ${bad.slice(0, 70)}` };
+  const groundedUrlSet = new Set(
+    groundingUrls.map(normalizeSourceUrl).filter((url): url is string => Boolean(url)),
+  );
+  const knownUrls = new Set(
+    [
+      ...db.announcements.map((announcement) => announcement.link ?? ""),
+      ...feeds.map((feed) => feed.link),
+      ...groundingUrls,
+    ]
+      .map(normalizeSourceUrl)
+      .filter((url): url is string => Boolean(url)),
+  );
+  const unknownUrl = urls.find((url) => {
+    const normalized = normalizeSourceUrl(url);
+    return !normalized || !knownUrls.has(normalized);
+  });
+  if (unknownUrl) {
+    return { ok: false, reason: `odkaz nepatrí k načítaným zdrojom: ${unknownUrl.slice(0, 70)}` };
   }
 
+  const text = `${titulok}\n${obsah}`;
+  const textWithoutLinks = text.replace(/https?:\/\/\S+/g, "").split(/\n\s*Zdroje:/i)[0];
+  if (!containsOnlyWeekDates(textWithoutLinks, week)) {
+    return { ok: false, reason: "článok obsahuje dátum mimo sumarizovaného týždňa" };
+  }
   const hasContext = db.events.length + db.announcements.length + db.tips.length + feeds.length > 0;
-  if (hasContext) {
-    const honest = /nepodarilo sa overi|overiť sa nepodarilo|nepodarilo overi/i.test(obsah);
-    if (!honest && urls.length === 0) {
-      const norm = normalize(obsah);
-      const bound = sourceKeywords(db, feeds).some((k) => norm.includes(k));
-      if (!bound) return { ok: false, reason: "článok sa neodkazuje na žiadny podklad" };
-    }
+  const honest = /nepodarilo sa overi|overiť sa nepodarilo|nepodarilo overi/i.test(obsah);
+  const sourceSection = obsah.split(/\n\s*Zdroje:/i)[1] ?? "";
+  const hasDatabaseSourceLabel =
+    /kalend[aá]r obce|oznamy obce|údaje aplikácie/i.test(sourceSection);
+  const hasCitedSourceUrl = extractUrls(sourceSection).length > 0;
+  const normalizedText = normalize(text);
+  const boundToSource =
+    sourceKeywords(db, feeds).some((keyword) => normalizedText.includes(keyword)) ||
+    urls.some((url) => {
+      const normalized = normalizeSourceUrl(url);
+      return normalized !== null && groundedUrlSet.has(normalized);
+    });
+  if (!honest && (!hasContext || !boundToSource)) {
+    return { ok: false, reason: "článok nemá overiteľnú väzbu na žiadny podklad" };
+  }
+  if (!honest && !hasCitedSourceUrl && !hasDatabaseSourceLabel) {
+    return { ok: false, reason: "článku chýba zoznam použitých zdrojov" };
   }
 
   return { ok: true };
@@ -576,6 +712,7 @@ type GenResult = {
   error: string | null;
   retryAfterMs: number | null;
   groundingBlocked: boolean;
+  groundingUrls: string[];
 };
 
 const RETRYABLE = new Set([429, 503]);
@@ -629,6 +766,7 @@ async function geminiGenerate(
           error: `Chyba siete pri volaní Gemini: ${e}`,
           retryAfterMs: null,
           groundingBlocked: false,
+          groundingUrls: [],
         };
       }
       await sleep(BASE_BACKOFF_MS * tries);
@@ -648,6 +786,9 @@ async function geminiGenerate(
         error: null,
         retryAfterMs: null,
         groundingBlocked: false,
+        groundingUrls: (data?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [])
+          .map((chunk: { web?: { uri?: string } }) => chunk.web?.uri)
+          .filter((uri: unknown): uri is string => typeof uri === "string"),
       };
     }
 
@@ -661,6 +802,7 @@ async function geminiGenerate(
       retryAfterMs: retryAfter > 0 ? retryAfter * 1000 : null,
       groundingBlocked:
         (res.status === 400 || res.status === 429) && /search|grounding/i.test(errText),
+      groundingUrls: [],
     };
 
     if (RETRYABLE.has(res.status) && tries < MAX_TRIES) {
@@ -677,6 +819,7 @@ async function geminiGenerate(
     error: "Neznáma chyba volania Gemini",
     retryAfterMs: null,
     groundingBlocked: false,
+    groundingUrls: [],
   };
 }
 
@@ -734,7 +877,11 @@ serve(async (req) => {
     }
 
     // --- PODKLADY: dáta z aplikácie + overené RSS (paralelne) ---------------
-    const [dbLoad, feedLoad] = await Promise.all([loadDbBundle(supabase), fetchFeeds()]);
+    const week = lastCompletedWeek();
+    const [dbLoad, feedLoad] = await Promise.all([
+      loadDbBundle(supabase, week),
+      fetchFeeds(week),
+    ]);
     const db = dbLoad.bundle;
     const feeds = feedLoad.items;
     const dbText = formatDbText(db);
@@ -761,6 +908,14 @@ serve(async (req) => {
       });
     }
 
+    if (dbLoad.errors.length > 0) {
+      console.error("[sumar] Podklady z databázy sa nepodarilo úplne načítať:", dbLoad.errors);
+      return json(
+        { success: false, error: "database_sources_unavailable", dbErrors: dbLoad.errors },
+        503,
+      );
+    }
+
     // --- generovanie: grounding → schema → plain, grounded varianty sa po
     //     prvej kvótovej 429 preskočia, pri 503/429 sa vždy skúsi retry ------
     const attempts: string[] = [];
@@ -769,8 +924,17 @@ serve(async (req) => {
     let usedModel = "";
     let groundingBlocked = false;
     let calls = 0;
+    const hasInputs = db.events.length + db.announcements.length + db.tips.length + feeds.length > 0;
+    if (!hasInputs) {
+      article = {
+        titulok: "Týždenný prehľad Ružindola",
+        obsah: `Za obdobie ${week.label} sa z dostupných podkladov nepodarilo overiť konkrétne udalosti.`,
+        obdobie: week.label,
+      };
+      usedModel = "no-data";
+    }
     const buildPrompt = (searchEnabled: boolean, withSchema: boolean) =>
-      buildUserPrompt(dbText, feedText, searchEnabled) + (withSchema ? "" : schemaHint());
+      buildUserPrompt(dbText, feedText, searchEnabled, week) + (withSchema ? "" : schemaHint());
 
     const variants: { grounding: boolean | null; schema: boolean; label: string }[] = [
       { grounding: true, schema: true, label: "grounding+schema" },
@@ -780,6 +944,7 @@ serve(async (req) => {
     ];
 
     outer: for (const model of GEMINI_MODELS) {
+      if (article) break outer;
       for (const v of variants) {
         if (v.grounding && groundingBlocked) continue;
         if (calls >= MAX_CALLS) break outer;
@@ -815,16 +980,34 @@ serve(async (req) => {
           const obsah = String(candidate.obsah ?? "").trim();
           if (!titulok || !obsah) throw new Error("chýba titulok alebo obsah");
 
-          const verdict = verifyArticle(obsah, db, feeds, Boolean(v.grounding));
+          const verdict = verifyArticle(
+            titulok,
+            obsah,
+            db,
+            feeds,
+            result.groundingUrls,
+            week,
+          );
           if (!verdict.ok) {
             attempts.push(`${model}/${v.label} -> zamietnuté: ${verdict.reason}`);
+            continue;
+          }
+
+          const articleText = obsah.split(/\n\s*Zdroje:/i)[0].trim();
+          const paragraphCount = articleText.split(/\n\s*\n/).filter(Boolean).length;
+          if (
+            articleText.length > 1800 ||
+            (!/nepodarilo sa overi|overiť sa nepodarilo|nepodarilo overi/i.test(obsah) &&
+              (paragraphCount < 2 || paragraphCount > 4))
+          ) {
+            attempts.push(`${model}/${v.label} -> článok nespĺňa limit stručnosti`);
             continue;
           }
 
           article = {
             titulok: truncate(titulok, 160),
             obsah,
-            obdobie: truncate(String(candidate.obdobie ?? "").trim(), 80),
+            obdobie: week.label,
           };
           grounded = Boolean(v.grounding);
           usedModel = model;
@@ -849,12 +1032,7 @@ serve(async (req) => {
       );
     }
 
-    const obdobie =
-      article.obdobie ||
-      (() => {
-        const fmt = (d: Date) => `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
-        return `Týždeň ${fmt(new Date(Date.now() - 6 * 86_400_000))} – ${fmt(new Date())}`;
-      })();
+    const obdobie = week.label;
 
     const { error: insertError } = await supabase.from(TABLE).insert({
       titulok: article.titulok,

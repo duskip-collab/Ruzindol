@@ -1014,10 +1014,12 @@ export type Database = {
           datum_cas: string;
           id: string;
           kategoria: string;
+          konanie_dna: string | null;
           miesto: string;
           nazov: string;
           obec: string;
           popis: string | null;
+          zdroj_url: string | null;
           vzdialenost_km: number;
         };
         Insert: {
@@ -1025,10 +1027,12 @@ export type Database = {
           datum_cas: string;
           id?: string;
           kategoria: string;
+          konanie_dna?: string | null;
           miesto: string;
           nazov: string;
           obec: string;
           popis?: string | null;
+          zdroj_url?: string | null;
           vzdialenost_km: number;
         };
         Update: {
@@ -1036,10 +1040,12 @@ export type Database = {
           datum_cas?: string;
           id?: string;
           kategoria?: string;
+          konanie_dna?: string | null;
           miesto?: string;
           nazov?: string;
           obec?: string;
           popis?: string | null;
+          zdroj_url?: string | null;
           vzdialenost_km?: number;
         };
         Relationships: [];
@@ -1693,6 +1699,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      replace_okolite_akcie: {
+        Args: { p_rows: Json };
+        Returns: undefined;
+      };
       ban_neighbor: {
         Args: { _days: number; _reason?: string; _target: string };
         Returns: string;

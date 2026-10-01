@@ -19,11 +19,17 @@ CREATE TABLE IF NOT EXISTS public.okolite_akcie (
   nazov          TEXT        NOT NULL,
   popis          TEXT,
   obec           TEXT        NOT NULL,
-  vzdialenost_km NUMERIC     NOT NULL,
+  vzdialenost_km NUMERIC     NOT NULL
+                   CONSTRAINT okolite_akcie_vzdialenost_range_check
+                   CHECK (vzdialenost_km BETWEEN 0 AND 30),
   kategoria      TEXT        NOT NULL
                    CHECK (kategoria IN ('trhy', 'kultura', 'sport', 'hodove', 'gastronomia')),
   datum_cas      TEXT        NOT NULL,
+  konanie_dna    DATE,
   miesto         TEXT        NOT NULL,
+  zdroj_url      TEXT
+                   CONSTRAINT okolite_akcie_source_url_check
+                   CHECK (zdroj_url IS NULL OR zdroj_url ~ '^https?://'),
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

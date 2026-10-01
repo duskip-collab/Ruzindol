@@ -21,9 +21,28 @@ type OkolitaAkcia = {
   vzdialenost_km: number;
   kategoria: Kategoria;
   datum_cas: string;
+  konanie_dna: string | null;
   miesto: string;
+  zdroj_url: string | null;
   created_at: string;
 };
+
+function localDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Bratislava",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function addDays(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 const KATEGORIA_META: Record<Kategoria, { label: string; emoji: string; accent: string }> = {
   trhy: { label: "Trhy", emoji: "🛒", accent: "from-emerald-500 to-teal-500" },
@@ -58,12 +77,18 @@ export function OkoliteAkcieWidget() {
     (async () => {
       setLoading(true);
       setError(false);
+      const today = localDateKey(new Date());
 
       const { data, error: queryError } = await supabase
         .from("okolite_akcie")
-        .select("id, nazov, popis, obec, vzdialenost_km, kategoria, datum_cas, miesto, created_at")
+        .select(
+          "id, nazov, popis, obec, vzdialenost_km, kategoria, datum_cas, konanie_dna, miesto, zdroj_url, created_at",
+        )
+        .gte("konanie_dna", today)
+        .lte("konanie_dna", addDays(today, 30))
+        .order("konanie_dna", { ascending: true })
         .order("vzdialenost_km", { ascending: true })
-        .limit(100);
+        .limit(500);
 
       if (cancelled) return;
 
@@ -262,6 +287,16 @@ function AkciaCard({ item }: { item: OkolitaAkcia }) {
         >
           <Navigation className="h-3.5 w-3.5" /> Navigovať
         </a>
+        {item.zdroj_url && (
+          <a
+            href={item.zdroj_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-[11px] text-indigo-500 underline underline-offset-2"
+          >
+            Overený zdroj podujatia
+          </a>
+        )}
       </div>
     </article>
   );
