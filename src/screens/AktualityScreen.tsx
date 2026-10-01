@@ -38,7 +38,7 @@ import { InquiriesScreen } from "@/screens/InquiriesScreen";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
 import { OkoliteAkcieWidget } from "@/components/OkoliteAkcieWidget";
-import { RuzindolskeNovinyWidget } from "@/components/RuzindolskeNovinyWidget";
+import { SpravyZRegionuWidget } from "@/components/SpravyZRegionuWidget";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
@@ -449,8 +449,8 @@ export function AktualityScreen() {
               ))}
               {/* "Akcie v okolí" — dlaždica v rovnakej mriežke ako ostatné sekcie */}
               <OkoliteAkcieWidget />
-              {/* "Ružindolské noviny" — dlaždica v rovnakej mriežke ako ostatné sekcie */}
-              <RuzindolskeNovinyWidget />
+              {/* "Správy z regiónu" — dlaždica v rovnakej mriežke ako ostatné sekcie */}
+              <SpravyZRegionuWidget />
             </div>
           </div>
         ) : (

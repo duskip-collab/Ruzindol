@@ -1,4 +1,4 @@
--- Automatické generovanie obsahu pre "Akcie v okolí" a "Ružindolské noviny".
+-- Automatické generovanie obsahu pre "Akcie v okolí" a "Správy z regiónu".
 --
 -- Pred spustením ulož Supabase anon JWT kľúč do Vault (SQL Editor):
 --   create extension if not exists supabase_vault with schema vault;
@@ -32,6 +32,9 @@ begin
   if exists (select 1 from cron.job where jobname = 'tazky-generuj-tyzdenny-sumar') then
     perform cron.unschedule('tazky-generuj-tyzdenny-sumar');
   end if;
+  if exists (select 1 from cron.job where jobname = 'denne-aktualizuj-region-spravy') then
+    perform cron.unschedule('denne-aktualizuj-region-spravy');
+  end if;
 end
 $$;
 
@@ -52,13 +55,13 @@ select cron.schedule(
   $$
 );
 
--- Súhrn posledného ukončeného pondelok–nedeľa týždňa sa tvorí po obnove akcií.
+-- Správy z regiónu sa obnovujú denne o 05:00 UTC (RSS Trnavského hlasu, bez AI).
 select cron.schedule(
-  'tazky-generuj-tyzdenny-sumar',
-  '15 2 * * 1',
+  'denne-aktualizuj-region-spravy',
+  '0 5 * * *',
   $$
   select net.http_post(
-    url := 'https://vzmxbbemhsdbzytzwwxz.supabase.co/functions/v1/generuj-tyzdenny-sumar',
+    url := 'https://vzmxbbemhsdbzytzwwxz.supabase.co/functions/v1/aktualizuj-region-spravy',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'edge_anon_key'),
@@ -71,7 +74,7 @@ select cron.schedule(
 
 -- Kontrola naplánovania a výsledkov:
 -- select jobid, jobname, schedule, active from cron.job
--- where jobname in ('tazky-aktualizuj-okolite-akcie', 'tazky-generuj-tyzdenny-sumar');
+-- where jobname in ('tazky-aktualizuj-okolite-akcie', 'denne-aktualizuj-region-spravy');
 -- select jobid, status, return_message, start_time, end_time
 -- from cron.job_run_details order by start_time desc limit 10;
 -- select id, status_code, content, created
