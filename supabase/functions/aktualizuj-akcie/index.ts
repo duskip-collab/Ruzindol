@@ -28,35 +28,94 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // nové projekty obmedzil staršie 2.5 modely, preto sú prvé aktuálne Flash modely.
 const GEMINI_MODELS = [
   Deno.env.get("GEMINI_MODEL"),
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
-  "gemini-3.8-flash",
-  "gemini-flash-latest",
-  "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-flash-latest",
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const EVENT_WINDOW_DAYS = 30;
 const TIME_ZONE = "Europe/Bratislava";
-const ALLOWED_MUNICIPALITIES = new Set([
-  "Ružindol", "Trnava", "Smolenice", "Modra", "Častá", "Píla",
-  "Dolné Orešany", "Horné Orešany", "Trstín", "Naháč", "Dechtice",
-  "Cífer", "Šúrovce", "Križovany nad Dudváhom", "Suchá nad Parnou",
-  "Zvončín", "Biely Kostol", "Hrnčiarovce nad Parnou", "Voderady",
-  "Košolná", "Borová", "Dolná Krupá", "Horná Krupá", "Dolné Dubové",
-  "Jaslovské Bohunice", "Dlhá", "Lošonec", "Budmerice", "Jablonec",
-  "Kaplna", "Igram", "Báhoň", "Vištuk", "Dubová", "Vinosady",
-  "Zeleneč", "Bohdanovce nad Trnavou", "Špačince", "Zavar", "Brestovany",
-  "Opoj", "Vlčkovce", "Majcichov", "Pavlice", "Siladice", "Dolné Zelenice",
-  "Vinohrady nad Váhom", "Červeník", "Kľačany", "Pusté Úľany", "Hoste",
-  "Abrahám", "Kátlovce", "Nižná", "Dobrá Voda", "Radošovce", "Pezinok",
-  "Šenkvice", "Limbach", "Hlohovec", "Sereď", "Dolná Streda", "Váhovce",
-  "Dvorníky", "Senec", "Blatné", "Veľké Úľany", "Sládkovičovo",
-  "Kráľová pri Senci", "Bernolákovo", "Slovenský Grob", "Dolné Lovčice",
-  "Veľké Kostoľany", "Chtelnica", "Šintava",
-].map((name) => normalize(name)));
+const ALLOWED_MUNICIPALITIES = new Set(
+  [
+    "Ružindol",
+    "Trnava",
+    "Smolenice",
+    "Modra",
+    "Častá",
+    "Píla",
+    "Dolné Orešany",
+    "Horné Orešany",
+    "Trstín",
+    "Naháč",
+    "Dechtice",
+    "Cífer",
+    "Šúrovce",
+    "Križovany nad Dudváhom",
+    "Suchá nad Parnou",
+    "Zvončín",
+    "Biely Kostol",
+    "Hrnčiarovce nad Parnou",
+    "Voderady",
+    "Košolná",
+    "Borová",
+    "Dolná Krupá",
+    "Horná Krupá",
+    "Dolné Dubové",
+    "Jaslovské Bohunice",
+    "Dlhá",
+    "Lošonec",
+    "Budmerice",
+    "Jablonec",
+    "Kaplna",
+    "Igram",
+    "Báhoň",
+    "Vištuk",
+    "Dubová",
+    "Vinosady",
+    "Zeleneč",
+    "Bohdanovce nad Trnavou",
+    "Špačince",
+    "Zavar",
+    "Brestovany",
+    "Opoj",
+    "Vlčkovce",
+    "Majcichov",
+    "Pavlice",
+    "Siladice",
+    "Dolné Zelenice",
+    "Vinohrady nad Váhom",
+    "Červeník",
+    "Kľačany",
+    "Pusté Úľany",
+    "Hoste",
+    "Abrahám",
+    "Kátlovce",
+    "Nižná",
+    "Dobrá Voda",
+    "Radošovce",
+    "Pezinok",
+    "Šenkvice",
+    "Limbach",
+    "Hlohovec",
+    "Sereď",
+    "Dolná Streda",
+    "Váhovce",
+    "Dvorníky",
+    "Senec",
+    "Blatné",
+    "Veľké Úľany",
+    "Sládkovičovo",
+    "Kráľová pri Senci",
+    "Bernolákovo",
+    "Slovenský Grob",
+    "Dolné Lovčice",
+    "Veľké Kostoľany",
+    "Chtelnica",
+    "Šintava",
+  ].map((name) => normalize(name)),
+);
 
 const KATEGORIE = ["trhy", "kultura", "sport", "hodove", "gastronomia"] as const;
 type Kategoria = (typeof KATEGORIE)[number];
@@ -152,8 +211,14 @@ const RESPONSE_SCHEMA = {
           },
         },
         required: [
-          "nazov", "obec", "vzdialenost_km", "kategoria", "datum_cas",
-          "datum_iso", "miesto", "zdroj_url",
+          "nazov",
+          "obec",
+          "vzdialenost_km",
+          "kategoria",
+          "datum_cas",
+          "datum_iso",
+          "miesto",
+          "zdroj_url",
         ],
       },
     },
@@ -178,7 +243,7 @@ type GeminiAttempt = {
   groundingSupports: { text: string; urls: string[] }[];
 };
 
-/** Jedno volanie Gemini generateContent pre konkrétny model. */
+/** Jedno volanie Gemini generateContent pre konkrétny model (s retry 429/503). */
 async function geminiGenerate(
   model: string,
   apiKey: string,
@@ -192,20 +257,73 @@ async function geminiGenerate(
   if (includeSchema) generationConfig.responseSchema = RESPONSE_SCHEMA;
 
   const userPrompt = buildUserPrompt() + (includeSchema ? "" : schemaHint());
-
-  const res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      generationConfig,
-      tools: [{ google_search: {} }],
-    }),
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig,
+    tools: [{ google_search: {} }],
   });
 
-  if (!res.ok) {
+  // Krátky spätný ťah pri preťažení (503) a vyčerpanej kvóte (429).
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(`${GEMINI_API_BASE}/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body,
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (e) {
+      if (attempt === 2) {
+        return {
+          ok: false,
+          status: 0,
+          details: `Chyba siete pri volaní Gemini: ${e}`,
+          groundingUrls: [],
+          groundingSupports: [],
+        };
+      }
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+      continue;
+    }
+
+    if (res.ok) {
+      const payload = await res.json();
+      const candidate = payload?.candidates?.[0];
+      const text: string =
+        candidate?.content?.parts?.map((p: { text?: string }) => p?.text ?? "").join("") ?? "";
+      const groundingChunks = candidate?.groundingMetadata?.groundingChunks ?? [];
+      const groundingUrls: string[] = groundingChunks
+        .map((chunk: { web?: { uri?: string } }) => chunk.web?.uri)
+        .filter((uri: unknown): uri is string => typeof uri === "string");
+      const groundingSupports = (candidate?.groundingMetadata?.groundingSupports ?? [])
+        .map((support: { segment?: { text?: string }; groundingChunkIndices?: number[] }) => ({
+          text: support.segment?.text ?? "",
+          urls: (support.groundingChunkIndices ?? [])
+            .map((index) => groundingChunks[index]?.web?.uri)
+            .filter((uri: unknown): uri is string => typeof uri === "string"),
+        }))
+        .filter(
+          (support: { text: string; urls: string[] }) => support.text && support.urls.length > 0,
+        );
+
+      return {
+        ok: true,
+        status: res.status,
+        text: text.trim(),
+        groundingUrls,
+        groundingSupports,
+      };
+    }
+
     const details = await res.text();
+    // Opakovateľné len pri 429/503; pri 404 (neznámy model) rovno ďalší model.
+    if ((res.status === 429 || res.status === 503) && attempt === 1) {
+      const retryAfter = Number(res.headers.get("retry-after") ?? "0");
+      await new Promise((r) => setTimeout(r, retryAfter > 0 ? retryAfter * 1000 : 1500));
+      continue;
+    }
     return {
       ok: false,
       status: res.status,
@@ -215,30 +333,12 @@ async function geminiGenerate(
     };
   }
 
-  const payload = await res.json();
-  const candidate = payload?.candidates?.[0];
-  const text: string = candidate?.content?.parts
-    ?.map((p: { text?: string }) => p?.text ?? "")
-    .join("") ?? "";
-  const groundingChunks = candidate?.groundingMetadata?.groundingChunks ?? [];
-  const groundingUrls: string[] = groundingChunks
-    .map((chunk: { web?: { uri?: string } }) => chunk.web?.uri)
-    .filter((uri: unknown): uri is string => typeof uri === "string");
-  const groundingSupports = (candidate?.groundingMetadata?.groundingSupports ?? [])
-    .map((support: { segment?: { text?: string }; groundingChunkIndices?: number[] }) => ({
-      text: support.segment?.text ?? "",
-      urls: (support.groundingChunkIndices ?? [])
-        .map((index) => groundingChunks[index]?.web?.uri)
-        .filter((uri: unknown): uri is string => typeof uri === "string"),
-    }))
-    .filter((support: { text: string; urls: string[] }) => support.text && support.urls.length > 0);
-
   return {
-    ok: true,
-    status: res.status,
-    text: text.trim(),
-    groundingUrls,
-    groundingSupports,
+    ok: false,
+    status: 0,
+    details: "Neznáma chyba volania Gemini",
+    groundingUrls: [],
+    groundingSupports: [],
   };
 }
 
@@ -505,12 +605,14 @@ serve(async (req) => {
     }
 
     // --- 2) Parsovanie + validácia výstupu ----------------------------------
+    // Prísny režim: ak model nedodrží schému, celý beh zlyhá (žiadny voľný text).
     const parsed = extractJson(plainText);
     if (
       !parsed ||
       typeof parsed !== "object" ||
       !Array.isArray((parsed as { akcie?: unknown }).akcie)
     ) {
+      console.error("[akcie] model nedodržal schému – žiadny voľnopísaný fallback sa nepoužíva.");
       return json({ success: false, error: "invalid_events_response" }, 502);
     }
     const list = (parsed as { akcie: unknown[] }).akcie;
@@ -572,7 +674,6 @@ serve(async (req) => {
       inserted: rows.length,
       skipped,
     });
-
   } catch (error) {
     console.error("aktualizuj-akcie zlyhal:", error);
     const message = error instanceof Error ? error.message : "unknown_error";

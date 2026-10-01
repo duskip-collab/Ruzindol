@@ -86,6 +86,8 @@ export function OkoliteAkcieWidget() {
         )
         .gte("konanie_dna", today)
         .lte("konanie_dna", addDays(today, 30))
+        // Prísny režim: bez overeného zdroja sa položka nikdy nezobrazí.
+        .not("zdroj_url", "is", null)
         .order("konanie_dna", { ascending: true })
         .order("vzdialenost_km", { ascending: true })
         .limit(500);

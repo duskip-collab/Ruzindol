@@ -36,13 +36,13 @@ const TABLE = "tyzdenne_sumare";
 
 // Model možno prepínať cez secret GEMINI_MODEL. Ak model pre API kľúč
 // neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí.
+// Zoznam obsahuje len modely, ktoré existujú v Gemini API v1beta
+// (overené 2026-10-01) – fiktívne verzie 3.x tu nesmú byť.
 const GEMINI_MODELS = [
   Deno.env.get("GEMINI_MODEL"),
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
   "gemini-flash-latest",
-  "gemini-3.1-flash-lite",
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
-  "gemini-3.8-flash",
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -385,29 +385,30 @@ async function loadDbBundle(db: Db, week: WeekRange): Promise<DbLoad> {
 
 /** Prevedie iba položky publikované v týždni, ktorý sa sumarizuje. */
 function parseFeed(xml: string, feedLabel: string, week: WeekRange): FeedItem[] {
-  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  // Deno / Supabase Edge Runtime nemá DOMParser – RSS parsujeme cez regex,
+  // aby funkcia nespadla s ReferenceError a RSS podklad reálne fungoval.
   const items: FeedItem[] = [];
   const from = Date.parse(week.startIso);
   const until = Date.parse(week.endExclusiveIso);
+  const pick = (block: string, tag: string): string => {
+    const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
+    return (m?.[1] ?? "").trim();
+  };
+  const blocks = [...xml.matchAll(/<(?:item|entry)[\s>][\s\S]*?<\/(?:item|entry)>/gi)];
 
-  for (const node of Array.from(doc.querySelectorAll("item, entry"))) {
-    const title = stripHtml(node.querySelector("title")?.textContent ?? "");
-    const linkEl = node.querySelector("link");
-    const link = (linkEl?.getAttribute("href") ?? linkEl?.textContent ?? "").trim();
+  for (const blockMatch of blocks) {
+    const block = blockMatch[0];
+    const title = stripHtml(pick(block, "title"));
+    const linkTag = block.match(/<link[^>]*>/i)?.[0] ?? "";
+    const href = linkTag.match(/href\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
+    const link = (href || stripHtml(pick(block, "link"))).trim();
     const dateRaw =
-      node.querySelector("pubDate")?.textContent ??
-      node.querySelector("published")?.textContent ??
-      node.querySelector("updated")?.textContent ??
-      "";
-    const ts = Date.parse(dateRaw);
+      pick(block, "pubDate") || pick(block, "published") || pick(block, "updated") || "";
+    const ts = Date.parse(stripHtml(dateRaw));
 
     if (!title || Number.isNaN(ts) || ts < from || ts >= until || !isAllowedUrl(link)) continue;
 
-    const summary = stripHtml(
-      node.querySelector("description")?.textContent ??
-        node.querySelector("summary")?.textContent ??
-        "",
-    );
+    const summary = stripHtml(pick(block, "description") || pick(block, "summary") || "");
     items.push({ source: feedLabel, title, link, ts, summary: truncate(summary, 260) });
     if (items.length >= RSS_MAX_ITEMS) break;
   }
@@ -640,7 +641,8 @@ type Verdict = { ok: boolean; reason?: string };
 
 /**
  * Overí článok voči podkladom:
- *  – odkazy musia pochádzať z databázy, RSS alebo grounding metadata,
+ *  – odkazy musia pochádzať z databázy, RSS alebo grounding metadata
+ *    a zároveň z povolenej domény (ruzindol.sk, trnava.sk, trnavareport.com),
  *  – text musí byť naviazaný na načítané podklady a týždenné obdobie,
  *  – poctivé "nepodarilo sa overiť" prejde aj bez väzby.
  */
@@ -672,6 +674,10 @@ function verifyArticle(
   if (unknownUrl) {
     return { ok: false, reason: `odkaz nepatrí k načítaným zdrojom: ${unknownUrl.slice(0, 70)}` };
   }
+  const offDomainUrl = urls.find((url) => !isAllowedUrl(url));
+  if (offDomainUrl) {
+    return { ok: false, reason: `odkaz je mimo povolených domén: ${offDomainUrl.slice(0, 70)}` };
+  }
 
   const text = `${titulok}\n${obsah}`;
   const textWithoutLinks = text.replace(/https?:\/\/\S+/g, "").split(/\n\s*Zdroje:/i)[0];
@@ -681,8 +687,9 @@ function verifyArticle(
   const hasContext = db.events.length + db.announcements.length + db.tips.length + feeds.length > 0;
   const honest = /nepodarilo sa overi|overiť sa nepodarilo|nepodarilo overi/i.test(obsah);
   const sourceSection = obsah.split(/\n\s*Zdroje:/i)[1] ?? "";
-  const hasDatabaseSourceLabel =
-    /kalend[aá]r obce|oznamy obce|údaje aplikácie/i.test(sourceSection);
+  const hasDatabaseSourceLabel = /kalend[aá]r obce|oznamy obce|údaje aplikácie/i.test(
+    sourceSection,
+  );
   const hasCitedSourceUrl = extractUrls(sourceSection).length > 0;
   const normalizedText = normalize(text);
   const boundToSource =
@@ -878,10 +885,7 @@ serve(async (req) => {
 
     // --- PODKLADY: dáta z aplikácie + overené RSS (paralelne) ---------------
     const week = lastCompletedWeek();
-    const [dbLoad, feedLoad] = await Promise.all([
-      loadDbBundle(supabase, week),
-      fetchFeeds(week),
-    ]);
+    const [dbLoad, feedLoad] = await Promise.all([loadDbBundle(supabase, week), fetchFeeds(week)]);
     const db = dbLoad.bundle;
     const feeds = feedLoad.items;
     const dbText = formatDbText(db);
@@ -924,7 +928,8 @@ serve(async (req) => {
     let usedModel = "";
     let groundingBlocked = false;
     let calls = 0;
-    const hasInputs = db.events.length + db.announcements.length + db.tips.length + feeds.length > 0;
+    const hasInputs =
+      db.events.length + db.announcements.length + db.tips.length + feeds.length > 0;
     if (!hasInputs) {
       article = {
         titulok: "Týždenný prehľad Ružindola",
@@ -980,14 +985,7 @@ serve(async (req) => {
           const obsah = String(candidate.obsah ?? "").trim();
           if (!titulok || !obsah) throw new Error("chýba titulok alebo obsah");
 
-          const verdict = verifyArticle(
-            titulok,
-            obsah,
-            db,
-            feeds,
-            result.groundingUrls,
-            week,
-          );
+          const verdict = verifyArticle(titulok, obsah, db, feeds, result.groundingUrls, week);
           if (!verdict.ok) {
             attempts.push(`${model}/${v.label} -> zamietnuté: ${verdict.reason}`);
             continue;
@@ -1034,11 +1032,16 @@ serve(async (req) => {
 
     const obdobie = week.label;
 
-    const { error: insertError } = await supabase.from(TABLE).insert({
-      titulok: article.titulok,
-      obsah: article.obsah,
-      obdobie,
-    });
+    // Idempotentný týždenný zápis – opakovaný beh toho istého týždňa
+    // neuloží duplicitu, len vráti existujúce vydanie.
+    const { error: insertError } = await supabase.from(TABLE).upsert(
+      {
+        titulok: article.titulok,
+        obsah: article.obsah,
+        obdobie,
+      },
+      { onConflict: "obdobie" },
+    );
     if (insertError) {
       console.error("Vloženie do tyzdenne_sumare zlyhalo:", insertError);
       return json({ success: false, error: insertError.message }, 500);

@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS public.tyzdenne_sumare (
 CREATE INDEX IF NOT EXISTS tyzdenne_sumare_created_at_idx
   ON public.tyzdenne_sumare (created_at DESC);
 
+-- Jedno vydanie na týždeň (idempotentný týždenný beh, žiadne duplicity).
+CREATE UNIQUE INDEX IF NOT EXISTS tyzdenne_sumare_obdobie_unique
+  ON public.tyzdenne_sumare (obdobie)
+  WHERE obdobie IS NOT NULL;
+
 -- Prístupové práva (rovnako ako pri ostatných verejných tabuľkách).
 GRANT SELECT ON public.tyzdenne_sumare TO anon, authenticated;
 GRANT ALL    ON public.tyzdenne_sumare TO service_role;
