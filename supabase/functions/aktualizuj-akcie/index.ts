@@ -26,12 +26,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Model možno prepísať cez secret GEMINI_MODEL. Ak daný model pre API kľúč
 // neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí. Google pre
 // nové projekty obmedzil staršie 2.5 modely, preto sú prvé aktuálne Flash modely.
-const GEMINI_MODELS = [
+const MODEL_CANDIDATES = [
   Deno.env.get("GEMINI_MODEL"),
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-flash-latest",
-].filter((m): m is string => Boolean(m && m.trim()));
+].filter((model): model is string => Boolean(model && model.trim()));
+const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -566,7 +567,7 @@ serve(async (req) => {
     let groundingSupports: { text: string; urls: string[] }[] = [];
     const attempts: string[] = [];
 
-    for (const model of GEMINI_MODELS) {
+    for (const model of UNIQUE_MODEL_CANDIDATES) {
       let text = "";
 
       const withSchema = await geminiGenerate(model, geminiKey, true);

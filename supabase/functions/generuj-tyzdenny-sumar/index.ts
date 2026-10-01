@@ -38,12 +38,13 @@ const TABLE = "tyzdenne_sumare";
 // neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí.
 // Zoznam obsahuje len modely, ktoré existujú v Gemini API v1beta
 // (overené 2026-10-01) – fiktívne verzie 3.x tu nesmú byť.
-const GEMINI_MODELS = [
+const MODEL_CANDIDATES = [
   Deno.env.get("GEMINI_MODEL"),
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-flash-latest",
-].filter((m): m is string => Boolean(m && m.trim()));
+].filter((model): model is string => Boolean(model && model.trim()));
+const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const TIME_ZONE = "Europe/Bratislava";
@@ -948,7 +949,7 @@ serve(async (req) => {
       { grounding: null, schema: false, label: "plain" },
     ];
 
-    outer: for (const model of GEMINI_MODELS) {
+    outer: for (const model of UNIQUE_MODEL_CANDIDATES) {
       if (article) break outer;
       for (const v of variants) {
         if (v.grounding && groundingBlocked) continue;
