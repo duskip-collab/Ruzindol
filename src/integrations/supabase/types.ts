@@ -1460,6 +1460,30 @@ export type Database = {
           },
         ];
       };
+      tyzdenne_sumare: {
+        Row: {
+          created_at: string;
+          id: string;
+          obsah: string;
+          obdobie: string | null;
+          titulok: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          obsah: string;
+          obdobie?: string | null;
+          titulok: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          obsah?: string;
+          obdobie?: string | null;
+          titulok?: string;
+        };
+        Relationships: [];
+      };
       user_activity_log: {
         Row: {
           activity_type: string;
