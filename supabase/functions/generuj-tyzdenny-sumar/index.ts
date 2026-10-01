@@ -38,16 +38,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const TABLE = "tyzdenne_sumare";
 
-// Model možno prepínať cez secret GEMINI_MODEL. Ak model pre API kľúč
-// neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí.
-// Zoznam obsahuje len modely, ktoré existujú v Gemini API v1beta
-// (overené 2026-10-01) – fiktívne verzie 3.x tu nesmú byť.
-const MODEL_CANDIDATES = [
-  Deno.env.get("GEMINI_MODEL"),
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-flash-latest",
-].filter((model): model is string => Boolean(model && model.trim()));
+// Gemini API explicitly recommends this stable model for projects where 2.5
+// IDs are no longer available. Keep preview and moving aliases out of fallback.
+const MODEL_CANDIDATES = ["gemini-3.8-flash"];
 const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";

@@ -27,15 +27,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Model možno prepísať cez secret GEMINI_MODEL. Ak daný model pre API kľúč
-// neexistuje (HTTP 404), funkcia automaticky skúsi ďalší v poradí. Google pre
-// nové projekty obmedzil staršie 2.5 modely, preto sú prvé aktuálne Flash modely.
-const MODEL_CANDIDATES = [
-  Deno.env.get("GEMINI_MODEL"),
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-flash-latest",
-].filter((model): model is string => Boolean(model && model.trim()));
+// Gemini API explicitly recommends this stable model for projects where 2.5
+// IDs are no longer available. Keep preview and moving aliases out of fallback.
+const MODEL_CANDIDATES = ["gemini-3.8-flash"];
 const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -460,7 +454,7 @@ async function qwenGenerate(apiKey: string): Promise<GeminiAttempt> {
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: buildUserPrompt() + schemaHint() },
         ],
-        plugins: [{ id: "web", engine: "native" }],
+        plugins: [{ id: "web", engine: "exa" }],
       }),
       signal: AbortSignal.timeout(60_000),
     });
