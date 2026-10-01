@@ -7,7 +7,7 @@
 //    obce Ružindol (Trnava, Smolenice, Modra, Trstín, ...).
 //  • Vyžaduje grounding zdroj pre každú položku a atomicky nahrádza dáta v
 //    tabuľke `okolite_akcie` až po úspešnej validácii celej odpovede.
-//  • GEMINI_API_KEY sa číta bezpečne z prostredia (nikdy nie je v klientovi).
+//  • GEMINI_API_KEY -> ANTHROPIC_API_KEY -> QWEN_API_KEY je serverový fallback.
 //
 //  Nasadenie:
 //    supabase functions deploy aktualizuj-akcie --no-verify-jwt
@@ -17,6 +17,10 @@
 //  ENV premenné (Supabase -> Project Settings -> Edge Functions -> Secrets):
 //    GEMINI_API_KEY = tvoj Google AI Studio kľúč
 //    GEMINI_MODEL (voliteľné) = konkrétny model (inak sa vyberie automaticky)
+//    ANTHROPIC_API_KEY = Anthropic kľúč pre fallback
+//    ANTHROPIC_MODEL (voliteľné) = preferovaný model Claude
+//    QWEN_API_KEY = OpenRouter kľúč pre Qwen fallback
+//    QWEN_MODEL / QWEN_API_BASE (voliteľné) = model a kompatibilný endpoint
 //  (SUPABASE_URL a SUPABASE_SERVICE_ROLE_KEY sú dostupné automaticky.)
 // =============================================================================
 
@@ -35,6 +39,14 @@ const MODEL_CANDIDATES = [
 const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const CLAUDE_MODELS = [
+  Deno.env.get("ANTHROPIC_MODEL"),
+  "claude-sonnet-4-5-20250929",
+  "claude-haiku-4-5-20251001",
+].filter((model): model is string => Boolean(model && model.trim()));
+const QWEN_MODEL = Deno.env.get("QWEN_MODEL") || "qwen/qwen-2.5-72b-instruct";
+const OPENROUTER_CHAT_URL =
+  Deno.env.get("QWEN_API_BASE") || "https://openrouter.ai/api/v1/chat/completions";
 
 const EVENT_WINDOW_DAYS = 30;
 const TIME_ZONE = "Europe/Bratislava";
@@ -242,6 +254,8 @@ type GeminiAttempt = {
   details?: string;
   groundingUrls: string[];
   groundingSupports: { text: string; urls: string[] }[];
+  provider?: string;
+  model?: string;
 };
 
 /** Jedno volanie Gemini generateContent pre konkrétny model (s retry 429/503). */
@@ -340,6 +354,164 @@ async function geminiGenerate(
     details: "Neznáma chyba volania Gemini",
     groundingUrls: [],
     groundingSupports: [],
+  };
+}
+
+function providerFailure(
+  provider: string,
+  model: string,
+  status: number,
+  details: string,
+): GeminiAttempt {
+  return {
+    ok: false,
+    status,
+    details: details.slice(0, 500),
+    groundingUrls: [],
+    groundingSupports: [],
+    provider,
+    model,
+  };
+}
+
+async function anthropicGenerate(model: string, apiKey: string): Promise<GeminiAttempt> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let response: Response;
+    try {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 8192,
+          temperature: 0.1,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: buildUserPrompt() + schemaHint() }],
+          tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }],
+        }),
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (error) {
+      if (attempt === 2) {
+        return providerFailure("claude", model, 0, `Sieťová chyba: ${String(error)}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      continue;
+    }
+
+    if (response.ok) {
+      const data = await response.json();
+      const blocks = Array.isArray(data?.content) ? data.content : [];
+      const text = blocks
+        .filter((block: { type?: string }) => block.type === "text")
+        .map((block: { text?: string }) => block.text ?? "")
+        .join("\n")
+        .trim();
+      const supports: { text: string; urls: string[] }[] = [];
+      for (const block of blocks) {
+        for (const citation of block?.citations ?? []) {
+          const url = citation?.url;
+          const citedText = citation?.cited_text;
+          if (typeof url === "string" && typeof citedText === "string" && citedText.trim()) {
+            supports.push({ text: citedText, urls: [url] });
+          }
+        }
+      }
+      const urls = [...new Set(supports.flatMap((support) => support.urls))];
+      return {
+        ok: true,
+        status: response.status,
+        text,
+        groundingUrls: urls,
+        groundingSupports: supports,
+        provider: "claude",
+        model,
+      };
+    }
+
+    const details = await response.text().catch(() => "");
+    if ((response.status === 429 || response.status === 503) && attempt === 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      continue;
+    }
+    return providerFailure("claude", model, response.status, details);
+  }
+  return providerFailure("claude", model, 0, "Neznáma chyba Anthropic API");
+}
+
+async function qwenGenerate(apiKey: string): Promise<GeminiAttempt> {
+  let response: Response;
+  try {
+    response = await fetch(OPENROUTER_CHAT_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: QWEN_MODEL,
+        temperature: 0.1,
+        max_tokens: 8192,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserPrompt() + schemaHint() },
+        ],
+        plugins: [{ id: "web", engine: "native" }],
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    return providerFailure("qwen", QWEN_MODEL, 0, `Sieťová chyba: ${String(error)}`);
+  }
+
+  if (!response.ok) {
+    return providerFailure(
+      "qwen",
+      QWEN_MODEL,
+      response.status,
+      await response.text().catch(() => ""),
+    );
+  }
+
+  const data = await response.json();
+  const message = data?.choices?.[0]?.message;
+  const text = typeof message?.content === "string" ? message.content.trim() : "";
+  const urls: string[] = [];
+  const supports: { text: string; urls: string[] }[] = [];
+  for (const annotation of message?.annotations ?? []) {
+    const citation = annotation?.url_citation;
+    if (annotation?.type !== "url_citation" || typeof citation?.url !== "string") continue;
+    urls.push(citation.url);
+    const start = Number(citation.start_index);
+    const end = Number(citation.end_index);
+    const citedText =
+      Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end > start
+        ? text.slice(start, end)
+        : "";
+    if (citedText) supports.push({ text: citedText, urls: [citation.url] });
+  }
+  for (const source of data?.citations ?? data?.sources ?? []) {
+    const url = source?.url;
+    const snippet = source?.snippet ?? source?.text;
+    if (typeof url === "string") {
+      urls.push(url);
+      if (typeof snippet === "string" && snippet.trim()) {
+        supports.push({ text: snippet, urls: [url] });
+      }
+    }
+  }
+  return {
+    ok: true,
+    status: response.status,
+    text,
+    groundingUrls: [...new Set(urls)],
+    groundingSupports: supports,
+    provider: "qwen",
+    model: QWEN_MODEL,
   };
 }
 
@@ -546,10 +718,8 @@ serve(async (req) => {
 
   try {
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiKey) {
-      console.error("Chýba GEMINI_API_KEY.");
-      return json({ success: false, error: "missing_gemini_api_key" }, 500);
-    }
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const qwenKey = Deno.env.get("QWEN_API_KEY");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -562,16 +732,44 @@ serve(async (req) => {
     // ďalší, pri 400 (nepodporí responseSchema) skúsime to isté bez schémy.
     let plainText = "";
     let usedModel = "";
+    let usedProvider = "";
     let groundingUrls: string[] = [];
     let groundingSupports: { text: string; urls: string[] }[] = [];
     const attempts: string[] = [];
+    const today = getLocalDateKey();
+    const hasValidatedPayload = (
+      text: string,
+      urls: string[],
+      supports: { text: string; urls: string[] }[],
+    ): boolean => {
+      try {
+        const parsed = extractJson(text);
+        if (
+          !parsed ||
+          typeof parsed !== "object" ||
+          !Array.isArray((parsed as { akcie?: unknown }).akcie)
+        ) {
+          return false;
+        }
+        const events = (parsed as { akcie: unknown[] }).akcie;
+        if (events.length === 0) return true;
+        const urlSet = new Set(
+          urls.map(normalizeSourceUrl).filter((url): url is string => Boolean(url)),
+        );
+        return events.some((event) => toRow(event, urlSet, supports, today) !== null);
+      } catch {
+        return false;
+      }
+    };
 
-    for (const model of UNIQUE_MODEL_CANDIDATES) {
+    if (!geminiKey) attempts.push("gemini -> preskočený: chýba GEMINI_API_KEY");
+    for (const model of geminiKey ? UNIQUE_MODEL_CANDIDATES : []) {
+      if (!geminiKey) continue;
       let text = "";
 
       const withSchema = await geminiGenerate(model, geminiKey, true);
       attempts.push(
-        `${model} -> ${withSchema.status}${withSchema.details ? `: ${withSchema.details.slice(0, 240)}` : ""}`,
+        `gemini/${model} -> ${withSchema.status}${withSchema.details ? `: ${withSchema.details.slice(0, 240)}` : ""}`,
       );
 
       if (withSchema.ok && withSchema.text) {
@@ -582,7 +780,7 @@ serve(async (req) => {
         // Model existuje, ale nepodporil responseSchema -> skús bez schémy.
         const noSchema = await geminiGenerate(model, geminiKey, false);
         attempts.push(
-          `${model} (bez schémy) -> ${noSchema.status}${noSchema.details ? `: ${noSchema.details.slice(0, 240)}` : ""}`,
+          `gemini/${model} (bez schémy) -> ${noSchema.status}${noSchema.details ? `: ${noSchema.details.slice(0, 240)}` : ""}`,
         );
         if (noSchema.ok && noSchema.text) {
           text = noSchema.text;
@@ -594,18 +792,88 @@ serve(async (req) => {
       if (text) {
         plainText = text;
         usedModel = model;
+        usedProvider = "gemini";
         break;
       }
     }
 
-    if (!plainText) {
-      console.error("Gemini zlyhal pre všetky modely:", attempts);
-      return json({ success: false, error: "gemini_request_failed", attempts }, 502);
+    // Fallback providers perform their own web search. Their output is accepted
+    // only when they return source URLs and text-level evidence used by toRow().
+    if (
+      !plainText ||
+      groundingUrls.length === 0 ||
+      groundingSupports.length === 0 ||
+      !hasValidatedPayload(plainText, groundingUrls, groundingSupports)
+    ) {
+      plainText = "";
+      groundingUrls = [];
+      groundingSupports = [];
+
+      if (!anthropicKey) attempts.push("claude -> preskočený: chýba ANTHROPIC_API_KEY");
+      if (anthropicKey) {
+        for (const model of CLAUDE_MODELS) {
+          const result = await anthropicGenerate(model, anthropicKey);
+          attempts.push(
+            `claude/${model} -> ${result.status}${result.details ? `: ${result.details.slice(0, 240)}` : ""}`,
+          );
+          if (
+            result.ok &&
+            result.text &&
+            result.groundingUrls.length &&
+            result.groundingSupports.length &&
+            hasValidatedPayload(result.text, result.groundingUrls, result.groundingSupports)
+          ) {
+            plainText = result.text;
+            usedProvider = "claude";
+            usedModel = model;
+            groundingUrls = result.groundingUrls;
+            groundingSupports = result.groundingSupports;
+            break;
+          }
+        }
+      }
+
+      if (!plainText || !groundingUrls.length || !groundingSupports.length) {
+        plainText = "";
+        groundingUrls = [];
+        groundingSupports = [];
+        if (!qwenKey) attempts.push("qwen -> preskočený: chýba QWEN_API_KEY");
+        if (qwenKey) {
+          const result = await qwenGenerate(qwenKey);
+          attempts.push(
+            `qwen/${QWEN_MODEL} -> ${result.status}${result.details ? `: ${result.details.slice(0, 240)}` : ""}`,
+          );
+          if (
+            result.ok &&
+            result.text &&
+            result.groundingUrls.length &&
+            result.groundingSupports.length &&
+            hasValidatedPayload(result.text, result.groundingUrls, result.groundingSupports)
+          ) {
+            plainText = result.text;
+            usedProvider = "qwen";
+            usedModel = QWEN_MODEL;
+            groundingUrls = result.groundingUrls;
+            groundingSupports = result.groundingSupports;
+          }
+        }
+      }
     }
 
-    if (!groundingUrls.length) {
-      console.error("Gemini nevrátil žiadny zdroj Google Search; kalendár zostáva nezmenený.");
-      return json({ success: false, error: "missing_grounding_sources", attempts }, 502);
+    if (!plainText || !groundingUrls.length || !groundingSupports.length) {
+      console.error(
+        "AI poskytovatelia nevrátili overiteľné zdroje; kalendár zostáva nezmenený.",
+        attempts,
+      );
+      return json(
+        {
+          success: false,
+          error: "verified_search_sources_unavailable",
+          used_provider: null,
+          attempts,
+        },
+        502,
+      );
     }
 
     // --- 2) Parsovanie + validácia výstupu ----------------------------------
@@ -616,8 +884,17 @@ serve(async (req) => {
       typeof parsed !== "object" ||
       !Array.isArray((parsed as { akcie?: unknown }).akcie)
     ) {
-      console.error("[akcie] model nedodržal schému – žiadny voľnopísaný fallback sa nepoužíva.");
-      return json({ success: false, error: "invalid_events_response" }, 502);
+      console.error(`[akcie] ${usedProvider}/${usedModel} nedodržal schému.`);
+      return json(
+        {
+          success: false,
+          error: "invalid_events_response",
+          used_provider: usedProvider,
+          model: usedModel,
+          attempts,
+        },
+        502,
+      );
     }
     const list = (parsed as { akcie: unknown[] }).akcie;
 
@@ -627,7 +904,6 @@ serve(async (req) => {
     const groundingUrlSet = new Set(
       groundingUrls.map(normalizeSourceUrl).filter((url): url is string => Boolean(url)),
     );
-    const today = getLocalDateKey();
 
     for (const item of list) {
       const row = toRow(item, groundingUrlSet, groundingSupports, today);
@@ -646,8 +922,20 @@ serve(async (req) => {
     }
 
     if (list.length > 0 && rows.length === 0) {
-      console.error("Gemini vrátil podujatia, ale žiadne neprešli kontrolou zdrojov a rozsahu.");
-      return json({ success: false, error: "no_events_passed_validation", skipped }, 502);
+      console.error(
+        `${usedProvider} vrátil podujatia, ale žiadne neprešli kontrolou zdrojov a rozsahu.`,
+      );
+      return json(
+        {
+          success: false,
+          error: "no_events_passed_validation",
+          skipped,
+          used_provider: usedProvider,
+          model: usedModel,
+          attempts,
+        },
+        502,
+      );
     }
 
     if (list.length === 0) {
@@ -658,7 +946,19 @@ serve(async (req) => {
         console.error("Vyčistenie overeného prázdneho zoznamu zlyhalo:", replaceError);
         return json({ success: false, error: replaceError.message }, 500);
       }
-      return json({ success: true, model: usedModel, mode: "replace", inserted: 0, skipped });
+      console.log(
+        `[akcie] OK provider=${usedProvider} model=${usedModel} inserted=0 attempts=${JSON.stringify(attempts)}`,
+      );
+      return json({
+        success: true,
+        provider: usedProvider,
+        used_provider: usedProvider,
+        model: usedModel,
+        mode: "replace",
+        inserted: 0,
+        skipped,
+        attempts,
+      });
     }
 
     // --- 3) Uloženie nového zoznamu v jednej databázovej transakcii ----------
@@ -671,12 +971,18 @@ serve(async (req) => {
       return json({ success: false, error: replaceError.message }, 500);
     }
 
+    console.log(
+      `[akcie] OK provider=${usedProvider} model=${usedModel} inserted=${rows.length} skipped=${skipped} attempts=${JSON.stringify(attempts)}`,
+    );
     return json({
       success: true,
+      provider: usedProvider,
+      used_provider: usedProvider,
       model: usedModel,
       mode: "replace",
       inserted: rows.length,
       skipped,
+      attempts,
     });
   } catch (error) {
     console.error("aktualizuj-akcie zlyhal:", error);
