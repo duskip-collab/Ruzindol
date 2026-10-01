@@ -499,7 +499,6 @@ function toRow(
   const groundedEvent =
     Boolean(supportText) &&
     normalizedSupport.includes(normalize(nazov)) &&
-    normalizedSupport.includes(normalize(miesto)) &&
     displayDateMatches(supportText, konanieDna);
 
   if (

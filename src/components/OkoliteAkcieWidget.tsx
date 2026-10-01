@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, Loader2, MapPin, MapPinned, Navigation, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { triggerHaptic } from "@/lib/haptics";
@@ -68,6 +68,7 @@ export function OkoliteAkcieWidget() {
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<DistanceFilter>("all");
   const [refreshKey, setRefreshKey] = useState(0);
+  const initialGenerationAttempted = useRef(false);
 
   // Načítanie dát prebieha len vtedy, keď je modálne okno otvorené alebo sa vynúti obnovenie
   useEffect(() => {
@@ -79,30 +80,53 @@ export function OkoliteAkcieWidget() {
       setError(false);
       const today = localDateKey(new Date());
 
-      const { data, error: queryError } = await supabase
-        .from("okolite_akcie")
-        .select(
-          "id, nazov, popis, obec, vzdialenost_km, kategoria, datum_cas, konanie_dna, miesto, zdroj_url, created_at",
-        )
-        .gte("konanie_dna", today)
-        .lte("konanie_dna", addDays(today, 30))
-        // Prísny režim: bez overeného zdroja sa položka nikdy nezobrazí.
-        .not("zdroj_url", "is", null)
-        .order("konanie_dna", { ascending: true })
-        .order("vzdialenost_km", { ascending: true })
-        .limit(500);
+      const loadItems = async (): Promise<OkolitaAkcia[]> => {
+        const { data, error: queryError } = await supabase
+          .from("okolite_akcie")
+          .select(
+            "id, nazov, popis, obec, vzdialenost_km, kategoria, datum_cas, konanie_dna, miesto, zdroj_url, created_at",
+          )
+          .gte("konanie_dna", today)
+          .lte("konanie_dna", addDays(today, 30))
+          .not("zdroj_url", "is", null)
+          .order("konanie_dna", { ascending: true })
+          .order("vzdialenost_km", { ascending: true })
+          .limit(500);
 
-      if (cancelled) return;
+        if (queryError) throw queryError;
+        return (data as unknown as OkolitaAkcia[] | null) ?? [];
+      };
 
-      if (queryError) {
-        console.error("Chyba pri načítavaní akcií v okolí:", queryError);
-        setItems([]);
-        setError(true);
-      } else {
-        setItems((data as unknown as OkolitaAkcia[] | null) ?? []);
+      try {
+        let nextItems = await loadItems();
+        if (cancelled) return;
+
+        if (nextItems.length === 0 && !initialGenerationAttempted.current) {
+          initialGenerationAttempted.current = true;
+          const { data: generation, error: generationError } =
+            await supabase.functions.invoke("aktualizuj-akcie");
+          if (generationError) throw generationError;
+          if (
+            generation &&
+            typeof generation === "object" &&
+            "success" in generation &&
+            generation.success === false
+          ) {
+            throw new Error("Akcie sa nepodarilo vyhľadať. Skúste to znova neskôr.");
+          }
+          nextItems = await loadItems();
+        }
+
+        if (!cancelled) setItems(nextItems);
+      } catch (loadError) {
+        if (!cancelled) {
+          console.error("Chyba pri načítavaní alebo generovaní akcií v okolí:", loadError);
+          setItems([]);
+          setError(true);
+        }
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     })();
 
     return () => {
@@ -153,11 +177,33 @@ export function OkoliteAkcieWidget() {
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
-                    setRefreshKey((k) => k + 1);
+                    setLoading(true);
+                    setError(false);
+                    void supabase.functions
+                      .invoke("aktualizuj-akcie")
+                      .then(({ data: generation, error: generationError }) => {
+                        if (generationError) throw generationError;
+                        if (
+                          generation &&
+                          typeof generation === "object" &&
+                          "success" in generation &&
+                          generation.success === false
+                        ) {
+                          throw new Error("Akcie sa nepodarilo vyhľadať. Skúste to znova neskôr.");
+                        }
+                        initialGenerationAttempted.current = true;
+                        setRefreshKey((key) => key + 1);
+                      })
+                      .catch((generationError: unknown) => {
+                        console.error("Chyba pri vyhľadávaní akcií v okolí:", generationError);
+                        setItems([]);
+                        setError(true);
+                        setLoading(false);
+                      });
                   }}
                   className="header-action-button flex h-9 w-9 items-center justify-center rounded-full"
-                  title="Obnoviť akcie v okolí"
-                  aria-label="Obnoviť akcie v okolí"
+                  title="Znova vyhľadať overené akcie"
+                  aria-label="Znova vyhľadať overené akcie"
                 >
                   <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
                 </button>
