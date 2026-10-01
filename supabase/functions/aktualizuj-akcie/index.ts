@@ -570,7 +570,9 @@ serve(async (req) => {
       let text = "";
 
       const withSchema = await geminiGenerate(model, geminiKey, true);
-      attempts.push(`${model} -> ${withSchema.status}`);
+      attempts.push(
+        `${model} -> ${withSchema.status}${withSchema.details ? `: ${withSchema.details.slice(0, 240)}` : ""}`,
+      );
 
       if (withSchema.ok && withSchema.text) {
         text = withSchema.text;
@@ -579,7 +581,9 @@ serve(async (req) => {
       } else if (withSchema.status === 400) {
         // Model existuje, ale nepodporil responseSchema -> skús bez schémy.
         const noSchema = await geminiGenerate(model, geminiKey, false);
-        attempts.push(`${model} (bez schémy) -> ${noSchema.status}`);
+        attempts.push(
+          `${model} (bez schémy) -> ${noSchema.status}${noSchema.details ? `: ${noSchema.details.slice(0, 240)}` : ""}`,
+        );
         if (noSchema.ok && noSchema.text) {
           text = noSchema.text;
           groundingUrls = noSchema.groundingUrls;

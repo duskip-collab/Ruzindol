@@ -44,6 +44,34 @@ function addDays(dateKey: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+async function getGenerationErrorMessage(error: unknown): Promise<string> {
+  if (!error || typeof error !== "object" || !("context" in error)) {
+    return error instanceof Error ? error.message : "Neznáma chyba.";
+  }
+
+  const context = error.context;
+  if (!(context instanceof Response)) {
+    return error instanceof Error ? error.message : "Neznáma chyba.";
+  }
+
+  const body: unknown = await context
+    .clone()
+    .json()
+    .catch(() => null);
+  if (!body || typeof body !== "object") {
+    return `Edge Function vrátila HTTP ${context.status}.`;
+  }
+
+  const details = body as { error?: unknown; attempts?: unknown };
+  const reason = typeof details.error === "string" ? details.error : "Edge Function zlyhala.";
+  const attempts = Array.isArray(details.attempts)
+    ? details.attempts
+        .filter((attempt): attempt is string => typeof attempt === "string")
+        .join("; ")
+    : "";
+  return [`HTTP ${context.status}: ${reason}`, attempts].filter(Boolean).join(" — ");
+}
+
 const KATEGORIA_META: Record<Kategoria, { label: string; emoji: string; accent: string }> = {
   trhy: { label: "Trhy", emoji: "🛒", accent: "from-emerald-500 to-teal-500" },
   kultura: { label: "Kultúra", emoji: "🎭", accent: "from-violet-500 to-indigo-500" },
@@ -65,7 +93,7 @@ export function OkoliteAkcieWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<OkolitaAkcia[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<DistanceFilter>("all");
   const [refreshKey, setRefreshKey] = useState(0);
   const initialGenerationAttempted = useRef(false);
@@ -77,7 +105,7 @@ export function OkoliteAkcieWidget() {
 
     (async () => {
       setLoading(true);
-      setError(false);
+      setError(null);
       const today = localDateKey(new Date());
 
       const loadItems = async (): Promise<OkolitaAkcia[]> => {
@@ -105,7 +133,9 @@ export function OkoliteAkcieWidget() {
           initialGenerationAttempted.current = true;
           const { data: generation, error: generationError } =
             await supabase.functions.invoke("aktualizuj-akcie");
-          if (generationError) throw generationError;
+          if (generationError) {
+            throw new Error(await getGenerationErrorMessage(generationError));
+          }
           if (
             generation &&
             typeof generation === "object" &&
@@ -122,7 +152,7 @@ export function OkoliteAkcieWidget() {
         if (!cancelled) {
           console.error("Chyba pri načítavaní alebo generovaní akcií v okolí:", loadError);
           setItems([]);
-          setError(true);
+          setError(loadError instanceof Error ? loadError.message : "Neznáma chyba.");
         }
       }
 
@@ -178,11 +208,15 @@ export function OkoliteAkcieWidget() {
                   onClick={() => {
                     triggerHaptic("light");
                     setLoading(true);
-                    setError(false);
+                    setError(null);
                     void supabase.functions
                       .invoke("aktualizuj-akcie")
                       .then(({ data: generation, error: generationError }) => {
-                        if (generationError) throw generationError;
+                        if (generationError) {
+                          return getGenerationErrorMessage(generationError).then((message) => {
+                            throw new Error(message);
+                          });
+                        }
                         if (
                           generation &&
                           typeof generation === "object" &&
@@ -197,7 +231,11 @@ export function OkoliteAkcieWidget() {
                       .catch((generationError: unknown) => {
                         console.error("Chyba pri vyhľadávaní akcií v okolí:", generationError);
                         setItems([]);
-                        setError(true);
+                        setError(
+                          generationError instanceof Error
+                            ? generationError.message
+                            : "Neznáma chyba.",
+                        );
                         setLoading(false);
                       });
                   }}
@@ -258,8 +296,8 @@ export function OkoliteAkcieWidget() {
                   <p className="text-xs">Načítavam akcie v okolí...</p>
                 </div>
               ) : error ? (
-                <p className="py-16 text-center text-xs text-muted-foreground">
-                  Akcie sa nepodarilo načítať. Skúste obnoviť.
+                <p className="py-16 text-center text-xs text-muted-foreground break-words">
+                  Akcie sa nepodarilo načítať: {error}
                 </p>
               ) : filtered.length === 0 ? (
                 <p className="py-16 text-center text-xs text-muted-foreground">
