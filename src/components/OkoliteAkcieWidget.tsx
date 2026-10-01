@@ -97,30 +97,30 @@ export function OkoliteAkcieWidget() {
           triggerHaptic("light");
           setIsOpen(true);
         }}
-        className="app-card flex flex-col items-center justify-center p-4 rounded-3xl shadow-sm hover:scale-[1.02] transition-all text-center w-full group cursor-pointer border border-border/50"
+        className="app-card flex flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:scale-[1.02] hover:bg-[color:var(--bg-surface-hover)] shadow-sm"
       >
-        <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-2 group-hover:bg-orange-500/20 transition-colors">
-          <MapPinned className="w-6 h-6" />
-        </div>
-        <span className="font-semibold text-foreground text-sm">Akcie v okolí</span>
-        <span className="text-[11px] text-muted-foreground">Tip na víkend</span>
+        <span className="flex h-12 w-12 items-center justify-center rounded-full shadow-sm bg-orange-500 text-white">
+          <MapPinned className="h-5 w-5" />
+        </span>
+        <span className="text-xs font-semibold leading-tight text-foreground">Akcie v okolí</span>
       </button>
 
       {/* 2. Modálne okno (Overlay) na celú plochu so zatváracím krížikom */}
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end sm:items-center sm:justify-center p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-background w-full h-full sm:h-[85vh] sm:max-h-[800px] sm:max-w-2xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden border border-border">
-            
             {/* Hlavička modalu */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-2.5">
                 <MapPinned className="h-5 w-5 text-orange-500" />
                 <div>
                   <h2 className="text-base font-bold text-foreground">Akcie v okolí</h2>
-                  <p className="text-xs text-muted-foreground">Tip na víkend · do 30 km od Ružindolu</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tip na víkend · do 30 km od Ružindolu
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -200,7 +200,6 @@ export function OkoliteAkcieWidget() {
                 </div>
               )}
             </div>
-
           </div>
         </div>
       )}

@@ -446,10 +446,9 @@ export function AktualityScreen() {
                   </span>
                 </button>
               ))}
+              {/* "Akcie v okolí" — dlaždica v rovnakej mriežke ako ostatné sekcie */}
+              <OkoliteAkcieWidget />
             </div>
-
-            {/* Nový izolovaný blok: "Akcie v okolí" (Tip na víkend) */}
-            <OkoliteAkcieWidget />
           </div>
         ) : (
           <div className="flex flex-1 flex-col gap-4 animate-in fade-in duration-200">
