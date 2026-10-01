@@ -16,6 +16,8 @@
 //
 //  ENV premenné (Supabase -> Project Settings -> Edge Functions -> Secrets):
 //    GEMINI_API_KEY = tvoj Google AI Studio kľúč
+//    GEMINI_MODEL (voliteľné) = konkrétny model (inak sa vyberie automaticky)
+//    OKOLITE_REPLACE (voliteľné) = "false" vypne úplný refresh (ostane len upsert)
 //  (SUPABASE_URL a SUPABASE_SERVICE_ROLE_KEY sú dostupné automaticky.)
 // =============================================================================
 
@@ -38,6 +40,13 @@ const GEMINI_MODELS = [
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Režim "svieži zoznam": predvolene najprv vyčistí tabuľku a vloží nový zoznam,
+// takže neostanú staré ani duplicitné akcie. Vypne sa cez OKOLITE_REPLACE=false.
+const REPLACE_MODE = (Deno.env.get("OKOLITE_REPLACE") ?? "true").toLowerCase() !== "false";
+// Bezpečnostná poistka: tabuľku vyčistíme len ak AI vrátila aspoň toľko položiek,
+// aby sme pri výpadku/výmene AI náhodou nezmazali všetky dáta.
+const MIN_ITEMS_FOR_REPLACE = 3;
 
 const KATEGORIE = ["trhy", "kultura", "sport", "hodove", "gastronomia"] as const;
 type Kategoria = (typeof KATEGORIE)[number];
@@ -332,8 +341,35 @@ serve(async (req) => {
       return json({ success: true, inserted: 0, skipped, note: "no_valid_events" });
     }
 
-    // --- 3) Upsert do izolovanej tabuľky okolite_akcie ----------------------
-    // onConflict zodpovedá unikátnemu indexu okolite_akcie_unique_idx.
+    // --- 3) Uloženie do izolovanej tabuľky okolite_akcie --------------------
+    // Režim "svieži zoznam" (predvolene ZAPNUTÝ): najprv vyčistí tabuľku a vloží
+    // nový zoznam -> žiadne staré ani duplicitné akcie. Tabuľku vyčistíme LEN ak
+    // AI vrátila dostatok platných položiek (ochrana proti výpadku).
+    if (REPLACE_MODE && rows.length >= MIN_ITEMS_FOR_REPLACE) {
+      const { error: clearError } = await supabase.from(TABLE).delete().not("id", "is", null);
+
+      if (clearError) {
+        console.error("Vyčistenie okolite_akcie zlyhalo:", clearError);
+        return json({ success: false, error: clearError.message }, 500);
+      }
+
+      const { error: insertError } = await supabase.from(TABLE).insert(rows);
+
+      if (insertError) {
+        console.error("Vloženie do okolite_akcie zlyhalo:", insertError);
+        return json({ success: false, error: insertError.message }, 500);
+      }
+
+      return json({
+        success: true,
+        model: usedModel,
+        mode: "replace",
+        inserted: rows.length,
+        skipped,
+      });
+    }
+
+    // Fallback: upsert podľa unikátneho kľúča (nazov, obec, datum_cas).
     const { error: upsertError } = await supabase
       .from(TABLE)
       .upsert(rows, { onConflict: "nazov,obec,datum_cas", ignoreDuplicates: false });
@@ -343,7 +379,13 @@ serve(async (req) => {
       return json({ success: false, error: upsertError.message }, 500);
     }
 
-    return json({ success: true, model: usedModel, inserted: rows.length, skipped });
+    return json({
+      success: true,
+      model: usedModel,
+      mode: "upsert",
+      inserted: rows.length,
+      skipped,
+    });
   } catch (error) {
     console.error("aktualizuj-akcie zlyhal:", error);
     const message = error instanceof Error ? error.message : "unknown_error";
