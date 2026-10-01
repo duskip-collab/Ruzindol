@@ -91,15 +91,22 @@ výstavy, športové podujatia (behy, zápasy, turnaje) a gastronomické akcie.
 
 PRAVIDLÁ (dodrž ich bezpodmienečne):
 1. Vráť IBA čistý JSON podľa poskytnutej schémy. Žiadny úvodný ani záverečný text.
-2. "kategoria" musí byť presne jedna z hodnôt: trhy, kultura, sport, hodove, gastronomia.
-3. "vzdialenost_km" = približná vzdialenosť vzdušnou čiarou od Ružindolu, číslo 0–30.
-4. "datum_cas" = ľudsky čitateľný dátum a čas, napr. "Sobota 4.10.2026 od 09:00".
-5. "miesto" = konkrétne miesto konania (námestie, kultúrny dom, park, športovisko...).
-6. "obec" = názov obce alebo mesta.
-7. "popis" = krátka, vecná 1–2 vetová pozvánka (max. 200 znakov).
-8. Nikdy si nevymýšľaj kontakty, ceny ani fiktívne akcie. Ak si nie si istý, akciu vynechaj.
-9. Zoraď akcie od najbližšej (najmenšia vzdialenosť) po najvzdialenejšiu.
-10. Vráť 8 až 15 položiek (ak ich toľko existuje).
+2. Uveď iba podujatia potvrdené aktuálnymi a dôveryhodnými podkladmi alebo výsledkami
+   vyhľadávania. Nepoužívaj vlastnú pamäť, odhady ani domýšľanie opakujúcich sa akcií.
+3. Nikdy nevymýšľaj správy o obecnom úrade, hasičoch či obci ani fiktívne alebo
+   neexistujúce podujatia. Ak pre akciu nemáš overiteľné podklady, vynechaj ju.
+4. Ak sa nepodarí nájsť žiadnu overenú akciu v okruhu do 30 km, vráť
+   {"akcie":[]} – kalendár nesmieš dopĺňať vymyslenými udalosťami.
+5. "kategoria" musí byť presne jedna z hodnôt: trhy, kultura, sport, hodove, gastronomia.
+6. "vzdialenost_km" = približná vzdialenosť vzdušnou čiarou od Ružindolu, číslo 0–30.
+7. "datum_cas" = ľudsky čitateľný dátum a čas, napr. "Sobota 4.10.2026 od 09:00".
+8. "miesto" = konkrétne miesto konania (námestie, kultúrny dom, park, športovisko...).
+9. "obec" = názov obce alebo mesta.
+10. "popis" = krátka, vecná 1–2 vetová pozvánka (max. 200 znakov).
+11. Nikdy si nevymýšľaj kontakty ani ceny.
+12. Zoraď akcie od najbližšej (najmenšia vzdialenosť) po najvzdialenejšiu.
+13. Vráť 8 až 15 položiek, iba ak existuje toľko overených podujatí; inak vráť
+    všetky overené podujatia alebo prázdny zoznam.
 `.trim();
 
 // Schéma výstupu – vynúti štruktúru presne podľa tabuľky `okolite_akcie`.
@@ -143,7 +150,7 @@ async function geminiGenerate(
   includeSchema: boolean,
 ): Promise<GeminiAttempt> {
   const generationConfig: Record<string, unknown> = {
-    temperature: 0.4,
+    temperature: 0.1,
     responseMimeType: "application/json",
   };
   if (includeSchema) generationConfig.responseSchema = RESPONSE_SCHEMA;
@@ -157,6 +164,7 @@ async function geminiGenerate(
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig,
+      tools: [{ google_search: {} }],
     }),
   });
 

@@ -87,6 +87,8 @@ z overených RSS zdrojov, prípadne výsledky živého vyhľadávania).
 ZAKÁZANÉ (okamžite diskvalifikuje odpoveď):
 - vymýšľať udalosti, dátumy, časy, miesta, mená, citáty, výsledky zápasov,
   zásahy, sumy, stavby, projekty alebo rozhodnutia, ktoré nie sú v podkladoch,
+- vytvárať fiktívne správy o obecnom úrade, hasičoch, obci alebo neexistujúcich
+  podujatiach,
 - spájať podklady do udalostí, ktoré sa nestali, alebo meniť ich zmysel,
 - používať fakty, ktoré nie sú v podkladoch (ani "zo svojej pamäte"), pokiaľ
   nejde o všeobecne známe nemenné skutočnosti (napr. Ružindol leží v okrese
@@ -593,16 +595,17 @@ async function geminiGenerate(
   userPrompt: string,
 ): Promise<GenResult> {
   const generationConfig: Record<string, unknown> = {
-    temperature: 0.4,
     maxOutputTokens: 2560,
     responseMimeType: "application/json",
+    temperature: 0.1,
   };
 
   // iba novšie modely podporujú responseSchema – pri chybe 400 skúsime bez neho
   if (includeSchema) generationConfig.responseSchema = RESPONSE_SCHEMA;
 
   const body: Record<string, unknown> = {
-    contents: [{ role: "user", parts: [{ text: SYSTEM_PROMPT + userPrompt }] }],
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
     generationConfig,
     // živé vyhľadávanie cez Google Search grounding (vyžaduje platený plán)
     ...(grounding ? { tools: [{ google_search: {} }] } : {}),
