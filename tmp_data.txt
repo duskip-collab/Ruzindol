@@ -1,0 +1,43 @@
+﻿URL: announcements?select=*&limit=1
+[]
+---
+URL: events?select=title,starts_at,type&starts_at=gte.2026-09-15&order=starts_at.asc
+[{"title":"Výstava ovocia, zeleniny, kvetov, výšiviek a fotografií","starts_at":"2026-09-19T11:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Jesenný trh","starts_at":"2026-09-19T13:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Vývoz triedeného zberu plastov","starts_at":"2026-09-23T04:00:00+00:00","type":"odpad"}, 
+ {"title":"Zber komunálneho odpadu","starts_at":"2026-09-24T04:00:00+00:00","type":"odpad"}, 
+ {"title":"3.ročník regionálnych hier seniorov","starts_at":"2026-09-28T10:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-10-08T04:00:00+00:00","type":"odpad"}, 
+ {"title":"Vývoz komunálneho odpadu","starts_at":"2026-10-08T04:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Vývoz komunálneho odpadu","starts_at":"2026-10-08T10:00:00+00:00","type":"odpad"}, 
+ {"title":"Vývoz komunálneho odpadu","starts_at":"2026-10-08T10:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Stretnutie darcov krvi","starts_at":"2026-10-08T15:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Posedenie so seniormi","starts_at":"2026-10-13T10:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-10-22T04:00:00+00:00","type":"odpad"}, 
+ {"title":"Plast","starts_at":"2026-10-29T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-11-05T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Koniec prvej svetovej vojny","starts_at":"2026-11-11T06:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Svätomartinský lampiónový sprievod","starts_at":"2026-11-11T16:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Volejbalový turnaj","starts_at":"2026-11-14T08:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-11-18T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Plast","starts_at":"2026-11-19T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Detská Katarínska zábava","starts_at":"2026-11-21T12:00:00+00:00","type":"Samosprava"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-12-03T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-12-16T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Plast","starts_at":"2026-12-17T05:00:00+00:00","type":"odpad"}, 
+ {"title":"Zmesový odpad","starts_at":"2026-12-31T05:00:00+00:00","type":"odpad"}]
+---
+URL: okolite_akcie?select=nazov,obec,datum_cas,created_at&order=created_at.desc
+[{"nazov":"Ružindolský jesenný jarmok","obec":"Ružindol","datum_cas":"Sobota 10.10.2026 od 09:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Susedské posedenie pri víne","obec":"Ružindol","datum_cas":"Piatok 16.10.2026 od 18:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Trnavské hody","obec":"Trnava","datum_cas":"12.10. – 14.10.2026","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Trnavský jesenný jarmok","obec":"Trnava","datum_cas":"Sobota 17.10.2026 od 08:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Koncert komorného orchestra","obec":"Trnava","datum_cas":"Nedeľa 18.10.2026 od 19:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Farmárske trhy","obec":"Suchá nad Parnou","datum_cas":"Sobota 10.10.2026 od 07:30","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Futbalový turnaj OŠK","obec":"Cífer","datum_cas":"Sobota 17.10.2026 od 13:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Orešanské hody","obec":"Dolné Orešany","datum_cas":"25.10. – 26.10.2026","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Vinobranie a koštovka","obec":"Dolné Orešany","datum_cas":"Sobota 24.10.2026 od 15:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Beh okolo Smolenického zámku","obec":"Smolenice","datum_cas":"Nedeľa 11.10.2026 od 10:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Folklórne popoludnie","obec":"Horné Orešany","datum_cas":"Nedeľa 18.10.2026 od 15:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Modranské vinobranie","obec":"Modra","datum_cas":"Sobota 3.10.2026 od 12:00","created_at":"2026-10-01T11:05:01.920171+00:00"}, 
+ {"nazov":"Koncert v evanjelickom kostole","obec":"Trstín","datum_cas":"Nedeľa 25.10.2026 od 17:00","created_at":"2026-10-01T11:05:01.920171+00:00"}]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Loader2, Newspaper, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { triggerHaptic } from "@/lib/haptics";
@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
  * ------------------------------------------------------------------
  * Modul pre sekciu Aktuality. Zobrazuje sa ako dlaždica; po kliknutí otvára
  * overlay okno s najnovším týždenným súhrnom z tabuľky `tyzdenne_sumare`.
- * Dáta plní na pozadí Edge Function "generuj-tyzdenny-sumar" (AI + Google Search).
+ * Dáta plní na pozadí Edge Function "generuj-tyzdenny-sumar"
+ * (dáta z aplikácie + overené RSS zdroje, len pravdivý obsah).
  */
 
 type TydennySumar = {
@@ -19,6 +20,31 @@ type TydennySumar = {
   obdobie: string | null;
   created_at: string;
 };
+
+/**
+ * Vykreslí text článku tak, aby boli odkazy na zdroje (riadky pod článkom)
+ * klikateľné – čitateľ si tak môže overiť pravdivosť každej informácie.
+ */
+function renderWithLinks(text: string): ReactNode[] {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, index) => {
+    if (!/^https?:\/\//.test(part)) return <span key={index}>{part}</span>;
+    const url = part.replace(/[.,;:!?)]+$/, "");
+    const tail = part.slice(url.length);
+    return (
+      <span key={index}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all text-indigo-500 underline decoration-indigo-300 underline-offset-2"
+        >
+          {url}
+        </a>
+        {tail}
+      </span>
+    );
+  });
+}
 
 export function RuzindolskeNovinyWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -150,7 +176,7 @@ export function RuzindolskeNovinyWidget() {
                     Vydané {new Date(sumar.created_at).toLocaleDateString("sk-SK")}
                   </p>
                   <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                    {sumar.obsah}
+                    {renderWithLinks(sumar.obsah)}
                   </div>
                 </article>
               )}
