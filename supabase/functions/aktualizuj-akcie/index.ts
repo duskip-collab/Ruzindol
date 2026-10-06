@@ -7,7 +7,10 @@
 //    obce Ružindol (Trnava, Smolenice, Modra, Trstín, ...).
 //  • Vyžaduje grounding zdroj pre každú položku a atomicky nahrádza dáta v
 //    tabuľke `okolite_akcie` až po úspešnej validácii celej odpovede.
-//  • GEMINI_API_KEY -> ANTHROPIC_API_KEY -> QWEN_API_KEY je serverový fallback.
+//  • Využíva VÝHRADNE Google Gemini (žiadni iní poskytovatelia). Pred hľadaním
+//    si stiahne zoznam dostupných modelov cez Gemini REST API a postupne preverí
+//    VŠETKY flash modely od verzie 1.5 a vyššie, kým jedna odpoveď prejde
+//    kontrolou grounding zdrojov.
 //
 //  Nasadenie:
 //    supabase functions deploy aktualizuj-akcie --no-verify-jwt
@@ -16,31 +19,92 @@
 //
 //  ENV premenné (Supabase -> Project Settings -> Edge Functions -> Secrets):
 //    GEMINI_API_KEY = tvoj Google AI Studio kľúč
-//    GEMINI_MODEL (voliteľné) = konkrétny model (inak sa vyberie automaticky)
-//    ANTHROPIC_API_KEY = Anthropic kľúč pre fallback
-//    ANTHROPIC_MODEL (voliteľné) = preferovaný model Claude
-//    QWEN_API_KEY = OpenRouter kľúč pre Qwen fallback
-//    QWEN_MODEL / QWEN_API_BASE (voliteľné) = model a kompatibilný endpoint
+//    GEMINI_MODEL (voliteľné) = model, ktorý sa preverí ako úplne prvý
 //  (SUPABASE_URL a SUPABASE_SERVICE_ROLE_KEY sú dostupné automaticky.)
 // =============================================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Gemini API explicitly recommends this stable model for projects where 2.5
-// IDs are no longer available. Keep preview and moving aliases out of fallback.
-const MODEL_CANDIDATES = ["gemini-3.8-flash"];
-const UNIQUE_MODEL_CANDIDATES = [...new Set(MODEL_CANDIDATES)];
-
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const CLAUDE_MODELS = [
-  Deno.env.get("ANTHROPIC_MODEL"),
-  "claude-sonnet-4-5-20250929",
-  "claude-haiku-4-5-20251001",
-].filter((model): model is string => Boolean(model && model.trim()));
-const QWEN_MODEL = Deno.env.get("QWEN_MODEL") || "qwen/qwen-2.5-72b-instruct";
-const OPENROUTER_CHAT_URL =
-  Deno.env.get("QWEN_API_BASE") || "https://openrouter.ai/api/v1/chat/completions";
+
+// Preverujú sa len "flash" modely od tejto verzie (vrátane).
+const MIN_FLASH_VERSION_MAJOR = 1;
+const MIN_FLASH_VERSION_MINOR = 5;
+
+// Záložný zoznam ID (ak zoznam modelov cez REST API nepríde). Slúži len ako
+// sieťová poistka – filtre nižšie naň rovnako aplikujú podmienku flash >= 1.5.
+const FALLBACK_FLASH_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+];
+
+/** Vráti verziu [major, minor] pre flash model od 1.5 (vrátane), inak null. */
+function parseFlashVersion(modelId: string): [number, number] | null {
+  if (!/flash/i.test(modelId)) return null;
+  const match = modelId.match(/gemini-(\d+)\.(\d+)/i);
+  if (!match) return null;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  if (
+    major < MIN_FLASH_VERSION_MAJOR ||
+    (major === MIN_FLASH_VERSION_MAJOR && minor < MIN_FLASH_VERSION_MINOR)
+  ) {
+    return null;
+  }
+  return [major, minor];
+}
+
+/**
+ * Načíta VŠETKY dostupné flash modely (>= 1.5) z Gemini REST API a zoradí ich
+ * od najnovšej verzie po najstaršiu. Pri chybe siete alebo HTTP chybe použije
+ * záložný zoznam, aby vyhľadávanie nikdy nezostalo bez kandidátov.
+ */
+async function listFlashModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch(GEMINI_API_BASE, {
+      headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    }
+    const payload = await res.json();
+    const rawModels: unknown[] = Array.isArray(payload?.models) ? payload.models : [];
+
+    const candidates: { id: string; version: [number, number] }[] = [];
+    const seen = new Set<string>();
+    for (const raw of rawModels) {
+      if (!raw || typeof raw !== "object") continue;
+      const model = raw as { name?: unknown; supportedGenerationMethods?: unknown };
+      const id = typeof model.name === "string" ? model.name.replace(/^models\//, "") : "";
+      if (!id || seen.has(id)) continue;
+      // Vylúčime generátory obrázkov/zvuku a modely bez generateContent.
+      if (/image|video|audio|embedding|tts|aqa/i.test(id)) continue;
+      const methods = Array.isArray(model.supportedGenerationMethods)
+        ? model.supportedGenerationMethods.filter((m): m is string => typeof m === "string")
+        : [];
+      if (methods.length > 0 && !methods.includes("generateContent")) continue;
+      const version = parseFlashVersion(id);
+      if (!version) continue;
+      seen.add(id);
+      candidates.push({ id, version });
+    }
+
+    candidates.sort(
+      (a, b) =>
+        b.version[0] - a.version[0] || b.version[1] - a.version[1] || a.id.localeCompare(b.id),
+    );
+    return candidates.map((candidate) => candidate.id);
+  } catch (error) {
+    console.warn(`Zoznam Gemini modelov sa nepodarilo načítať, použijem záložný: ${error}`);
+    return FALLBACK_FLASH_MODELS.filter((id) => parseFlashVersion(id) !== null);
+  }
+}
 
 const EVENT_WINDOW_DAYS = 30;
 const TIME_ZONE = "Europe/Bratislava";
@@ -351,164 +415,6 @@ async function geminiGenerate(
   };
 }
 
-function providerFailure(
-  provider: string,
-  model: string,
-  status: number,
-  details: string,
-): GeminiAttempt {
-  return {
-    ok: false,
-    status,
-    details: details.slice(0, 500),
-    groundingUrls: [],
-    groundingSupports: [],
-    provider,
-    model,
-  };
-}
-
-async function anthropicGenerate(model: string, apiKey: string): Promise<GeminiAttempt> {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    let response: Response;
-    try {
-      response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 8192,
-          temperature: 0.1,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: buildUserPrompt() + schemaHint() }],
-          tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }],
-        }),
-        signal: AbortSignal.timeout(60_000),
-      });
-    } catch (error) {
-      if (attempt === 2) {
-        return providerFailure("claude", model, 0, `Sieťová chyba: ${String(error)}`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
-      continue;
-    }
-
-    if (response.ok) {
-      const data = await response.json();
-      const blocks = Array.isArray(data?.content) ? data.content : [];
-      const text = blocks
-        .filter((block: { type?: string }) => block.type === "text")
-        .map((block: { text?: string }) => block.text ?? "")
-        .join("\n")
-        .trim();
-      const supports: { text: string; urls: string[] }[] = [];
-      for (const block of blocks) {
-        for (const citation of block?.citations ?? []) {
-          const url = citation?.url;
-          const citedText = citation?.cited_text;
-          if (typeof url === "string" && typeof citedText === "string" && citedText.trim()) {
-            supports.push({ text: citedText, urls: [url] });
-          }
-        }
-      }
-      const urls = [...new Set(supports.flatMap((support) => support.urls))];
-      return {
-        ok: true,
-        status: response.status,
-        text,
-        groundingUrls: urls,
-        groundingSupports: supports,
-        provider: "claude",
-        model,
-      };
-    }
-
-    const details = await response.text().catch(() => "");
-    if ((response.status === 429 || response.status === 503) && attempt === 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      continue;
-    }
-    return providerFailure("claude", model, response.status, details);
-  }
-  return providerFailure("claude", model, 0, "Neznáma chyba Anthropic API");
-}
-
-async function qwenGenerate(apiKey: string): Promise<GeminiAttempt> {
-  let response: Response;
-  try {
-    response = await fetch(OPENROUTER_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: QWEN_MODEL,
-        temperature: 0.1,
-        max_tokens: 8192,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt() + schemaHint() },
-        ],
-        plugins: [{ id: "web", engine: "exa" }],
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-  } catch (error) {
-    return providerFailure("qwen", QWEN_MODEL, 0, `Sieťová chyba: ${String(error)}`);
-  }
-
-  if (!response.ok) {
-    return providerFailure(
-      "qwen",
-      QWEN_MODEL,
-      response.status,
-      await response.text().catch(() => ""),
-    );
-  }
-
-  const data = await response.json();
-  const message = data?.choices?.[0]?.message;
-  const text = typeof message?.content === "string" ? message.content.trim() : "";
-  const urls: string[] = [];
-  const supports: { text: string; urls: string[] }[] = [];
-  for (const annotation of message?.annotations ?? []) {
-    const citation = annotation?.url_citation;
-    if (annotation?.type !== "url_citation" || typeof citation?.url !== "string") continue;
-    urls.push(citation.url);
-    const start = Number(citation.start_index);
-    const end = Number(citation.end_index);
-    const citedText =
-      Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end > start
-        ? text.slice(start, end)
-        : "";
-    if (citedText) supports.push({ text: citedText, urls: [citation.url] });
-  }
-  for (const source of data?.citations ?? data?.sources ?? []) {
-    const url = source?.url;
-    const snippet = source?.snippet ?? source?.text;
-    if (typeof url === "string") {
-      urls.push(url);
-      if (typeof snippet === "string" && snippet.trim()) {
-        supports.push({ text: snippet, urls: [url] });
-      }
-    }
-  }
-  return {
-    ok: true,
-    status: response.status,
-    text,
-    groundingUrls: [...new Set(urls)],
-    groundingSupports: supports,
-    provider: "qwen",
-    model: QWEN_MODEL,
-  };
-}
-
 function normalize(text: string): string {
   return text
     .toLowerCase()
@@ -712,8 +618,6 @@ serve(async (req) => {
 
   try {
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    const qwenKey = Deno.env.get("QWEN_API_KEY");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -722,8 +626,10 @@ serve(async (req) => {
     });
 
     // --- 1) Zavolanie AI agenta Gemini (structured JSON output) --------------
-    // Modely skúšame po poradí; pri 404 (model pre kľúč neexistuje) prejdeme na
-    // ďalší, pri 400 (nepodporí responseSchema) skúsime to isté bez schémy.
+    // Najprv sa stiahne zoznam VŠETKÝCH dostupných flash modelov (>= 1.5) a
+    // preveria sa postupne od najnovšieho; pri 404 (model pre kľúč neexistuje)
+    // prejdeme na ďalší, pri 400 (nepodporí responseSchema) skúsime to isté
+    // bez schémy. Odpoveď sa akceptuje, až keď prejde validáciou zdrojov.
     let plainText = "";
     let usedModel = "";
     let usedProvider = "";
@@ -756,107 +662,74 @@ serve(async (req) => {
       }
     };
 
-    if (!geminiKey) attempts.push("gemini -> preskočený: chýba GEMINI_API_KEY");
-    for (const model of geminiKey ? UNIQUE_MODEL_CANDIDATES : []) {
-      if (!geminiKey) continue;
-      let text = "";
-
-      const withSchema = await geminiGenerate(model, geminiKey, true);
+    if (!geminiKey) {
+      attempts.push("gemini -> preskočený: chýba GEMINI_API_KEY");
+    } else {
+      // Zoznam všetkých dostupných flash modelov (>= 1.5) z Gemini REST API,
+      // zoradený od najnovšej verzie. GEMINI_MODEL (ak je nastavený) ide prvý.
+      const discovered = await listFlashModels(geminiKey);
+      const preferred = Deno.env.get("GEMINI_MODEL")?.trim();
+      const modelQueue = [
+        ...new Set([...(preferred && preferred.length > 0 ? [preferred] : []), ...discovered]),
+      ];
       attempts.push(
-        `gemini/${model} -> ${withSchema.status}${withSchema.details ? `: ${withSchema.details.slice(0, 240)}` : ""}`,
+        `gemini -> dostupné flash modely (>=1.5): ${modelQueue.join(", ") || "žiadne"}`,
       );
 
-      if (withSchema.ok && withSchema.text) {
-        text = withSchema.text;
-        groundingUrls = withSchema.groundingUrls;
-        groundingSupports = withSchema.groundingSupports;
-      } else if (withSchema.status === 400) {
-        // Model existuje, ale nepodporil responseSchema -> skús bez schémy.
-        const noSchema = await geminiGenerate(model, geminiKey, false);
+      for (const model of modelQueue) {
+        let text = "";
+        let urls: string[] = [];
+        let supports: { text: string; urls: string[] }[] = [];
+
+        const withSchema = await geminiGenerate(model, geminiKey, true);
         attempts.push(
-          `gemini/${model} (bez schémy) -> ${noSchema.status}${noSchema.details ? `: ${noSchema.details.slice(0, 240)}` : ""}`,
+          `gemini/${model} -> ${withSchema.status}${withSchema.details ? `: ${withSchema.details.slice(0, 240)}` : ""}`,
         );
-        if (noSchema.ok && noSchema.text) {
-          text = noSchema.text;
-          groundingUrls = noSchema.groundingUrls;
-          groundingSupports = noSchema.groundingSupports;
-        }
-      }
 
-      if (text) {
-        plainText = text;
-        usedModel = model;
-        usedProvider = "gemini";
-        break;
-      }
-    }
-
-    // Fallback providers perform their own web search. Their output is accepted
-    // only when they return source URLs and text-level evidence used by toRow().
-    if (
-      !plainText ||
-      groundingUrls.length === 0 ||
-      groundingSupports.length === 0 ||
-      !hasValidatedPayload(plainText, groundingUrls, groundingSupports)
-    ) {
-      plainText = "";
-      groundingUrls = [];
-      groundingSupports = [];
-
-      if (!anthropicKey) attempts.push("claude -> preskočený: chýba ANTHROPIC_API_KEY");
-      if (anthropicKey) {
-        for (const model of CLAUDE_MODELS) {
-          const result = await anthropicGenerate(model, anthropicKey);
+        if (withSchema.ok && withSchema.text) {
+          text = withSchema.text;
+          urls = withSchema.groundingUrls;
+          supports = withSchema.groundingSupports;
+        } else if (withSchema.status === 400) {
+          // Model existuje, ale nepodporil responseSchema -> skús bez schémy.
+          const noSchema = await geminiGenerate(model, geminiKey, false);
           attempts.push(
-            `claude/${model} -> ${result.status}${result.details ? `: ${result.details.slice(0, 240)}` : ""}`,
+            `gemini/${model} (bez schémy) -> ${noSchema.status}${noSchema.details ? `: ${noSchema.details.slice(0, 240)}` : ""}`,
           );
-          if (
-            result.ok &&
-            result.text &&
-            result.groundingUrls.length &&
-            result.groundingSupports.length &&
-            hasValidatedPayload(result.text, result.groundingUrls, result.groundingSupports)
-          ) {
-            plainText = result.text;
-            usedProvider = "claude";
-            usedModel = model;
-            groundingUrls = result.groundingUrls;
-            groundingSupports = result.groundingSupports;
-            break;
+          if (noSchema.ok && noSchema.text) {
+            text = noSchema.text;
+            urls = noSchema.groundingUrls;
+            supports = noSchema.groundingSupports;
           }
         }
-      }
 
-      if (!plainText || !groundingUrls.length || !groundingSupports.length) {
-        plainText = "";
-        groundingUrls = [];
-        groundingSupports = [];
-        if (!qwenKey) attempts.push("qwen -> preskočený: chýba QWEN_API_KEY");
-        if (qwenKey) {
-          const result = await qwenGenerate(qwenKey);
+        // Model preveril zadanie úspešne, až keď vrátil grounding zdroje
+        // a aspoň jedno podujatie prešlo prísnou validáciou (hasValidatedPayload).
+        if (
+          text &&
+          urls.length > 0 &&
+          supports.length > 0 &&
+          hasValidatedPayload(text, urls, supports)
+        ) {
+          plainText = text;
+          groundingUrls = urls;
+          groundingSupports = supports;
+          usedModel = model;
+          usedProvider = "gemini";
+          break;
+        }
+
+        if (text) {
           attempts.push(
-            `qwen/${QWEN_MODEL} -> ${result.status}${result.details ? `: ${result.details.slice(0, 240)}` : ""}`,
+            `gemini/${model} -> odpoveď neprešla validáciou zdrojov, skúšam ďalší model`,
           );
-          if (
-            result.ok &&
-            result.text &&
-            result.groundingUrls.length &&
-            result.groundingSupports.length &&
-            hasValidatedPayload(result.text, result.groundingUrls, result.groundingSupports)
-          ) {
-            plainText = result.text;
-            usedProvider = "qwen";
-            usedModel = QWEN_MODEL;
-            groundingUrls = result.groundingUrls;
-            groundingSupports = result.groundingSupports;
-          }
         }
       }
     }
 
     if (!plainText || !groundingUrls.length || !groundingSupports.length) {
       console.error(
-        "AI poskytovatelia nevrátili overiteľné zdroje; kalendár zostáva nezmenený.",
+        "Gemini modely nevrátili overiteľné zdroje; kalendár zostáva nezmenený.",
         attempts,
       );
       return json(
