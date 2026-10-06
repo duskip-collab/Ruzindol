@@ -37,7 +37,6 @@ import { ElectionsScreen } from "@/screens/ElectionsScreen";
 import { InquiriesScreen } from "@/screens/InquiriesScreen";
 import { SharedCalendar } from "../components/SharedCalendar";
 import { AktualityGroupsPanel } from "@/components/AktualityGroupsPanel";
-import { OkoliteAkcieWidget } from "@/components/OkoliteAkcieWidget";
 import { DigitalnyRozhlas } from "@/components/RolePanels";
 
 type Priority = "oznam" | "prioritne" | "urgentne" | "vystraha";
@@ -446,8 +445,6 @@ export function AktualityScreen() {
                   </span>
                 </button>
               ))}
-              {/* "Akcie v okolí" — dlaždica v rovnakej mriežke ako ostatné sekcie */}
-              <OkoliteAkcieWidget />
             </div>
           </div>
         ) : (
