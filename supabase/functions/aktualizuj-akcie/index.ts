@@ -9,7 +9,7 @@
 //    tabuľke `okolite_akcie` až po úspešnej validácii celej odpovede.
 //  • Využíva VÝHRADNE Google Gemini (žiadni iní poskytovatelia). Pred hľadaním
 //    si stiahne zoznam dostupných modelov cez Gemini REST API a postupne preverí
-//    VŠETKY flash modely od verzie 1.5 a vyššie, kým jedna odpoveď prejde
+//    VŠETKY bezplatné Flash-Lite modely od verzie 1.5 a vyššie, kým jedna odpoveď prejde
 //    kontrolou grounding zdrojov.
 //
 //  Nasadenie:
@@ -19,7 +19,7 @@
 //
 //  ENV premenné (Supabase -> Project Settings -> Edge Functions -> Secrets):
 //    GEMINI_API_KEY = tvoj Google AI Studio kľúč
-//    GEMINI_MODEL (voliteľné) = model, ktorý sa preverí ako úplne prvý
+//    GEMINI_MODEL (voliteľné) = Flash-Lite model, ktorý sa preverí ako prvý
 //  (SUPABASE_URL a SUPABASE_SERVICE_ROLE_KEY sú dostupné automaticky.)
 // =============================================================================
 
@@ -35,17 +35,12 @@ const MIN_FLASH_VERSION_MINOR = 5;
 // Záložný zoznam ID (ak zoznam modelov cez REST API nepríde). Slúži len ako
 // sieťová poistka – filtre nižšie naň rovnako aplikujú podmienku flash >= 1.5.
 const FALLBACK_FLASH_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
 ];
 
-/** Vráti verziu [major, minor] pre flash model od 1.5 (vrátane), inak null. */
+/** Vráti verziu [major, minor] pre bezplatný Flash-Lite model od 1.5 (vrátane), inak null. */
 function parseFlashVersion(modelId: string): [number, number] | null {
-  if (!/flash/i.test(modelId)) return null;
+  if (!/flash-lite/i.test(modelId)) return null;
   const match = modelId.match(/gemini-(\d+)\.(\d+)/i);
   if (!match) return null;
   const major = Number(match[1]);
@@ -668,7 +663,9 @@ serve(async (req) => {
       // Zoznam všetkých dostupných flash modelov (>= 1.5) z Gemini REST API,
       // zoradený od najnovšej verzie. GEMINI_MODEL (ak je nastavený) ide prvý.
       const discovered = await listFlashModels(geminiKey);
-      const preferred = Deno.env.get("GEMINI_MODEL")?.trim();
+      const preferredRaw = Deno.env.get("GEMINI_MODEL")?.trim();
+      // Povolené sú len bezplatné Flash-Lite modely.
+      const preferred = preferredRaw && /flash-lite/i.test(preferredRaw) ? preferredRaw : "";
       const modelQueue = [
         ...new Set([...(preferred && preferred.length > 0 ? [preferred] : []), ...discovered]),
       ];

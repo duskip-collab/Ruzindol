@@ -51,7 +51,8 @@ select cron.schedule(
       'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'edge_anon_key'),
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'edge_anon_key')
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 120000
   );
   $$
 );
