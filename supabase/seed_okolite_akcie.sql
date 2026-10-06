@@ -1,9 +1,0 @@
--- Tento modul sa nesmie plniť ukážkovými ani vymyslenými podujatiami.
--- Produkčné dáta zapisuje výhradne Edge Function aktualizuj-akcie po kontrole
--- zdrojov Google Search.
---
--- Zoznam aktuálne uložených podujatí:
--- SELECT nazov, obec, datum_cas, vzdialenost_km, zdroj_url
--- FROM public.okolite_akcie
--- WHERE konanie_dna >= CURRENT_DATE
--- ORDER BY konanie_dna, vzdialenost_km;
