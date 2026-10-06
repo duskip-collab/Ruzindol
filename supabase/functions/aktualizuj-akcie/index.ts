@@ -9,7 +9,7 @@
 //    tabuľke `okolite_akcie` až po úspešnej validácii celej odpovede.
 //  • Využíva VÝHRADNE Google Gemini (žiadni iní poskytovatelia). Pred hľadaním
 //    si stiahne zoznam dostupných modelov cez Gemini REST API a postupne preverí
-//    VŠETKY bezplatné Flash-Lite modely od verzie 1.5 a vyššie, kým jedna odpoveď prejde
+//    VŠETKY flash modely od verzie 1.5 a vyššie, kým jedna odpoveď prejde
 //    kontrolou grounding zdrojov.
 //
 //  Nasadenie:
@@ -19,7 +19,7 @@
 //
 //  ENV premenné (Supabase -> Project Settings -> Edge Functions -> Secrets):
 //    GEMINI_API_KEY = tvoj Google AI Studio kľúč
-//    GEMINI_MODEL (voliteľné) = Flash-Lite model, ktorý sa preverí ako prvý
+//    GEMINI_MODEL (voliteľné) = model preverený ako prvý (predvolene gemini-2.5-flash)
 //  (SUPABASE_URL a SUPABASE_SERVICE_ROLE_KEY sú dostupné automaticky.)
 // =============================================================================
 
@@ -35,12 +35,13 @@ const MIN_FLASH_VERSION_MINOR = 5;
 // Záložný zoznam ID (ak zoznam modelov cez REST API nepríde). Slúži len ako
 // sieťová poistka – filtre nižšie naň rovnako aplikujú podmienku flash >= 1.5.
 const FALLBACK_FLASH_MODELS = [
+  "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
 ];
 
-/** Vráti verziu [major, minor] pre bezplatný Flash-Lite model od 1.5 (vrátane), inak null. */
+/** Vráti verziu [major, minor] pre flash model od 1.5 (vrátane), inak null. */
 function parseFlashVersion(modelId: string): [number, number] | null {
-  if (!/flash-lite/i.test(modelId)) return null;
+  if (!/flash/i.test(modelId)) return null;
   const match = modelId.match(/gemini-(\d+)\.(\d+)/i);
   if (!match) return null;
   const major = Number(match[1]);
@@ -664,8 +665,8 @@ serve(async (req) => {
       // zoradený od najnovšej verzie. GEMINI_MODEL (ak je nastavený) ide prvý.
       const discovered = await listFlashModels(geminiKey);
       const preferredRaw = Deno.env.get("GEMINI_MODEL")?.trim();
-      // Povolené sú len bezplatné Flash-Lite modely.
-      const preferred = preferredRaw && /flash-lite/i.test(preferredRaw) ? preferredRaw : "";
+      // Predvolený model je gemini-2.5-flash; ďalej sa skúšajú ostatné flash modely.
+      const preferred = preferredRaw || "gemini-2.5-flash";
       const modelQueue = [
         ...new Set([...(preferred && preferred.length > 0 ? [preferred] : []), ...discovered]),
       ];
