@@ -1466,45 +1466,6 @@ export type Database = {
           },
         ];
       };
-      region_spravy: {
-        Row: {
-          created_at: string;
-          guid: string;
-          id: string;
-          obrazok_url: string | null;
-          popis: string | null;
-          publikovane_at: string;
-          stazena: boolean;
-          titulok: string;
-          zdroj_nazov: string;
-          zdroj_url: string;
-        };
-        Insert: {
-          created_at?: string;
-          guid: string;
-          id?: string;
-          obrazok_url?: string | null;
-          popis?: string | null;
-          publikovane_at: string;
-          stazena?: boolean;
-          titulok: string;
-          zdroj_nazov?: string;
-          zdroj_url: string;
-        };
-        Update: {
-          created_at?: string;
-          guid?: string;
-          id?: string;
-          obrazok_url?: string | null;
-          popis?: string | null;
-          publikovane_at?: string;
-          stazena?: boolean;
-          titulok?: string;
-          zdroj_nazov?: string;
-          zdroj_url?: string;
-        };
-        Relationships: [];
-      };
       user_activity_log: {
         Row: {
           activity_type: string;
@@ -1715,10 +1676,6 @@ export type Database = {
     };
     Functions: {
       replace_okolite_akcie: {
-        Args: { p_rows: Json };
-        Returns: undefined;
-      };
-      replace_region_spravy: {
         Args: { p_rows: Json };
         Returns: undefined;
       };
